@@ -1,7 +1,14 @@
 .git
 .github
+.agents
+.claude
+.vscode
 .next
 node_modules
+
+AGENTS.md
+CLAUDE.md
+skills-lock.json
 
 .env
 .env.*

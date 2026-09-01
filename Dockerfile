@@ -1,7 +1,15 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1-debian AS dependencies
+FROM oven/bun:1-debian AS bun
+
+FROM node:24-bookworm-slim AS dependencies
 WORKDIR /app
+
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
@@ -14,7 +22,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY . .
 RUN bun run build
 
-FROM node:20-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \
