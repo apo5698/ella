@@ -1,0 +1,14 @@
+.git
+.github
+.next
+node_modules
+
+.env
+.env.*
+
+data/*.db*
+data/skills
+public/thumbs
+videos
+
+*.log

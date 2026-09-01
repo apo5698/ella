@@ -1,0 +1,108 @@
+.player {
+  --media-button-border-radius: calc(var(--radius) * 0.8);
+  --media-button-hover-bg: rgb(255 255 255 / 12%);
+  --media-button-hover-transform: none;
+  --media-button-hover-transition: background-color 150ms ease;
+  --media-button-icon-size: 0.875rem;
+  --media-button-size: 1.75rem;
+  --media-menu-bg: color-mix(in oklch, var(--popover) 70%, transparent);
+  --media-menu-border: 1px solid var(--border);
+  --media-menu-border-radius: var(--radius);
+  --media-menu-box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
+  --media-menu-checkbox-bg: var(--muted);
+  --media-menu-checkbox-bg-active: var(--primary);
+  --media-menu-checkbox-handle-bg: var(--primary-foreground);
+  --media-menu-divider: 1px solid var(--border);
+  --media-menu-font-size: 0.75rem;
+  --media-menu-font-weight: 400;
+  --media-menu-item-border-radius: calc(var(--radius) * 0.8);
+  --media-menu-item-height: 1.75rem;
+  --media-menu-item-hover-bg: color-mix(
+    in oklch,
+    var(--foreground) 10%,
+    transparent
+  );
+  --media-menu-item-icon-size: 0.875rem;
+  --media-menu-item-padding: 0.5rem;
+  --media-menu-padding: 0.25rem;
+  --media-menu-radio-icon-color: var(--primary);
+  --media-menu-section-bg: transparent;
+  --media-menu-slider-track-fill-bg: var(--primary);
+  --media-menu-text-color: var(--popover-foreground);
+  --media-menu-text-secondary-color: var(--muted-foreground);
+  --media-menu-top-bar-bg: transparent;
+  --media-slider-focused-thumb-shadow: 0 0 0 2px
+    color-mix(in oklch, var(--ring) 30%, transparent);
+  --media-slider-thumb-bg: white;
+  --media-slider-thumb-border: 1px solid var(--ring);
+  --media-slider-thumb-border-radius: calc(var(--radius) * 0.8);
+  --media-slider-thumb-size: 0.75rem;
+  --media-slider-track-border-radius: calc(var(--radius) * 0.8);
+  --media-slider-track-height: 0.25rem;
+  --media-time-font-size: 0.75rem;
+  --media-time-font-weight: 400;
+  --media-time-letter-spacing: 0;
+  --media-tooltip-bg-color: var(--foreground);
+  --media-tooltip-border: 0;
+  --media-tooltip-border-radius: calc(var(--radius) * 0.8);
+  --media-tooltip-color: var(--background);
+  --media-tooltip-font-size: 0.75rem;
+  --media-tooltip-font-weight: 400;
+  --media-tooltip-padding: 0.375rem 0.75rem;
+  --video-border: 0;
+  --video-border-radius: var(--radius);
+  --video-focus-ring-color: var(--ring);
+  --video-font-family: inherit;
+  --video-sm-button-size: 1.75rem;
+}
+
+.player :global(.vds-button) {
+  border: 1px solid transparent;
+  outline: none;
+  transition: all 150ms ease;
+}
+
+.player :global(.vds-button:active) {
+  transform: translateY(1px);
+}
+
+.player :global(.vds-button:focus-visible) {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 30%, transparent);
+}
+
+.player :global(.vds-menu-items[data-root][aria-hidden="false"]) {
+  animation: player-menu-fade-in 100ms ease-out forwards;
+}
+
+.player :global(.vds-menu-items[data-root][aria-hidden="true"]) {
+  animation: player-menu-fade-out 75ms ease-in forwards;
+}
+
+@keyframes player-menu-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes player-menu-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player :global(.vds-menu-items[data-root]) {
+    animation: none;
+    opacity: 1;
+  }
+}

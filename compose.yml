@@ -1,0 +1,44 @@
+name: ella
+
+services:
+  app:
+    image: ghcr.io/OWNER/REPOSITORY:latest
+    pull_policy: always
+    container_name: ella
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      VIDEO_ROOT: /videos
+      DB_PATH: /app/data/catalog.db
+      THUMB_DIR: /app/public/thumbs
+      FFMPEG_PATH: ffmpeg
+      FFPROBE_PATH: ffprobe
+      LMSTUDIO_URL: http://host.docker.internal:1234/v1
+      LMSTUDIO_MODEL: qwen/qwen3-vl-8b
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      # Change this to the absolute video directory on the Docker host.
+      - /absolute/path/to/videos:/videos:ro
+      - ella-data:/app/data
+      - ella-thumbs:/app/public/thumbs
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  ella-data:
+  ella-thumbs:
