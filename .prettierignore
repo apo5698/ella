@@ -1,0 +1,8 @@
+/.agents
+/.claude
+/.codex
+/.next
+/.vscode
+/tmp
+/components/ui
+/hooks/use-mobile.ts
