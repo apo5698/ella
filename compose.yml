@@ -2,7 +2,7 @@ name: ella
 
 services:
   app:
-    image: ghcr.io/OWNER/REPOSITORY:latest
+    image: ghcr.io/apo5698/ella:latest
     pull_policy: always
     container_name: ella
     restart: unless-stopped
