@@ -25,8 +25,8 @@ services:
     volumes:
       # Change this to the absolute video directory on the Docker host.
       - /absolute/path/to/videos:/videos:ro
-      - ella-data:/app/data
-      - ella-thumbs:/app/public/thumbs
+      - ./data:/app/data
+      - ./thumbs:/app/public/thumbs
 
     healthcheck:
       test:
@@ -38,7 +38,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-
-volumes:
-  ella-data:
-  ella-thumbs:
