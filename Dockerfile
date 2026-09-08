@@ -17,6 +17,8 @@ RUN bun install --frozen-lockfile
 FROM dependencies AS builder
 WORKDIR /app
 
+ARG APP_VERSION
+ENV APP_VERSION=${APP_VERSION}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY . .
@@ -25,6 +27,8 @@ RUN bun run build
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
+ARG APP_VERSION
+ENV APP_VERSION=${APP_VERSION}
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \
