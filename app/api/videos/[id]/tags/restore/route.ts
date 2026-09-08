@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { resolveTagName, tagPath } from "@/lib/tagHierarchy";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /** Un-rejects a tag the user had removed, making it active again. */
 export async function POST(
@@ -24,6 +25,7 @@ export async function POST(
   // The ancestors go back with it so the restored chip rejoins its family
   // without a reload.
   const resolved = resolveTagName(db, name);
+  notifyVideosChanged([Number(id)]);
   return NextResponse.json({
     ok: true,
     id: resolved.id,

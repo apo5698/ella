@@ -1,27 +1,33 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LibraryIcon, PlusIcon, RefreshCwIcon, TagsIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  LibraryIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  TagsIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import TagAutocomplete from "@/components/TagAutocomplete";
 import type { Option as TagOption } from "@/components/TagAutocomplete";
 import ListPagination from "@/components/ListPagination";
+import LocalTime from "@/components/LocalTime";
+import VideoLink from "@/components/VideoLink";
 import {
   InlineSeriesBadge,
   RemovableSeriesBadge,
   RemovableTagBadge,
+  SeriesBadge,
+  TagBadge,
 } from "@/components/tags/TagBadge";
-import VideoListItem from "@/components/admin/VideoListItem";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dot } from "@/components/ui/dot";
 import {
   Dialog,
   DialogContent,
@@ -43,39 +49,25 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import SearchInput from "@/components/SearchInput";
-import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
-import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
-import { compareNames } from "@/lib/tagOrder";
 import {
-  DEFAULT_SERIES_SORT,
-  SERIES_SORT_LABELS,
-  SERIES_SORT_OPTIONS,
-  VIDEO_SORT_LABELS,
-  VIDEO_SORT_OPTIONS,
-} from "@/lib/videoSort";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { formatSize } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import type { Video } from "@/lib/types";
+import type { VideoEvent } from "@/lib/videoEvents";
 import AutoTagDialog from "./AutoTagDialog";
+import VideoRowActions from "./VideoRowActions";
 
 type BatchAction = "add" | "remove";
-type VideoGroup = {
-  id: number | null;
-  name: string;
-  videoCount: number;
-};
-
-function groupValue(group: VideoGroup) {
-  return group.id === null ? "none" : String(group.id);
-}
 
 function BatchTagDialog({
   action,
@@ -324,140 +316,346 @@ function BatchSeriesDialog({
   );
 }
 
-function GroupVideos({
-  group,
-  query,
+function videoResolution(video: Video) {
+  return video.width && video.height
+    ? `${video.width} × ${video.height}`
+    : "未知分辨率";
+}
+
+const HEADER_SORTS = {
+  title: ["title_asc", "title_desc"],
+  size: ["size_desc", "size_asc"],
+  clicks: ["clicks_desc", "clicks_asc"],
+  views: ["views_desc", "views_asc"],
+  modified: ["newest", "oldest"],
+} as const;
+
+const SORT_DIRECTIONS: Record<string, "asc" | "desc"> = {
+  title_asc: "asc",
+  title_desc: "desc",
+  size_asc: "asc",
+  size_desc: "desc",
+  clicks_asc: "asc",
+  clicks_desc: "desc",
+  views_asc: "asc",
+  views_desc: "desc",
+  newest: "desc",
+  oldest: "asc",
+};
+
+function SortableTableHead({
+  label,
   sort,
+  values,
+  className,
+  onSort,
+}: {
+  label: string;
+  sort: string;
+  values: readonly [string, string];
+  className?: string;
+  onSort: (sort: string) => void;
+}) {
+  const active = values.includes(sort);
+  const direction = active ? SORT_DIRECTIONS[sort] : undefined;
+  const nextSort = sort === values[0] ? values[1] : values[0];
+  const nextDirection = SORT_DIRECTIONS[nextSort];
+  const SortIcon =
+    direction === "asc"
+      ? ArrowUpIcon
+      : direction === "desc"
+        ? ArrowDownIcon
+        : ArrowUpDownIcon;
+
+  return (
+    <TableHead
+      aria-sort={
+        direction === "asc"
+          ? "ascending"
+          : direction === "desc"
+            ? "descending"
+            : "none"
+      }
+      className={cn("text-xs text-muted-foreground", className)}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-2 cursor-pointer"
+        title={`按${label}${nextDirection === "asc" ? "升序" : "降序"}排列`}
+        onClick={() => onSort(nextSort)}
+      >
+        {label}
+        <SortIcon data-icon="inline-end" />
+      </Button>
+    </TableHead>
+  );
+}
+
+function videoManagerHref({
+  pathname,
+  query,
+  tagIds,
+  sort,
+  page,
   pageSize,
-  onPageSizeChange,
-  refreshEpoch,
+}: {
+  pathname: string;
+  query: string;
+  tagIds: number[];
+  sort: string;
+  page: number;
+  pageSize: number;
+}) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (tagIds.length > 0) params.set("tags", tagIds.join(","));
+  if (sort !== "newest") params.set("sort", sort);
+  if (page !== 1) params.set("page", String(page));
+  if (pageSize !== MANAGER_PAGE_SIZES[0]) {
+    params.set("pageSize", String(pageSize));
+  }
+  const queryString = params.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
+}
+
+function VideoTable({
+  videos,
+  loading,
   selected,
+  sort,
+  returnHref,
   onToggleVideo,
   onTogglePage,
+  onChanged,
+  onDeleted,
+  onSort,
 }: {
-  group: VideoGroup;
-  query: string;
-  sort: string;
-  pageSize: number;
-  onPageSizeChange: (pageSize: number) => void;
-  refreshEpoch: number;
+  videos: Video[];
+  loading: boolean;
   selected: Set<number>;
+  sort: string;
+  returnHref: string;
   onToggleVideo: (id: number, checked: boolean) => void;
   onTogglePage: (ids: number[], checked: boolean) => void;
+  onChanged: () => void;
+  onDeleted: (id: number) => void;
+  onSort: (sort: string) => void;
 }) {
-  const [page, setPage] = useState(1);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [total, setTotal] = useState(group.videoCount);
-  const requestKey = JSON.stringify([
-    groupValue(group),
-    query,
-    sort,
-    page,
-    pageSize,
-    refreshEpoch,
-  ]);
-  const [loadedRequest, setLoadedRequest] = useState("");
-  const loading = loadedRequest !== requestKey;
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const params = new URLSearchParams({
-      series: groupValue(group),
-      sort,
-      page: String(page),
-      pageSize: String(pageSize),
-    });
-    if (query) params.set("q", query);
-
-    fetch(`/api/videos?${params}`, { signal: controller.signal })
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "加载失败");
-        setVideos(data.videos);
-        setTotal(data.total);
-      })
-      .catch((cause) => {
-        if ((cause as Error).name !== "AbortError")
-          toast.error((cause as Error).message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoadedRequest(requestKey);
-      });
-
-    return () => controller.abort();
-  }, [group, page, pageSize, query, refreshEpoch, requestKey, sort]);
-
   const currentIds = useMemo(() => videos.map((video) => video.id), [videos]);
   const allSelected =
     currentIds.length > 0 && currentIds.every((id) => selected.has(id));
   const someSelected =
     !allSelected && currentIds.some((id) => selected.has(id));
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const paginationControls = (
-    <ListPagination
-      page={page}
-      totalPages={totalPages}
-      onPageChange={setPage}
-      buttonSize="sm"
-      className="gap-3"
-      pageSize={{
-        value: pageSize,
-        options: MANAGER_PAGE_SIZES,
-        label: "每页视频",
-        onChange: (nextPageSize) => {
-          onPageSizeChange(nextPageSize);
-          setPage(1);
-        },
-      }}
-    />
-  );
 
   return (
-    <div className="flex flex-col gap-3 pt-2">
-      <div className="flex flex-wrap items-center gap-2 text-foreground">
-        <Checkbox
-          checked={allSelected}
-          indeterminate={someSelected}
-          onCheckedChange={() => onTogglePage(currentIds, !allSelected)}
-          aria-label={`全选 ${group.name} 当前页`}
-        />
-        <button
-          type="button"
-          className="cursor-pointer"
-          onClick={() => onTogglePage(currentIds, !allSelected)}
-        >
-          全选当前页
-        </button>
-        <div className="ml-auto">{paginationControls}</div>
-      </div>
-
-      {loading ? (
-        <ItemGroup>
-          {Array.from({ length: Math.min(3, pageSize) }, (_, index) => (
-            <Item key={index} role="listitem" variant="outline">
-              <Skeleton className="size-4" />
-              <Skeleton className="h-16 w-28" />
-              <ItemContent>
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-3 w-1/2" />
-              </ItemContent>
-            </Item>
-          ))}
-        </ItemGroup>
-      ) : (
-        <ItemGroup>
-          {videos.map((video) => (
-            <VideoListItem
-              key={video.id}
-              video={video}
-              checked={selected.has(video.id)}
-              onCheckedChange={(checked) => onToggleVideo(video.id, checked)}
+    <div className="overflow-hidden rounded-lg border">
+      <Table className="table-fixed">
+        <TableHeader className="bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]">
+          <TableRow>
+            <TableHead className="w-12 text-xs text-muted-foreground">
+              <Checkbox
+                checked={allSelected}
+                indeterminate={someSelected}
+                onCheckedChange={() => onTogglePage(currentIds, !allSelected)}
+                aria-label="全选当前页"
+              />
+            </TableHead>
+            <SortableTableHead
+              label="名称"
+              sort={sort}
+              values={HEADER_SORTS.title}
+              onSort={onSort}
             />
-          ))}
-        </ItemGroup>
-      )}
+            <SortableTableHead
+              label="点击量"
+              sort={sort}
+              values={HEADER_SORTS.clicks}
+              onSort={onSort}
+              className="hidden w-[clamp(5rem,7vw,6rem)] lg:table-cell"
+            />
+            <SortableTableHead
+              label="播放量"
+              sort={sort}
+              values={HEADER_SORTS.views}
+              onSort={onSort}
+              className="hidden w-[clamp(5rem,7vw,6rem)] lg:table-cell"
+            />
+            <SortableTableHead
+              label="大小"
+              sort={sort}
+              values={HEADER_SORTS.size}
+              onSort={onSort}
+              className="hidden w-[clamp(5rem,8vw,7rem)] sm:table-cell"
+            />
+            <SortableTableHead
+              label="修改时间"
+              sort={sort}
+              values={HEADER_SORTS.modified}
+              onSort={onSort}
+              className="hidden w-[clamp(6rem,10vw,8rem)] sm:table-cell"
+            />
+            <TableHead className="sticky right-0 z-10 w-12 bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] text-xs text-muted-foreground">
+              <span className="sr-only">操作</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading
+            ? Array.from({ length: 6 }, (_, index) => (
+                <TableRow key={index} className="bg-background">
+                  <TableCell>
+                    <Skeleton className="size-4" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-2">
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <Skeleton className="h-4 w-12" />
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <Skeleton className="h-4 w-12" />
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell className="sticky right-0 z-10 bg-background">
+                    <Skeleton className="size-7" />
+                  </TableCell>
+                </TableRow>
+              ))
+            : videos.map((video) => {
+                const visibleTags = video.tags.slice(0, 3);
+                const tagCount = video.tags.length;
+                const checked = selected.has(video.id);
 
-      {paginationControls}
+                return (
+                  <TableRow
+                    key={video.id}
+                    className="group bg-background hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]"
+                    data-state={checked ? "selected" : undefined}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(value) =>
+                          onToggleVideo(video.id, value === true)
+                        }
+                        aria-label={`选择 ${video.title}`}
+                      />
+                    </TableCell>
+                    <TableCell className="whitespace-normal">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <div className="flex min-w-0 items-center justify-between gap-4">
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            {video.series_name && (
+                              <SeriesBadge
+                                className="min-w-0 max-w-24 shrink"
+                                title={video.series_name}
+                              >
+                                <span className="min-w-0 truncate">
+                                  {video.series_name}
+                                </span>
+                              </SeriesBadge>
+                            )}
+                            <VideoLink
+                              href={`/video/${video.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={video.title}
+                              className="min-w-0 flex-1 truncate text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                            >
+                              {video.title}
+                            </VideoLink>
+                          </div>
+                          {tagCount > 0 && (
+                            <div className="hidden min-w-0 max-w-1/2 shrink items-center justify-end gap-1 overflow-hidden md:flex">
+                              {visibleTags.map((tag, index) => (
+                                <TagBadge
+                                  key={tag.id}
+                                  render={
+                                    <Link
+                                      href={`/admin/tags/${tag.id}?from=${encodeURIComponent(returnHref)}`}
+                                    />
+                                  }
+                                  source={tag.source}
+                                  title={tag.name}
+                                  className={cn(
+                                    "min-w-0 max-w-24 shrink cursor-pointer",
+                                    index === 1 && "hidden lg:inline-flex",
+                                    index === 2 && "hidden xl:inline-flex",
+                                  )}
+                                >
+                                  <span className="min-w-0 truncate">
+                                    {tag.name}
+                                  </span>
+                                </TagBadge>
+                              ))}
+                              {tagCount > 3 && (
+                                <Badge
+                                  variant="secondary"
+                                  title={`另有 ${tagCount - 3} 个标签`}
+                                  className="hidden shrink-0 xl:inline-flex"
+                                >
+                                  +{tagCount - 3}
+                                </Badge>
+                              )}
+                              {tagCount > 2 && (
+                                <Badge
+                                  variant="secondary"
+                                  title={`另有 ${tagCount - 2} 个标签`}
+                                  className="hidden shrink-0 lg:inline-flex xl:hidden"
+                                >
+                                  +{tagCount - 2}
+                                </Badge>
+                              )}
+                              {tagCount > 1 && (
+                                <Badge
+                                  variant="secondary"
+                                  title={`另有 ${tagCount - 1} 个标签`}
+                                  className="shrink-0 lg:hidden"
+                                >
+                                  +{tagCount - 1}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {videoResolution(video)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
+                      {video.clicks.toLocaleString("zh-CN")}
+                    </TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
+                      {video.views.toLocaleString("zh-CN")}
+                    </TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums sm:table-cell">
+                      {formatSize(video.size_bytes)}
+                    </TableCell>
+                    <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
+                      <LocalTime value={video.mtime} />
+                    </TableCell>
+                    <TableCell className="sticky right-0 z-10 bg-background text-right transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-data-[state=selected]:bg-muted">
+                      <VideoRowActions
+                        video={video}
+                        onChanged={onChanged}
+                        onDeleted={onDeleted}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -471,30 +669,76 @@ function VideoManagerContent() {
     () => searchParams.get("q") ?? "",
   );
   const [sort, setSort] = useState(() => searchParams.get("sort") ?? "newest");
-  const [groupSort, setGroupSort] = useState(
-    () => searchParams.get("groupSort") ?? DEFAULT_SERIES_SORT,
+  const [filterTagIds, setFilterTagIds] = useState<number[]>(() =>
+    (searchParams.get("tags") ?? "")
+      .split(",")
+      .map(Number)
+      .filter(Number.isInteger),
   );
+  const [filterTags, setFilterTags] = useState<TagOption[]>([]);
+  const [filterTagsHydrated, setFilterTagsHydrated] = useState(
+    () => filterTagIds.length === 0,
+  );
+  const [page, setPage] = useState(() => {
+    const value = Number(searchParams.get("page"));
+    return Number.isInteger(value) && value > 0 ? value : 1;
+  });
   const [pageSize, setPageSize] = useState(() => {
     const value = Number(searchParams.get("pageSize"));
     return MANAGER_PAGE_SIZES.some((size) => size === value)
       ? value
       : MANAGER_PAGE_SIZES[0];
   });
-  const [groups, setGroups] = useState<VideoGroup[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [total, setTotal] = useState(0);
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [batchAction, setBatchAction] = useState<BatchAction | null>(null);
   const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
   const [scanSubmitting, setScanSubmitting] = useState(false);
   const [refreshEpoch, setRefreshEpoch] = useState(0);
-  const groupRequestKey = JSON.stringify([debouncedQuery, refreshEpoch]);
-  const [loadedGroupRequest, setLoadedGroupRequest] = useState("");
-  const loading = loadedGroupRequest !== groupRequestKey;
+  const [liveRefreshEpoch, setLiveRefreshEpoch] = useState(0);
+  const requestKey = JSON.stringify([
+    debouncedQuery,
+    sort,
+    page,
+    pageSize,
+    filterTagIds,
+    refreshEpoch,
+  ]);
+  const [loadedRequest, setLoadedRequest] = useState("");
+  const loading = loadedRequest !== requestKey;
+
+  useEffect(() => {
+    if (filterTagsHydrated) return;
+    const controller = new AbortController();
+    fetch("/api/tags", { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "无法加载标签筛选");
+        const selectedIds = new Set(filterTagIds);
+        const resolved = (data.tags as TagOption[]).filter(
+          (tag) => tag.id !== undefined && selectedIds.has(tag.id),
+        );
+        setFilterTags(resolved);
+        setFilterTagIds(
+          resolved.flatMap((tag) => (tag.id === undefined ? [] : [tag.id])),
+        );
+      })
+      .catch((cause) => {
+        if ((cause as Error).name !== "AbortError") {
+          toast.error((cause as Error).message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setFilterTagsHydrated(true);
+      });
+    return () => controller.abort();
+  }, [filterTagIds, filterTagsHydrated]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query.trim());
+      setPage(1);
       setSelected(new Set());
     }, 250);
     return () => clearTimeout(timer);
@@ -502,65 +746,116 @@ function VideoManagerContent() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams({ groupBy: "series" });
+    const params = new URLSearchParams({
+      sort,
+      page: String(page),
+      pageSize: String(pageSize),
+    });
     if (debouncedQuery) params.set("q", debouncedQuery);
+    if (filterTagIds.length > 0) params.set("tags", filterTagIds.join(","));
 
     fetch(`/api/videos?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "加载失败");
-        const nextGroups = data.groups as VideoGroup[];
-        setGroups(nextGroups);
+        if (data.videos.length === 0 && data.total > 0 && page > 1) {
+          setTotal(data.total);
+          setPage(Math.max(1, Math.ceil(data.total / pageSize)));
+          return;
+        }
+        setVideos(data.videos as Video[]);
         setTotal(data.total);
-        setOpenGroups((current) => {
-          const available = new Set(nextGroups.map(groupValue));
-          return current.filter((value) => available.has(value));
-        });
       })
       .catch((cause) => {
         if ((cause as Error).name !== "AbortError")
           toast.error((cause as Error).message);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoadedGroupRequest(groupRequestKey);
+        if (!controller.signal.aborted) setLoadedRequest(requestKey);
       });
 
     return () => controller.abort();
-  }, [debouncedQuery, groupRequestKey, refreshEpoch]);
-
-  /**
-   * Ordered here rather than in SQL: SQLite compares Chinese names by code
-   * point, which reads as unsorted. The videos with no series lead in every
-   * order, since that group is a gap in the library rather than a series.
-   */
-  const sortedGroups = useMemo(() => {
-    const byName = (a: VideoGroup, b: VideoGroup) =>
-      compareNames(a.name, b.name);
-    return [...groups].sort((a, b) => {
-      if ((a.id === null) !== (b.id === null)) return a.id === null ? -1 : 1;
-      if (groupSort === "count_desc") {
-        return b.videoCount - a.videoCount || byName(a, b);
-      }
-      if (groupSort === "count_asc") {
-        return a.videoCount - b.videoCount || byName(a, b);
-      }
-      return byName(a, b);
-    });
-  }, [groups, groupSort]);
+  }, [
+    debouncedQuery,
+    filterTagIds,
+    page,
+    pageSize,
+    refreshEpoch,
+    requestKey,
+    sort,
+    liveRefreshEpoch,
+  ]);
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (debouncedQuery) params.set("q", debouncedQuery);
-    if (sort !== "newest") params.set("sort", sort);
-    if (groupSort !== DEFAULT_SERIES_SORT) params.set("groupSort", groupSort);
-    if (pageSize !== MANAGER_PAGE_SIZES[0]) {
-      params.set("pageSize", String(pageSize));
-    }
-    const queryString = params.toString();
-    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-      scroll: false,
-    });
-  }, [debouncedQuery, groupSort, pageSize, pathname, router, sort]);
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        setLiveRefreshEpoch((epoch) => epoch + 1);
+      }, 200);
+    };
+    const source = new EventSource("/api/videos/stream");
+    source.onmessage = (message) => {
+      const event = JSON.parse(message.data) as VideoEvent;
+      if (event.type === "invalidate") {
+        scheduleRefresh();
+        return;
+      }
+
+      setVideos((current) =>
+        current.map((video) =>
+          video.id === event.videoId
+            ? {
+                ...video,
+                ...(event.clicks === undefined ? {} : { clicks: event.clicks }),
+                ...(event.views === undefined ? {} : { views: event.views }),
+              }
+            : video,
+        ),
+      );
+      if (
+        (event.clicks !== undefined && sort.startsWith("clicks_")) ||
+        (event.views !== undefined && sort.startsWith("views_"))
+      ) {
+        scheduleRefresh();
+      }
+    };
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      source.close();
+    };
+  }, [sort]);
+
+  useEffect(() => {
+    router.replace(
+      videoManagerHref({
+        pathname,
+        query: debouncedQuery,
+        tagIds: filterTagIds,
+        sort,
+        page,
+        pageSize,
+      }),
+      { scroll: false },
+    );
+  }, [debouncedQuery, filterTagIds, page, pageSize, pathname, router, sort]);
+
+  function addFilterTag(option: TagOption) {
+    if (option.id === undefined || filterTagIds.includes(option.id)) return;
+    setFilterTags((current) => [...current, option]);
+    setFilterTagIds((current) => [...current, option.id!]);
+    setPage(1);
+    setSelected(new Set());
+  }
+
+  function removeFilterTag(id: number) {
+    setFilterTags((current) => current.filter((tag) => tag.id !== id));
+    setFilterTagIds((current) => current.filter((tagId) => tagId !== id));
+    setPage(1);
+    setSelected(new Set());
+  }
 
   function toggleVideo(id: number, checked: boolean) {
     setSelected((current) => {
@@ -603,6 +898,29 @@ function VideoManagerContent() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const returnHref = videoManagerHref({
+    pathname,
+    query: debouncedQuery,
+    tagIds: filterTagIds,
+    sort,
+    page,
+    pageSize,
+  });
+
+  function refreshVideos() {
+    setRefreshEpoch((epoch) => epoch + 1);
+  }
+
+  function handleDeleted(id: number) {
+    setSelected((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+    refreshVideos();
+  }
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -612,47 +930,17 @@ function VideoManagerContent() {
           placeholder="搜索标题、路径、系列、标签或拼音"
           className="min-w-56 flex-1"
         />
-        <Select
-          value={sort}
-          onValueChange={(value) => setSort(value as string)}
-        >
-          <SelectTrigger aria-label="排序">
-            <SelectValue>
-              {(value: string) => VIDEO_SORT_LABELS[value] ?? "排序"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {VIDEO_SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <Select
-          value={groupSort}
-          onValueChange={(value) => setGroupSort(value as string)}
-        >
-          <SelectTrigger aria-label="系列排序">
-            <SelectValue>
-              {(value: string) => SERIES_SORT_LABELS[value] ?? "系列排序"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {SERIES_SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <AutoTagDialog
-          onCommitted={() => setRefreshEpoch((epoch) => epoch + 1)}
+        <TagAutocomplete
+          endpoint="/api/tags/suggest?limit=30"
+          mode="multi"
+          placeholder="按标签筛选"
+          allowCreate={false}
+          disabledNames={filterTags.map((tag) => tag.name)}
+          onSelect={(_, option) => addFilterTag(option)}
+          className="w-44"
+          inputId="video-tag-filter"
         />
+        <AutoTagDialog onCommitted={refreshVideos} />
         <Button
           variant="outline"
           disabled={scanSubmitting}
@@ -667,9 +955,36 @@ function VideoManagerContent() {
         </Button>
       </div>
 
-      <p className="text-xs text-foreground">
-        共 {total} 个视频，{groups.length} 个分组
-      </p>
+      {filterTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1">
+          {filterTags.map((tag) => (
+            <RemovableTagBadge
+              key={tag.id}
+              state={tag.reviewState}
+              removeLabel={`移除标签筛选"${tag.name}"`}
+              title={tag.name}
+              className="max-w-40"
+              onClick={() => removeFilterTag(tag.id!)}
+            >
+              <span className="min-w-0 flex-1 truncate">{tag.name}</span>
+            </RemovableTagBadge>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilterTags([]);
+              setFilterTagIds([]);
+              setPage(1);
+              setSelected(new Set());
+            }}
+          >
+            清除筛选
+          </Button>
+        </div>
+      )}
+
+      <p className="text-xs text-foreground">共 {total} 个视频</p>
 
       {selected.size > 0 && (
         <div className="sticky top-2 flex flex-wrap items-center gap-2 rounded-lg border bg-card/90 px-3 py-2 shadow-sm backdrop-blur-xl">
@@ -696,13 +1011,7 @@ function VideoManagerContent() {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-11 w-full" />
-          ))}
-        </div>
-      ) : groups.length === 0 ? (
+      {!loading && videos.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyTitle>未找到视频</EmptyTitle>
@@ -710,51 +1019,40 @@ function VideoManagerContent() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <Accordion
-          multiple
-          value={openGroups}
-          onValueChange={(value) => setOpenGroups(value as string[])}
-        >
-          {sortedGroups.map((group) => {
-            const value = groupValue(group);
-            const isOpen = openGroups.includes(value);
-            return (
-              <AccordionItem key={value} value={value}>
-                <AccordionTrigger className="items-center px-3 py-3 hover:no-underline">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Dot
-                      className={
-                        group.id === null
-                          ? "bg-muted-foreground"
-                          : "bg-series-border"
-                      }
-                    />
-                    <span className="truncate text-sm">{group.name}</span>
-                    <span className="tabular-nums text-muted-foreground">
-                      {group.videoCount}
-                    </span>
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-1 sm:px-2">
-                  {isOpen && (
-                    <GroupVideos
-                      key={`${value}:${debouncedQuery}:${sort}:${pageSize}:${refreshEpoch}`}
-                      group={group}
-                      query={debouncedQuery}
-                      sort={sort}
-                      pageSize={pageSize}
-                      onPageSizeChange={setPageSize}
-                      refreshEpoch={refreshEpoch}
-                      selected={selected}
-                      onToggleVideo={toggleVideo}
-                      onTogglePage={togglePage}
-                    />
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+        <VideoTable
+          videos={videos}
+          loading={loading}
+          selected={selected}
+          sort={sort}
+          returnHref={returnHref}
+          onToggleVideo={toggleVideo}
+          onTogglePage={togglePage}
+          onChanged={refreshVideos}
+          onDeleted={handleDeleted}
+          onSort={(nextSort) => {
+            setSort(nextSort);
+            setPage(1);
+          }}
+        />
+      )}
+
+      {(loading || total > 0) && (
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          buttonSize="sm"
+          className="gap-3"
+          pageSize={{
+            value: pageSize,
+            options: MANAGER_PAGE_SIZES,
+            label: "每页视频",
+            onChange: (nextPageSize) => {
+              setPageSize(nextPageSize);
+              setPage(1);
+            },
+          }}
+        />
       )}
       <BatchTagDialog
         action={batchAction ?? "add"}

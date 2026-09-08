@@ -1,34 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
-import type {
-  EditableVideo,
-  VideoDetailTag,
-  VideoMetadataPatch,
-  VideoTagState,
-} from "@/lib/types";
+import type { VideoDetailTag, VideoTagState } from "@/lib/types";
 import TagList from "./TagList";
-import VideoActions from "./VideoActions";
 import VideoPlayer from "./VideoPlayer";
 
 export default function VideoDetail({
   video,
   thumbnail,
-  initialThumbSec,
-  initialPathExists,
   tags,
-  rejectedTags,
   seriesName,
   initialViews,
   playerMeta,
 }: {
-  video: EditableVideo;
+  video: { id: number; title: string };
   thumbnail: string | null;
-  initialThumbSec: number;
-  initialPathExists: boolean;
   tags: VideoDetailTag[];
-  rejectedTags: string[];
   seriesName: string | null;
   initialViews: number;
   playerMeta: { duration: string; resolution: string | null; size: string };
@@ -36,32 +24,26 @@ export default function VideoDetail({
   const { notifications } = useTaskQueue();
   const mountedAt = useRef(0);
   const syncedTask = useRef<number | null>(null);
-  const [metadata, setMetadata] = useState({
-    video,
-    thumbnail,
-    thumbSec: initialThumbSec,
-  });
+  const countedClickFor = useRef<number | null>(null);
   const [tagState, setTagState] = useState<VideoTagState>({
     tags,
-    rejectedTags,
+    rejectedTags: [],
     seriesName,
   });
-
-  const handleSaved = useCallback((patch: VideoMetadataPatch) => {
-    setMetadata((current) => ({
-      video: { ...current.video, title: patch.title, path: patch.path },
-      thumbnail: patch.thumbnail ?? current.thumbnail,
-      thumbSec: patch.thumbnailSec ?? current.thumbSec,
-    }));
-  }, []);
-
-  const handleTagStateChange = useCallback((state: VideoTagState) => {
-    setTagState(state);
-  }, []);
 
   useEffect(() => {
     mountedAt.current = Date.now();
   }, []);
+
+  useEffect(() => {
+    if (countedClickFor.current === video.id) return;
+    countedClickFor.current = video.id;
+    void fetch(`/api/videos/${video.id}/click`, { method: "POST" }).catch(
+      () => {
+        // A failed analytics write must not interrupt opening the video.
+      },
+    );
+  }, [video.id]);
 
   useEffect(() => {
     const completed = notifications.find((notification) => {
@@ -96,33 +78,15 @@ export default function VideoDetail({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="mt-2 mb-4 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="break-all text-2xl font-semibold">
-            {metadata.video.title}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            id={metadata.video.id}
-          </p>
-        </div>
-        <div className="shrink-0">
-          <VideoActions
-            video={metadata.video}
-            initialThumbSec={metadata.thumbSec}
-            initialPathExists={initialPathExists}
-            tags={tagState.tags}
-            rejectedTags={tagState.rejectedTags}
-            seriesName={tagState.seriesName}
-            onSaved={handleSaved}
-            onTagStateChange={handleTagStateChange}
-          />
-        </div>
+      <div className="mt-2 mb-4 min-w-0">
+        <h1 className="break-all text-2xl font-semibold">{video.title}</h1>
+        <p className="text-xs text-muted-foreground">id={video.id}</p>
       </div>
 
       <VideoPlayer
-        videoId={metadata.video.id}
-        src={`/api/stream/${metadata.video.id}`}
-        poster={metadata.thumbnail ?? undefined}
+        videoId={video.id}
+        src={`/api/stream/${video.id}`}
+        poster={thumbnail ?? undefined}
         initialViews={initialViews}
         meta={playerMeta}
       />

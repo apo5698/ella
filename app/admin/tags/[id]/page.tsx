@@ -11,7 +11,10 @@ function tagListHref(value: string | string[] | undefined) {
   if (!candidate) return "/admin/tags";
 
   const url = new URL(candidate, "http://localhost");
-  if (url.origin !== "http://localhost" || url.pathname !== "/admin/tags")
+  if (
+    url.origin !== "http://localhost" ||
+    !["/admin/tags", "/admin/videos"].includes(url.pathname)
+  )
     return "/admin/tags";
 
   return `${url.pathname}${url.search}${url.hash}`;

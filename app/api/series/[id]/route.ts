@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { normalizeSeriesName } from "@/lib/series";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /** Renames a series. The name it is known by is all a series carries. */
 export async function PATCH(
@@ -30,6 +31,7 @@ export async function PATCH(
   }
 
   db.prepare("UPDATE series SET name = ? WHERE id = ?").run(name, seriesId);
+  notifyVideosChanged();
   return NextResponse.json({ id: seriesId, name });
 }
 
@@ -48,5 +50,6 @@ export async function DELETE(
   }
 
   db.prepare("DELETE FROM series WHERE id = ?").run(seriesId);
+  notifyVideosChanged();
   return NextResponse.json({ ok: true });
 }

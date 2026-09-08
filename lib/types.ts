@@ -32,6 +32,7 @@ export type Video = {
   thumbnail_sec: number | null;
   created_at: number;
   views: number;
+  clicks: number;
   series_id: number | null;
   series_name: string | null;
   tags: VideoTag[];

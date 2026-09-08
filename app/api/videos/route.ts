@@ -16,6 +16,14 @@ const SORT_OPTIONS: Record<string, string> = {
   duration_desc: "v.duration_sec DESC, v.mtime DESC",
   duration_asc: "v.duration_sec ASC, v.mtime DESC",
   title: "v.title ASC",
+  title_asc: "v.title ASC, v.id ASC",
+  title_desc: "v.title DESC, v.id DESC",
+  size_desc: "v.size_bytes DESC, v.mtime DESC",
+  size_asc: "v.size_bytes ASC, v.mtime DESC",
+  clicks_desc: "v.clicks DESC, v.mtime DESC",
+  clicks_asc: "v.clicks ASC, v.mtime DESC",
+  views_desc: "v.views DESC, v.mtime DESC",
+  views_asc: "v.views ASC, v.mtime DESC",
 };
 
 export async function GET(req: NextRequest) {
@@ -28,7 +36,6 @@ export async function GET(req: NextRequest) {
   const directTags = searchParams.get("tagMode") === "direct";
   const seriesParam = searchParams.get("series") ?? "";
   const seriesId = parseInt(seriesParam, 10);
-  const groupBySeries = searchParams.get("groupBy") === "series";
   const sort = searchParams.get("sort") ?? "views";
   const orderBy = SORT_OPTIONS[sort] ?? SORT_OPTIONS.views;
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
@@ -149,30 +156,6 @@ export async function GET(req: NextRequest) {
     }
   ).c;
 
-  if (groupBySeries) {
-    const groups = db
-      .prepare(
-        `SELECT v.series_id AS id, s.name, COUNT(*) AS videoCount
-         FROM ${from}
-         WHERE ${where}
-         GROUP BY v.series_id, s.name
-         ORDER BY (v.series_id IS NOT NULL), s.name COLLATE NOCASE`,
-      )
-      .all(...params) as {
-      id: number | null;
-      name: string | null;
-      videoCount: number;
-    }[];
-
-    return NextResponse.json({
-      groups: groups.map((group) => ({
-        ...group,
-        name: group.name ?? "未设置系列",
-      })),
-      total,
-    });
-  }
-
   const rows = db
     .prepare(
       `SELECT v.*, s.name AS series_name
@@ -186,12 +169,15 @@ export async function GET(req: NextRequest) {
     unknown
   >[];
 
-  // Manual tags outrank generated ones, so the few tags shown on a card are
-  // the ones the user vouched for.
+  // Put the library's most-used tags first so the three shown in the manager
+  // are the most representative ones for each video.
   const tagStmt = db.prepare(
     `SELECT t.id, t.name, vt.source FROM tags t JOIN video_tags vt ON vt.tag_id = t.id
      WHERE vt.video_id = ? AND vt.status = 'active'
-     ORDER BY (vt.source = 'manual') DESC, t.clicks DESC, t.name ASC`,
+     ORDER BY (
+       SELECT COUNT(*) FROM video_tags usage
+       WHERE usage.tag_id = t.id AND usage.status = 'active'
+     ) DESC, t.name ASC`,
   );
 
   const videos = rows.map((r) => ({

@@ -7,6 +7,7 @@ import { sortTags } from "@/lib/tagOrder";
 import { loadVideoTagState, replaceVideoTagState } from "@/lib/tags";
 import { enqueueTagPromotion } from "@/lib/taskRunner";
 import type { VideoTagState } from "@/lib/types";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 import {
   clampThumbSec,
   grabFrame,
@@ -136,6 +137,7 @@ export async function PATCH(
   }
 
   for (const tagId of promotionIds) enqueueTagPromotion(db, tagId);
+  notifyVideosChanged([row.id]);
 
   return NextResponse.json({
     ok: true,
@@ -206,6 +208,7 @@ export async function DELETE(
   // and foreign key enforcement is on.
   db.prepare("DELETE FROM videos WHERE id = ?").run(row.id);
   removeThumbnail(row.id);
+  notifyVideosChanged([row.id]);
 
   return NextResponse.json({ ok: true, mode, fileNote });
 }

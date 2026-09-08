@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { ensureTag, isAssignableTag, resolveTagName } from "@/lib/tagHierarchy";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 type BatchAction = "add" | "remove";
 
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
   });
 
   tx();
+  notifyVideosChanged(ids);
   return NextResponse.json({
     ok: true,
     action,

@@ -91,7 +91,8 @@ CREATE TABLE IF NOT EXISTS videos (
   mtime INTEGER NOT NULL,
   thumbnail TEXT,
   created_at INTEGER NOT NULL,
-  views INTEGER NOT NULL DEFAULT 0
+  views INTEGER NOT NULL DEFAULT 0,
+  clicks INTEGER NOT NULL DEFAULT 0
 );
 
 -- parent_id builds a tree. A video is tagged with the exact tag it earns; the
@@ -159,6 +160,9 @@ const videoColumns = db.prepare("PRAGMA table_info(videos)").all() as {
 }[];
 if (!videoColumns.some((c) => c.name === "views")) {
   db.exec("ALTER TABLE videos ADD COLUMN views INTEGER NOT NULL DEFAULT 0");
+}
+if (!videoColumns.some((c) => c.name === "clicks")) {
+  db.exec("ALTER TABLE videos ADD COLUMN clicks INTEGER NOT NULL DEFAULT 0");
 }
 
 const tagColumns = db.prepare("PRAGMA table_info(tags)").all() as {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { enqueueTagPromotion } from "@/lib/taskRunner";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /**
  * Promotes a generated tag to a manual one. Accepted tags are treated as
@@ -40,6 +41,7 @@ export async function POST(
   const tag = db.prepare("SELECT id FROM tags WHERE name = ?").get(name) as
     { id: number } | undefined;
   const taskId = tag ? enqueueTagPromotion(db, tag.id) : null;
+  notifyVideosChanged([Number(id)]);
 
   return NextResponse.json({ ok: true, name, taskId });
 }

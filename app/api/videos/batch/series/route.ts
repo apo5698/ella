@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { ensureSeries, normalizeSeriesName } from "@/lib/series";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /** Sets or clears the series shared by a selection of videos. */
 export async function POST(req: NextRequest) {
@@ -39,6 +40,8 @@ export async function POST(req: NextRequest) {
     for (const videoId of ids) update.run(row.id, videoId);
     return row;
   })();
+
+  notifyVideosChanged(ids);
 
   return NextResponse.json({
     ok: true,
