@@ -1,12 +1,17 @@
 import type Database from "better-sqlite3";
 import db from "./db";
 import {
-  createTask,
-  getTask,
-  notifyTasksChanged,
-  type Task,
-  type TaskKind,
-} from "./tasks";
+  createJob,
+  getJob,
+  notifyJobsChanged,
+  type Job,
+  type JobKind,
+  type JobPayload,
+} from "./jobs";
+import {
+  createNotification,
+  notifyNotificationsChanged,
+} from "./notifications";
 import { createTracker } from "./progress";
 import { scanVideoCatalog } from "./catalogScan";
 import { getTagSettings } from "./settingsStore";
@@ -16,9 +21,9 @@ import { upsertVideoTags } from "./tags";
 /**
  * The in-process worker behind the task queue.
  *
- * One task runs at a time, oldest first. The row in `tasks` is the source of
- * truth: progress is written there rather than held in memory, so the queue
- * page and the dock read the same numbers, and a server that restarts mid-task
+ * One task runs at a time, oldest first. Its row in `background_jobs` is the
+ * source of truth: progress is written there rather than held in memory, so
+ * the UI and worker read the same numbers, and a server that restarts mid-task
  * picks the work up again instead of losing it.
  */
 
@@ -29,14 +34,14 @@ const CHUNK = 200;
 const PROGRESS_MS = 250;
 
 type TaskContext = {
-  payload: Record<string, unknown>;
+  payload: JobPayload;
   setTotal: (total: number) => void;
   advance: (processed: number) => void;
   canceled: () => boolean;
 };
 
-/** Returns the line the queue page shows once the task has succeeded. */
-type TaskHandler = (ctx: TaskContext) => Promise<string>;
+/** Returns locale-independent values describing the completed work. */
+type TaskHandler = (ctx: TaskContext) => Promise<JobPayload>;
 
 /**
  * Rewrites every remaining generated association of one tag as a manual one.
@@ -87,7 +92,7 @@ const promoteTagSource: TaskHandler = async ({
     await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
-  return `${done} 个视频上的"${tag.name}"已转为已审核标签`;
+  return { count: done };
 };
 
 /** Recognizes one video while reporting its existing two-phase progress. */
@@ -114,7 +119,7 @@ const retagVideo: TaskHandler = async ({
       tracker.update(update),
     );
     if (!result.ok) throw new Error(result.error);
-    if (canceled()) return `已停止重新识别"${video.title}"`;
+    if (canceled()) return {};
 
     upsertVideoTags(db, videoId, result.tags, "vision");
     const count = (
@@ -125,7 +130,7 @@ const retagVideo: TaskHandler = async ({
         .get(videoId) as { c: number }
     ).c;
     advance(100);
-    return `"${video.title}"已重新识别，共 ${count} 个标签`;
+    return { tagCount: count };
   } finally {
     clearInterval(ticker);
   }
@@ -145,18 +150,13 @@ const scanCatalog: TaskHandler = async ({ setTotal, advance, canceled }) => {
     },
   });
 
-  return [
-    `新增 ${result.added}`,
-    `更新 ${result.updated}`,
-    `未变 ${result.skipped}`,
-    `移除 ${result.removed}`,
-  ].join("，");
+  return result;
 };
 
-const HANDLERS: Record<TaskKind, TaskHandler> = {
-  "promote-tag-source": promoteTagSource,
-  "retag-video": retagVideo,
-  "scan-video-catalog": scanCatalog,
+const HANDLERS: Record<JobKind, TaskHandler> = {
+  TAG_APPROVAL: promoteTagSource,
+  VIDEO_RETAG: retagVideo,
+  VIDEO_CATALOG_SCAN: scanCatalog,
 };
 
 // One runner per server process, held on globalThis so a hot reload in
@@ -172,24 +172,26 @@ export function requestTaskCancel(id: number) {
   runner.canceling.add(id);
 }
 
-function claimNext(): Task | undefined {
+function claimNext(): Job | undefined {
   const next = db
-    .prepare("SELECT id FROM tasks WHERE status = 'queued' ORDER BY id LIMIT 1")
+    .prepare(
+      "SELECT id FROM background_jobs WHERE status = 'queued' ORDER BY id LIMIT 1",
+    )
     .get() as { id: number } | undefined;
   if (!next) return undefined;
   db.prepare(
-    "UPDATE tasks SET status = 'running', started_at = ?, processed = 0, error = NULL WHERE id = ?",
+    "UPDATE background_jobs SET status = 'running', started_at = ?, processed = 0, outcome = NULL WHERE id = ?",
   ).run(Date.now(), next.id);
-  return getTask(db, next.id);
+  return getJob(db, next.id);
 }
 
-async function runOne(task: Task) {
-  const handler = HANDLERS[task.kind];
+async function runOne(job: Job) {
+  const handler = HANDLERS[job.kind];
   const finish = db.prepare(
-    "UPDATE tasks SET status = ?, result = ?, error = ?, finished_at = ? WHERE id = ?",
+    "UPDATE background_jobs SET status = ?, outcome = ?, finished_at = ? WHERE id = ?",
   );
   const writeProgress = db.prepare(
-    "UPDATE tasks SET processed = ?, total = ? WHERE id = ?",
+    "UPDATE background_jobs SET processed = ?, total = ? WHERE id = ?",
   );
 
   let total = 0;
@@ -199,16 +201,15 @@ async function runOne(task: Task) {
     const now = Date.now();
     if (!force && now - lastWrite < PROGRESS_MS) return;
     lastWrite = now;
-    writeProgress.run(processed, total, task.id);
-    notifyTasksChanged();
+    writeProgress.run(processed, total, job.id);
+    notifyJobsChanged();
   };
 
-  notifyTasksChanged();
+  notifyJobsChanged();
 
   try {
-    if (!handler) throw new Error(`未知任务类型：${task.kind}`);
-    const result = await handler({
-      payload: JSON.parse(task.payload) as Record<string, unknown>,
+    const outcome = await handler({
+      payload: job.payload,
       setTotal: (value) => {
         total = value;
         flush(true);
@@ -217,32 +218,38 @@ async function runOne(task: Task) {
         processed = value;
         flush(false);
       },
-      canceled: () => runner.canceling.has(task.id),
+      canceled: () => runner.canceling.has(job.id),
     });
     flush(true);
-    const canceled = runner.canceling.has(task.id);
+    const canceled = runner.canceling.has(job.id);
     finish.run(
       canceled ? "canceled" : "succeeded",
-      result,
-      null,
+      JSON.stringify(outcome),
       Date.now(),
-      task.id,
+      job.id,
     );
+    if (!canceled) {
+      createNotification(db, {
+        type: job.kind,
+        payload: { ...job.payload, ...outcome },
+      });
+      notifyNotificationsChanged();
+    }
   } catch (cause) {
     try {
-      finish.run(
-        "failed",
-        null,
-        cause instanceof Error ? cause.message : "任务失败",
-        Date.now(),
-        task.id,
-      );
+      finish.run("failed", null, Date.now(), job.id);
+      createNotification(db, {
+        type: "ERROR",
+        payload: { jobKind: job.kind, ...job.payload },
+      });
+      notifyNotificationsChanged();
+      console.error("[tasks] 任务处理失败", cause);
     } catch (writeFailure) {
       console.error("[tasks] 无法写入任务结果", writeFailure);
     }
   } finally {
-    runner.canceling.delete(task.id);
-    notifyTasksChanged();
+    runner.canceling.delete(job.id);
+    notifyJobsChanged();
   }
 }
 
@@ -258,8 +265,8 @@ export function kickTaskRunner() {
   runner.looping = true;
   void (async () => {
     try {
-      for (let task = claimNext(); task; task = claimNext()) {
-        await runOne(task);
+      for (let job = claimNext(); job; job = claimNext()) {
+        await runOne(job);
       }
     } catch (cause) {
       console.error("[tasks] 队列已停止", cause);
@@ -277,10 +284,10 @@ export function kickTaskRunner() {
 function recoverInterrupted() {
   const info = db
     .prepare(
-      "UPDATE tasks SET status = 'queued', started_at = NULL WHERE status = 'running'",
+      "UPDATE background_jobs SET status = 'queued', started_at = NULL WHERE status = 'running'",
     )
     .run();
-  if (info.changes > 0) notifyTasksChanged();
+  if (info.changes > 0) notifyJobsChanged();
 }
 
 // Importing this module must not be able to fail: it is pulled in by the
@@ -315,18 +322,17 @@ export function enqueueTagPromotion(
     .get(tagId) as { name: string } | undefined;
   if (!tag) return null;
 
-  const id = createTask(
+  const id = createJob(
     database,
     {
-      kind: "promote-tag-source",
-      title: `将"${tag.name}"转为已审核标签（${pending} 个视频）`,
-      payload: { tagId, tagName: tag.name },
+      kind: "TAG_APPROVAL",
+      payload: { tagId, tagName: tag.name, pending },
     },
     "tagId",
   );
   if (id === null) return null;
 
-  notifyTasksChanged();
+  notifyJobsChanged();
   kickTaskRunner();
   return id;
 }
@@ -341,36 +347,34 @@ export function enqueueVideoRetag(
     .get(videoId) as { title: string } | undefined;
   if (!video) throw new Error("视频不存在");
 
-  const id = createTask(
+  const id = createJob(
     database,
     {
-      kind: "retag-video",
-      title: `重新识别"${video.title}"的标签`,
+      kind: "VIDEO_RETAG",
       payload: { videoId, videoTitle: video.title },
     },
     "videoId",
   );
   if (id === null) return null;
 
-  notifyTasksChanged();
+  notifyJobsChanged();
   kickTaskRunner();
   return id;
 }
 
 /** Queues one catalog scan and prevents overlapping scans. */
 export function enqueueCatalogScan(database: Database.Database): number | null {
-  const id = createTask(
+  const id = createJob(
     database,
     {
-      kind: "scan-video-catalog",
-      title: "扫描视频目录",
+      kind: "VIDEO_CATALOG_SCAN",
       payload: { scope: "video-catalog" },
     },
     "scope",
   );
   if (id === null) return null;
 
-  notifyTasksChanged();
+  notifyJobsChanged();
   kickTaskRunner();
   return id;
 }

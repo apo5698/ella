@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
-import { cancelQueuedTask, getTask, notifyTasksChanged } from "@/lib/tasks";
+import { cancelQueuedJob, getJob, notifyJobsChanged } from "@/lib/jobs";
 import { requestTaskCancel } from "@/lib/taskRunner";
 
 export const runtime = "nodejs";
@@ -15,17 +15,17 @@ export async function POST(
 ) {
   const { id } = await params;
   const taskId = Number(id);
-  const task = getTask(db, taskId);
-  if (!task) {
+  const job = getJob(db, taskId);
+  if (!job) {
     return NextResponse.json({ error: "任务不存在" }, { status: 404 });
   }
-  if (task.status === "running") {
+  if (job.status === "running") {
     requestTaskCancel(taskId);
     return NextResponse.json({ ok: true, status: "canceling" });
   }
-  if (!cancelQueuedTask(db, taskId)) {
+  if (!cancelQueuedJob(db, taskId)) {
     return NextResponse.json({ error: "任务已结束" }, { status: 409 });
   }
-  notifyTasksChanged();
+  notifyJobsChanged();
   return NextResponse.json({ ok: true, status: "canceled" });
 }

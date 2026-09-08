@@ -52,17 +52,26 @@ export default function VideoListItem({
             {video.title}
           </VideoLink>
         </ItemTitle>
-        <p
-          className="truncate text-xs text-muted-foreground underline decoration-dotted underline-offset-2"
-          title={video.path}
-        >
-          {video.path}
-        </p>
-        <p className="flex flex-wrap gap-x-3 text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-y-0.5 text-xs text-muted-foreground">
           <span>时长 {formatDuration(video.duration_sec)}</span>
-          <span>大小 {formatSize(video.size_bytes)}</span>
-          <span>分辨率 {resolution ?? "未知"}</span>
-          <span>播放 {video.views}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="ml-1.5">
+              ·
+            </span>
+            大小 {formatSize(video.size_bytes)}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="ml-1.5">
+              ·
+            </span>
+            分辨率 {resolution ?? "未知"}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="ml-1.5">
+              ·
+            </span>
+            播放 {video.views}
+          </span>
         </p>
         <div className="flex flex-wrap gap-1">
           {video.tags.map((tag) => (

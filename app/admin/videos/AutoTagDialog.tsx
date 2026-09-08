@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, RotateCw, Sparkles, X } from "lucide-react";
+import { CheckIcon, RotateCwIcon, SparklesIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import VideoLink from "@/components/VideoLink";
 import AcceptButton from "@/components/AcceptButton";
@@ -387,7 +387,7 @@ export default function AutoTagDialog({
         className="bg-linear-to-r from-automation-from to-automation-to text-automation-foreground shadow-sm hover:brightness-110 cursor-pointer"
         onClick={() => setOpen(true)}
       >
-        <Sparkles data-icon="inline-start" />
+        <SparklesIcon data-icon="inline-start" />
         自动标记
         {suggestions.length > 0 && (
           <Badge className="bg-automation-foreground/20 text-automation-foreground">
@@ -576,7 +576,7 @@ export default function AutoTagDialog({
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={group.thumbnail} alt="" />
                           ) : (
-                            <Sparkles />
+                            <SparklesIcon />
                           )}
                         </ItemMedia>
                         <ItemContent className="min-w-0 basis-0 overflow-hidden">
@@ -611,7 +611,7 @@ export default function AutoTagDialog({
                             disabled={groupBusy}
                             onClick={() => accept(group, group.suggestions)}
                           >
-                            <Check data-icon="inline-start" />
+                            <CheckIcon data-icon="inline-start" />
                             全部接受
                           </Button>
                           <Button
@@ -621,7 +621,7 @@ export default function AutoTagDialog({
                             disabled={groupBusy}
                             onClick={() => skip(group.suggestions)}
                           >
-                            <X data-icon="inline-start" />
+                            <XIcon data-icon="inline-start" />
                             全部跳过
                           </Button>
                         </ItemActions>
@@ -660,7 +660,7 @@ export default function AutoTagDialog({
                 {acceptingAll ? (
                   <Spinner data-icon="inline-start" />
                 ) : (
-                  <Check data-icon="inline-start" />
+                  <CheckIcon data-icon="inline-start" />
                 )}
                 接受全部建议
               </AcceptButton>
@@ -677,9 +677,9 @@ export default function AutoTagDialog({
               {running ? (
                 <Spinner data-icon="inline-start" />
               ) : started ? (
-                <RotateCw data-icon="inline-start" />
+                <RotateCwIcon data-icon="inline-start" />
               ) : (
-                <Sparkles data-icon="inline-start" />
+                <SparklesIcon data-icon="inline-start" />
               )}
               {running ? "扫描中" : started ? "重新扫描" : "开始"}
             </Button>

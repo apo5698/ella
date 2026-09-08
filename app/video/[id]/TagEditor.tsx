@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Undo2 } from "lucide-react";
+import { Undo2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Dot } from "@/components/ui/dot";
 import { RemovableSeriesBadge } from "@/components/tags/TagBadge";
 import {
   SOURCE_LABEL,
@@ -128,9 +129,7 @@ export default function TagEditor({
           <span className="flex items-center gap-3 text-muted-foreground">
             {(["vision", "manual"] as const).map((source) => (
               <span key={source} className="flex items-center gap-1">
-                <span
-                  className={`inline-block size-2 rounded-full ${sourceDotStyle([source])}`}
-                />
+                <Dot className={sourceDotStyle([source])} />
                 {SOURCE_LABEL[source]}
               </span>
             ))}
@@ -190,7 +189,7 @@ export default function TagEditor({
                 onClick={() => restoreTag(name)}
               >
                 {name}
-                <Undo2 />
+                <Undo2Icon />
               </Badge>
             ))}
           </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { Monitor, Moon, Sun, SunMoon } from "lucide-react";
+import { MonitorIcon, MoonIcon, SunIcon, SunMoonIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,52 +13,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 
-export default function ThemeToggle({
-  variant = "icon",
-}: {
-  variant?: "icon" | "sidebar";
-}) {
+export default function ThemeToggle() {
+  const t = useTranslations("Navigation");
   const { theme, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          variant === "sidebar" ? (
-            <SidebarMenuButton tooltip="主题" />
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="选择主题"
-            />
-          )
-        }
-      >
-        <SunMoon />
-        {variant === "sidebar" && <span>主题</span>}
+      <DropdownMenuTrigger render={<SidebarMenuButton tooltip={t("theme")} />}>
+        <SunMoonIcon />
+        <span>{t("theme")}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side={variant === "sidebar" ? "top" : "bottom"}
-        align={variant === "sidebar" ? "start" : "end"}
-      >
+      <DropdownMenuContent side="top" align="start">
         <DropdownMenuGroup>
           <DropdownMenuRadioGroup
             value={theme ?? "dark"}
             onValueChange={setTheme}
           >
             <DropdownMenuRadioItem value="light" closeOnClick>
-              <Sun />
-              Light
+              <SunIcon />
+              {t("themeLight")}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="dark" closeOnClick>
-              <Moon />
-              Dark
+              <MoonIcon />
+              {t("themeDark")}
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="system" closeOnClick>
-              <Monitor />
-              System
+              <MonitorIcon />
+              {t("themeSystem")}
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>

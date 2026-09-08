@@ -2,18 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Wrench } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ChevronRightIcon, GhostIcon, WrenchIcon } from "lucide-react";
 import {
   ADMIN_NAVIGATION,
-  APP_NAVIGATION,
   isNavigationActive,
   MAIN_NAVIGATION,
   UTILITY_NAVIGATION,
 } from "@/components/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { APP_NAME } from "@/lib/brand";
 import {
   Collapsible,
@@ -35,23 +32,25 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
-type NavigationItem = (typeof APP_NAVIGATION)[number];
+type NavigationItem =
+  (typeof MAIN_NAVIGATION)[number] | (typeof ADMIN_NAVIGATION)[number];
+
+const ACTIVE_NAV_CLASS =
+  "data-active:bg-sidebar-primary/10 data-active:text-sidebar-primary data-active:hover:bg-sidebar-primary/15";
 
 function NavigationMenu({
   items,
   pathname,
   onNavigate,
-  activeTasks = 0,
 }: {
   items: readonly NavigationItem[];
   pathname: string;
   onNavigate: () => void;
-  activeTasks?: number;
 }) {
+  const t = useTranslations("Navigation");
   return (
     <SidebarMenu>
       {items.map((item) => {
@@ -61,20 +60,12 @@ function NavigationMenu({
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               isActive={active}
-              tooltip={item.label}
-              className={cn(active && "text-sidebar-primary")}
+              tooltip={t(item.labelKey)}
+              className={ACTIVE_NAV_CLASS}
               render={<Link href={item.href} onClick={onNavigate} />}
             >
               <Icon />
-              <span>{item.label}</span>
-              {item.href === "/admin/tasks" && activeTasks > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-auto tabular-nums group-data-[collapsible=icon]:hidden"
-                >
-                  {activeTasks}
-                </Badge>
-              )}
+              <span>{t(item.labelKey)}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
@@ -84,19 +75,18 @@ function NavigationMenu({
 }
 
 export default function SidebarNav() {
+  const t = useTranslations("Navigation");
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const { activeCount } = useTaskQueue();
+  const closeMobileSidebar = () => setOpenMobile(false);
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="flex-row items-center gap-1">
-        {/* The name gives way when collapsed; the toggle has to stay, so it
-            centres itself in the icon-width rail instead of hugging the edge. */}
-        <span className="truncate px-2 text-lg font-semibold group-data-[collapsible=icon]:hidden">
-          {APP_NAME}
+      <SidebarHeader>
+        <span className="flex items-center gap-2 px-2 text-lg font-medium group-data-[collapsible=icon]:hidden">
+          <GhostIcon aria-hidden="true" className="size-4" />
+          <span className="truncate">{APP_NAME}</span>
         </span>
-        <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:mx-auto" />
       </SidebarHeader>
 
       <SidebarContent>
@@ -105,7 +95,7 @@ export default function SidebarNav() {
             <NavigationMenu
               items={MAIN_NAVIGATION}
               pathname={pathname}
-              onNavigate={() => setOpenMobile(false)}
+              onNavigate={closeMobileSidebar}
             />
           </SidebarGroupContent>
         </SidebarGroup>
@@ -116,8 +106,7 @@ export default function SidebarNav() {
             <NavigationMenu
               items={ADMIN_NAVIGATION}
               pathname={pathname}
-              onNavigate={() => setOpenMobile(false)}
-              activeTasks={activeCount}
+              onNavigate={closeMobileSidebar}
             />
             <SidebarMenu>
               <Collapsible
@@ -129,17 +118,14 @@ export default function SidebarNav() {
                   render={
                     <SidebarMenuButton
                       isActive={pathname === "/admin/utilities"}
-                      tooltip="实用工具"
-                      className={cn(
-                        pathname === "/admin/utilities" &&
-                          "text-sidebar-primary",
-                      )}
+                      tooltip={t("utilities")}
+                      className={ACTIVE_NAV_CLASS}
                     />
                   }
                 >
-                  <Wrench />
-                  <span>实用工具</span>
-                  <ChevronRight className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+                  <WrenchIcon />
+                  <span>{t("utilities")}</span>
+                  <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
@@ -147,14 +133,11 @@ export default function SidebarNav() {
                       <SidebarMenuSubItem key={item.href}>
                         <SidebarMenuSubButton
                           isActive={isNavigationActive(pathname, item.href)}
-                          className={cn(
-                            isNavigationActive(pathname, item.href) &&
-                              "text-sidebar-primary",
-                          )}
+                          className={ACTIVE_NAV_CLASS}
                           render={
                             <Link
                               href={item.href}
-                              onClick={() => setOpenMobile(false)}
+                              onClick={closeMobileSidebar}
                             />
                           }
                         >
@@ -174,7 +157,7 @@ export default function SidebarNav() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <ThemeToggle variant="sidebar" />
+            <ThemeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

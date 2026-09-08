@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleQuestionMark } from "lucide-react";
+import { CircleQuestionMarkIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -35,7 +35,7 @@ export default function HelpTip({
           />
         }
       >
-        <CircleQuestionMark className="size-3" />
+        <CircleQuestionMarkIcon className="size-3" />
       </TooltipTrigger>
       <TooltipContent side={side}>{children}</TooltipContent>
     </Tooltip>

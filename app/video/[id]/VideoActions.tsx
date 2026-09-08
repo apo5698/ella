@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { EllipsisVertical, Pencil, Sparkles, Trash2 } from "lucide-react";
+import { EllipsisVerticalIcon, PencilIcon, SparklesIcon, Trash2Icon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,8 +56,8 @@ export default function VideoActions({
         method: "POST",
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "无法加入任务队列");
-      toast.success(data.queued ? "已加入任务队列" : "该视频已在任务队列中");
+      if (!response.ok) throw new Error(data.error ?? "无法提交后台处理");
+      toast.success(data.queued ? "已提交后台处理" : "该视频已有处理中的任务");
     } catch (cause) {
       toast.error((cause as Error).message);
     } finally {
@@ -71,7 +71,7 @@ export default function VideoActions({
         <DropdownMenuTrigger
           render={<Button variant="outline" size="icon" aria-label="操作" />}
         >
-          <EllipsisVertical />
+          <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36">
           <DropdownMenuItem
@@ -80,14 +80,14 @@ export default function VideoActions({
               setEditOpen(true);
             }}
           >
-            <Pencil />
+            <PencilIcon />
             编辑
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={retagging}
             onClick={() => void queueRetag()}
           >
-            <Sparkles />
+            <SparklesIcon />
             重新识别标签
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -95,7 +95,7 @@ export default function VideoActions({
             variant="destructive"
             onClick={() => setDeleteOpen(true)}
           >
-            <Trash2 />
+            <Trash2Icon />
             删除
           </DropdownMenuItem>
         </DropdownMenuContent>

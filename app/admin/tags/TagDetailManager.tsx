@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Trash2 } from "lucide-react";
+import { ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import HelpTip from "@/components/HelpTip";
 import TagAutocomplete from "@/components/TagAutocomplete";
@@ -383,7 +383,7 @@ export default function TagDetailManager({
             className="text-destructive hover:text-destructive"
             onClick={() => setConfirmingDelete(true)}
           >
-            <Trash2 data-icon="inline-start" />
+            <Trash2Icon data-icon="inline-start" />
             删除标签
           </Button>
         </CardFooter>
@@ -426,7 +426,7 @@ export default function TagDetailManager({
                       </ItemDescription>
                     </ItemContent>
                     <ItemActions>
-                      <ChevronRight />
+                      <ChevronRightIcon />
                     </ItemActions>
                   </Item>
                 </div>

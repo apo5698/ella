@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { CheckIcon, XIcon } from "lucide-react";
 import { TagBadge } from "@/components/tags/TagBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +51,7 @@ export default function TagChip({
             title="标记为已审核"
             className="text-muted-foreground hover:text-success"
           >
-            <Check />
+            <CheckIcon />
           </Button>
         )}
         <Button
@@ -62,7 +62,7 @@ export default function TagChip({
           title={accepted ? "移除标签" : "排除标签"}
           className="text-muted-foreground hover:text-destructive"
         >
-          <X />
+          <XIcon />
         </Button>
       </PopoverContent>
     </Popover>

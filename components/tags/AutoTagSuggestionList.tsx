@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { CheckIcon, XIcon } from "lucide-react";
 import AcceptButton from "@/components/AcceptButton";
 import { Button } from "@/components/ui/button";
 import { SeriesBadge, TagBadge } from "@/components/tags/TagBadge";
@@ -45,7 +45,7 @@ export function AutoTagSuggestionList({
               aria-label={`接受${label}`}
               onClick={() => onAccept(suggestion)}
             >
-              <Check />
+              <CheckIcon />
             </AcceptButton>
             <Button
               type="button"
@@ -56,7 +56,7 @@ export function AutoTagSuggestionList({
               aria-label={`跳过${label}`}
               onClick={() => onSkip(suggestion)}
             >
-              <X />
+              <XIcon />
             </Button>
           </div>
         );

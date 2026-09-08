@@ -1,0 +1,107 @@
+{
+  "App": {
+    "description": "本地视频标签管理与检索",
+    "skipToContent": "跳到主要内容"
+  },
+  "Common": {
+    "system": "System",
+    "operationFailed": "操作失败，请重试。"
+  },
+  "Navigation": {
+    "home": "首页",
+    "videos": "视频管理",
+    "tags": "标签管理",
+    "settings": "设置",
+    "utilities": "实用工具",
+    "toggleSidebar": "切换导航菜单",
+    "notificationCenter": "通知中心",
+    "notificationCenterUnread": "通知中心，有未读通知",
+    "theme": "主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeSystem": "跟随系统"
+  },
+  "LocalTime": {
+    "showFull": "{relative}，点击显示完整时间"
+  },
+  "TaskDock": {
+    "active": "{count} 个任务",
+    "failed": "{count} 个任务失败",
+    "queued": "{count} 个任务等待中",
+    "expand": "展开通知中心",
+    "collapse": "收起通知中心",
+    "progress": "{title}进度",
+    "viewNotifications": "查看通知中心",
+    "kinds": {
+      "TAG_APPROVAL": {
+        "title": "标签审核",
+        "body": "正在将 {tagName} 转为已审核标签。"
+      },
+      "VIDEO_RETAG": {
+        "title": "标签识别",
+        "body": "正在重新识别 {videoTitle} 的标签。"
+      },
+      "VIDEO_CATALOG_SCAN": {
+        "title": "媒体库同步",
+        "body": "正在扫描视频目录。"
+      }
+    }
+  },
+  "Notifications": {
+    "pageTitle": "通知中心",
+    "total": "共 {count} 条通知",
+    "markAllRead": "全部已读",
+    "markedAllRead": "已将 {count} 条通知标为已读",
+    "all": "全部",
+    "unread": "未读",
+    "system": "系统",
+    "empty": "暂无通知",
+    "emptyUnread": "没有未读通知",
+    "emptySystem": "暂无系统通知",
+    "emptyDescription": "后台处理产生的通知会显示在这里",
+    "fallbackTag": "该标签",
+    "fallbackVideo": "该视频",
+    "types": {
+      "TAG_APPROVAL": {
+        "label": "标签更新",
+        "title": "标签已审核",
+        "body": "{count} 个视频上的 {tagName} 已转为已审核标签。"
+      },
+      "VIDEO_RETAG": {
+        "label": "智能识别",
+        "title": "标签识别完成",
+        "body": "{videoTitle} 已重新识别，共 {tagCount} 个标签。"
+      },
+      "VIDEO_CATALOG_SCAN": {
+        "label": "媒体库同步",
+        "title": "媒体库已同步",
+        "body": "媒体库同步完成：新增 {added}，更新 {updated}，未变 {skipped}，移除 {removed}。"
+      },
+      "WARNING": {
+        "label": "系统警告",
+        "title": "测试警告",
+        "body": "这是一条用于测试通知中心折叠、展开、长文本换行以及不同窗口宽度下布局表现的警告通知。正文故意写得很长，以便确认默认状态只显示摘要，点击箭头后能够完整展示全部内容，并且标题、正文、发送者和时间仍然保持正确对齐。"
+      },
+      "ERROR": {
+        "label": "错误",
+        "title": "发生错误",
+        "body": "系统处理请求时发生错误。"
+      },
+      "MENTIONED": {
+        "label": "提及",
+        "title": "有人提到了你",
+        "body": "你在一条新消息中被提及。"
+      },
+      "PASSWORD_EXPIRING": {
+        "label": "账户安全",
+        "title": "密码即将过期",
+        "body": "请尽快更新密码，以免影响账户访问。"
+      },
+      "NEW_LOGIN_DETECTED": {
+        "label": "账户安全",
+        "title": "检测到新登录",
+        "body": "系统检测到一次来自新设备的登录。"
+      }
+    }
+  }
+}
