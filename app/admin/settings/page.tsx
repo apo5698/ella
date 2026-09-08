@@ -1,11 +1,5 @@
-import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import SettingsPanel from "@/components/admin/SettingsPanel";
+import { redirect } from "next/navigation";
 
 export default function AdminSettingsPage() {
-  return (
-    <>
-      <AdminPageHeader title="设置" />
-      <SettingsPanel />
-    </>
-  );
+  redirect("/settings/recognition");
 }

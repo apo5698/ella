@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:tags": "tsx tests/check-tag-order.ts && tsx tests/check-tag-hierarchy.ts"
+    "check:tags": "tsx tests/check-tag-order.ts && tsx tests/check-tag-hierarchy.ts",
+    "check:releases": "node --import tsx --test tests/releases.test.ts"
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",
@@ -26,6 +27,7 @@
     "pinyin-pro": "^3.29.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "semver": "^7.8.5",
     "shadcn": "^4.19.0",
     "shiki": "^4.4.3",
     "sonner": "^2.0.8",
@@ -39,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/semver": "^7.8.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "prettier": "3.9.6",

@@ -1,4 +1,10 @@
-import { ClapperboardIcon, FilmIcon, SettingsIcon, TagsIcon } from "lucide-react";
+import {
+  ClapperboardIcon,
+  FilmIcon,
+  SettingsIcon,
+  SparklesIcon,
+  TagsIcon,
+} from "lucide-react";
 import { UTILITY_MODULES } from "@/lib/utilities/registry";
 
 export const MAIN_NAVIGATION = [
@@ -8,8 +14,20 @@ export const MAIN_NAVIGATION = [
 export const ADMIN_NAVIGATION = [
   { href: "/admin/videos", labelKey: "videos", icon: ClapperboardIcon },
   { href: "/admin/tags", labelKey: "tags", icon: TagsIcon },
-  { href: "/admin/settings", labelKey: "settings", icon: SettingsIcon },
 ] as const;
+
+export const SETTINGS_NAVIGATION = {
+  href: "/settings",
+  labelKey: "settings",
+  icon: SettingsIcon,
+  children: [
+    {
+      href: "/settings/recognition",
+      labelKey: "recognition",
+      icon: SparklesIcon,
+    },
+  ],
+} as const;
 
 export const UTILITY_NAVIGATION = UTILITY_MODULES.map((module) => ({
   href: module.href,

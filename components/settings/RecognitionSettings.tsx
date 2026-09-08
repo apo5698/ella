@@ -20,7 +20,7 @@ import type { TagProgress } from "@/lib/types";
  */
 const LOG_LIMIT = 200;
 
-export default function SettingsPanel() {
+export default function RecognitionSettings() {
   const [job, setJob] = useState<JobState | null>(null);
   const [progress, setProgress] = useState<TagProgress | null>(null);
   const [force, setForce] = useState(false);

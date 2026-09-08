@@ -9,6 +9,7 @@ import {
   ADMIN_NAVIGATION,
   isNavigationActive,
   MAIN_NAVIGATION,
+  SETTINGS_NAVIGATION,
   UTILITY_NAVIGATION,
 } from "@/components/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -113,6 +114,38 @@ export default function SidebarNav() {
               onNavigate={closeMobileSidebar}
             />
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === SETTINGS_NAVIGATION.href}
+                  tooltip={t("settings")}
+                  className={ACTIVE_NAV_CLASS}
+                  render={
+                    <Link
+                      href={SETTINGS_NAVIGATION.href}
+                      onClick={closeMobileSidebar}
+                    />
+                  }
+                >
+                  <SETTINGS_NAVIGATION.icon />
+                  <span>{t("settings")}</span>
+                </SidebarMenuButton>
+                <SidebarMenuSub>
+                  {SETTINGS_NAVIGATION.children.map((item) => (
+                    <SidebarMenuSubItem key={item.href}>
+                      <SidebarMenuSubButton
+                        isActive={isNavigationActive(pathname, item.href)}
+                        className={ACTIVE_NAV_CLASS}
+                        render={
+                          <Link href={item.href} onClick={closeMobileSidebar} />
+                        }
+                      >
+                        <item.icon />
+                        <span>{t(item.labelKey)}</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </SidebarMenuItem>
               <Collapsible
                 open={utilitiesOpen}
                 onOpenChange={setUtilitiesOpen}
