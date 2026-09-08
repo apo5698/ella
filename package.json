@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:tags": "tsx tests/check-tag-order.ts && tsx tests/check-tag-hierarchy.ts",
-    "check:releases": "node --import tsx --test tests/releases.test.ts"
+    "check:releases": "node --import tsx --test tests/releases.test.ts && node --test tests/release-rules.test.mjs"
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",
@@ -36,15 +36,20 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^12.0.9",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/semver": "^7.8.0",
+    "conventional-changelog-conventionalcommits": "9",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "prettier": "3.9.6",
+    "semantic-release": "^25.0.9",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5"
