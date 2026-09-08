@@ -18,7 +18,13 @@ bun install
 
 ### Configuration
 
-Create `.env.local` in the project root:
+Copy the configuration template:
+
+```bash
+cp .env.example .env.local
+```
+
+Set `VIDEO_ROOT` in `.env.local`:
 
 ```dotenv
 VIDEO_ROOT=/absolute/path/to/videos
