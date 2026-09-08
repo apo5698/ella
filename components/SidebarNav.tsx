@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -77,6 +78,9 @@ function NavigationMenu({
 export default function SidebarNav() {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
+  const [utilitiesOpen, setUtilitiesOpen] = useState(() =>
+    pathname.startsWith("/admin/utilities"),
+  );
   const { setOpenMobile } = useSidebar();
   const closeMobileSidebar = () => setOpenMobile(false);
 
@@ -110,7 +114,8 @@ export default function SidebarNav() {
             />
             <SidebarMenu>
               <Collapsible
-                defaultOpen={pathname.startsWith("/admin/utilities")}
+                open={utilitiesOpen}
+                onOpenChange={setUtilitiesOpen}
                 className="group/collapsible"
                 render={<SidebarMenuItem />}
               >

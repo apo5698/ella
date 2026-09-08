@@ -7,6 +7,7 @@ import {
   tagPath,
 } from "@/lib/tagHierarchy";
 import { enqueueTagPromotion } from "@/lib/taskRunner";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /**
  * Adds a tag to a video. The name is resolved first, so an alias stores the
@@ -52,6 +53,7 @@ export async function POST(
   // Adding a tag by hand vouches for the word itself, so the tag stops being
   // a generated one everywhere. Queued: it can touch many videos.
   const taskId = tagId === null ? null : enqueueTagPromotion(db, tagId);
+  notifyVideosChanged([videoId]);
 
   return NextResponse.json({
     ok: true,
@@ -93,6 +95,7 @@ export async function DELETE(
       videoId,
       link.tag_id,
     );
+    notifyVideosChanged([videoId]);
     return NextResponse.json({ ok: true, status: "deleted" });
   }
 
@@ -100,5 +103,6 @@ export async function DELETE(
   db.prepare(
     "UPDATE video_tags SET status = 'rejected' WHERE video_id = ? AND tag_id = ?",
   ).run(videoId, link.tag_id);
+  notifyVideosChanged([videoId]);
   return NextResponse.json({ ok: true, status: "rejected" });
 }

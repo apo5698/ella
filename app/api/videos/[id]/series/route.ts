@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { ensureSeries, normalizeSeriesName } from "@/lib/series";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /**
  * Sets or clears a video's series. Send `{ name: "..." }` to assign (creating
@@ -26,6 +27,7 @@ export async function PUT(
 
   if (!name) {
     db.prepare("UPDATE videos SET series_id = NULL WHERE id = ?").run(videoId);
+    notifyVideosChanged([videoId]);
     return NextResponse.json({ ok: true, series: null });
   }
 
@@ -37,6 +39,8 @@ export async function PUT(
     );
     return row;
   })();
+
+  notifyVideosChanged([videoId]);
 
   return NextResponse.json({ ok: true, series: result });
 }

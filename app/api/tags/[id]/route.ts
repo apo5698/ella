@@ -8,6 +8,7 @@ import {
   wouldCycle,
 } from "@/lib/tagHierarchy";
 import type { TagReviewState } from "@/lib/types";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 type Body = { name?: unknown; parentId?: unknown; assignable?: unknown };
 
@@ -105,7 +106,9 @@ export async function PATCH(
   }
 
   const assignable =
-    body.assignable === undefined ? tag.assignable !== 0 : body.assignable !== false;
+    body.assignable === undefined
+      ? tag.assignable !== 0
+      : body.assignable !== false;
   const reviewState =
     body.assignable === undefined
       ? tag.review_state
@@ -130,6 +133,7 @@ export async function PATCH(
   db.prepare(
     "UPDATE tags SET name = ?, parent_id = ?, assignable = ?, review_state = ? WHERE id = ?",
   ).run(name, parentId, assignable ? 1 : 0, reviewState, tagId);
+  notifyVideosChanged();
   return NextResponse.json({
     id: tagId,
     name,
@@ -164,6 +168,7 @@ export async function DELETE(
     db.prepare("DELETE FROM tags WHERE id = ?").run(tagId);
   });
   tx();
+  notifyVideosChanged();
 
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { aliasesOf, mergeTags } from "@/lib/tagHierarchy";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /**
  * Folds several tags into one. Their names survive as aliases of the target,
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = mergeTags(db, sourceIds, targetId);
+    notifyVideosChanged();
     // `aliases` names what this call folded in. The target may also have
     // inherited the sources' own aliases, so its full list goes back too.
     return NextResponse.json({

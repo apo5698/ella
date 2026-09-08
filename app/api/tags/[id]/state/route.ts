@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { directActiveVideoCount } from "@/lib/tagHierarchy";
 import type { TagReviewState } from "@/lib/types";
+import { notifyVideosChanged } from "@/lib/videoEvents";
 
 const WRITABLE_STATES = new Set<TagReviewState>([
   "excluded",
@@ -37,7 +38,9 @@ export async function PATCH(
     const directCount = directActiveVideoCount(db, tagId);
     if (directCount > 0) {
       return NextResponse.json(
-        { error: `${directCount} 个视频仍直接使用该标签，请先移除或改用子标签` },
+        {
+          error: `${directCount} 个视频仍直接使用该标签，请先移除或改用子标签`,
+        },
         { status: 409 },
       );
     }
@@ -75,6 +78,8 @@ export async function PATCH(
       "UPDATE tags SET assignable = 0, review_state = 'category' WHERE id = ?",
     ).run(tagId);
   })();
+
+  notifyVideosChanged();
 
   return NextResponse.json({ ok: true, state });
 }
