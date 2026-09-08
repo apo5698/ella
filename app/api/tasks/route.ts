@@ -1,17 +1,27 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
-import { activeTaskCount, listTasks, taskCount } from "@/lib/tasks";
+import { listJobs } from "@/lib/jobs";
+import {
+  listNotifications,
+  notificationCount,
+  unreadNotificationCount,
+} from "@/lib/notifications";
 // Imported for its side effect: loading the runner picks up any task left
 // behind by a previous server process.
 import "@/lib/taskRunner";
 
 export const runtime = "nodejs";
 
-/** The queue, running and waiting tasks first, then the most recent history. */
+/** Background jobs plus the independent notification feed. */
 export async function GET() {
+  const jobs = listJobs(db);
   return NextResponse.json({
-    tasks: listTasks(db),
-    total: taskCount(db),
-    activeCount: activeTaskCount(db),
+    jobs,
+    notifications: listNotifications(db),
+    total: notificationCount(db),
+    activeCount: jobs.filter(
+      ({ status }) => status === "queued" || status === "running",
+    ).length,
+    unreadCount: unreadNotificationCount(db),
   });
 }

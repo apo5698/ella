@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BackLabel from "@/components/BackLabel";
-import TagDetailManager from "@/app/tags/TagDetailManager";
+import TagDetailManager from "../TagDetailManager";
 import db from "@/lib/db";
 import { flattenTree, loadTagTree } from "@/lib/tagHierarchy";
 

@@ -1,5 +1,5 @@
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import VideoManager from "@/app/videos/VideoManager";
+import VideoManager from "./VideoManager";
 
 export default function AdminVideosPage() {
   return (

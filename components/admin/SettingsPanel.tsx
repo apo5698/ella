@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -166,7 +166,7 @@ export default function SettingsPanel() {
           {current && (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-foreground">
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2Icon className="size-3.5 animate-spin" />
                 <span>{current.phase === "infer" ? "模型推理" : "抽帧"}</span>
                 <span className="tabular-nums">
                   {Math.round(current.ratio * 100)}%

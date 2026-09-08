@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Plug, X } from "lucide-react";
+import { CheckIcon, PlugIcon, XIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -206,7 +206,7 @@ export default function LlmStatusCard() {
                   : "bg-destructive/10 text-destructive border-destructive/30",
               )}
             >
-              {probe.reachable ? <Check /> : <X />}
+              {probe.reachable ? <CheckIcon /> : <XIcon />}
               {probe.reachable ? "已连接" : "未连接"}
               {probe.latencyMs !== null && probe.reachable && (
                 <span className="tabular-nums">{probe.latencyMs} ms</span>
@@ -234,7 +234,7 @@ export default function LlmStatusCard() {
           <>
             {probe?.error && (
               <Alert variant="destructive">
-                <X />
+                <XIcon />
                 <AlertDescription>{probe.error}</AlertDescription>
               </Alert>
             )}
@@ -254,7 +254,7 @@ export default function LlmStatusCard() {
                     className="flex-1 font-mono"
                   />
                   <Button onClick={connect} disabled={busy || !url.trim()}>
-                    <Plug data-icon="inline-start" />
+                    <PlugIcon data-icon="inline-start" />
                     {busy ? "连接中" : "连接"}
                   </Button>
                 </div>

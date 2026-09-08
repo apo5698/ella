@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { loadTagTree } from "@/lib/tagHierarchy";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
-import TagManager from "@/app/tags/TagManager";
+import TagManager from "./TagManager";
 import { parseTagCategories } from "@/lib/tagCategory";
 import { DEFAULT_TAG_SORT, isTagSort } from "@/lib/tagSort";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -123,7 +123,7 @@ export default function VideoDeleteDialog({
             取消
           </Button>
           <Button variant="destructive" onClick={remove} disabled={deleting}>
-            <Trash2 />
+            <Trash2Icon />
             {deleting ? "删除中" : "删除"}
           </Button>
         </DialogFooter>

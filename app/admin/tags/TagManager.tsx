@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
+import { Dot } from "@/components/ui/dot";
 import { InlineTagBadge, TagBadge } from "@/components/tags/TagBadge";
 import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
@@ -661,7 +662,7 @@ export default function TagManager({
           全选当前
         </Button>
         <Button onClick={() => startCreate(null)}>
-          <Plus data-icon="inline-start" />
+          <PlusIcon data-icon="inline-start" />
           新建标签
         </Button>
       </div>
@@ -681,9 +682,9 @@ export default function TagManager({
               checked={categories.has(item.id)}
               onCheckedChange={(checked) => toggleCategory(item.id, checked)}
             />
-            <span
+            <Dot
               aria-hidden="true"
-              className={cn("size-2 shrink-0 rounded-full", item.className)}
+              className={item.className}
             />
             {item.label}
             <span className="tabular-nums text-muted-foreground">

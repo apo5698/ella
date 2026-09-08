@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 import {
   DownloadQueue,
   type DownloadSourceFieldsProps,
@@ -94,7 +94,7 @@ function QinglanhuaFields({
               disabled={disabled}
               onClick={() => setPasswordVisible((visible) => !visible)}
             >
-              {passwordVisible ? <EyeOff /> : <Eye />}
+              {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}
             </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>

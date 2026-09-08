@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BackLabel from "@/components/BackLabel";
 import Downloader from "@/components/admin/Downloader";
@@ -20,9 +19,6 @@ export default async function DownloaderPage({
   const source = DOWNLOADER_SOURCES.some((item) => item.slug === requested)
     ? (requested as DownloaderSource)
     : DOWNLOADER_SOURCES[0].slug;
-
-  if (source !== requested)
-    redirect(`/admin/utilities/downloader?source=${source}`);
 
   return (
     <>

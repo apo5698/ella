@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ScanSearch, Timer } from "lucide-react";
+import { ScanSearchIcon, TimerIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,20 +34,20 @@ const DEFAULT_MANUAL_FRAMES = 6;
 const STRATEGIES: {
   value: FrameStrategy;
   label: string;
-  icon: typeof ScanSearch;
+  icon: typeof ScanSearchIcon;
   blurb: string;
 }[] = [
   {
     value: "scene",
     label: "场景检测",
-    icon: ScanSearch,
+    icon: ScanSearchIcon,
     blurb:
       "解码完整文件并评估画面变化，分段选取变化最显著的帧。选帧质量高，耗时较长。",
   },
   {
     value: "fixed",
     label: "固定时间点",
-    icon: Timer,
+    icon: TimerIcon,
     blurb:
       "按等分比例定位时间点直接抽帧，不解码完整文件。速度显著提升，所选画面不保证具有代表性。",
   },

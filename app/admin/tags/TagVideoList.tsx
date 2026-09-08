@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Unlink } from "lucide-react";
+import { UnlinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import ListPagination from "@/components/ListPagination";
 import SearchInput from "@/components/SearchInput";
@@ -205,7 +205,7 @@ export default function TagVideoList({
             disabled={selected.size === 0}
             onClick={removeSelected}
           >
-            <Unlink data-icon="inline-start" />
+            <UnlinkIcon data-icon="inline-start" />
             从所选视频移除
           </Button>
         </CardAction>

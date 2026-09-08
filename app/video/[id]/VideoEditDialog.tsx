@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useForm } from "@tanstack/react-form";
-import { CircleCheck, CircleX } from "lucide-react";
+import { CircleCheckIcon, CircleXIcon } from "lucide-react";
 import { z } from "zod";
 import {
   Dialog,
@@ -235,9 +235,9 @@ export default function VideoEditDialog({
                             {validating ? (
                               <Spinner />
                             ) : pathExists && field.state.value.trim() ? (
-                              <CircleCheck className="text-success" />
+                              <CircleCheckIcon className="text-success" />
                             ) : (
-                              <CircleX className="text-destructive" />
+                              <CircleXIcon className="text-destructive" />
                             )}
                           </InputGroupAddon>
                         </InputGroup>

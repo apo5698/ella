@@ -33,7 +33,7 @@ export default function VideoDetail({
   initialViews: number;
   playerMeta: { duration: string; resolution: string | null; size: string };
 }) {
-  const { tasks } = useTaskQueue();
+  const { notifications } = useTaskQueue();
   const mountedAt = useRef(0);
   const syncedTask = useRef<number | null>(null);
   const [metadata, setMetadata] = useState({
@@ -64,25 +64,15 @@ export default function VideoDetail({
   }, []);
 
   useEffect(() => {
-    const completed = tasks.find((task) => {
+    const completed = notifications.find((notification) => {
       if (
-        task.kind !== "retag-video" ||
-        task.status !== "succeeded" ||
-        task.finishedAt === null ||
-        task.finishedAt < mountedAt.current ||
-        task.id === syncedTask.current
+        notification.type !== "VIDEO_RETAG" ||
+        notification.createdAt < mountedAt.current ||
+        notification.id === syncedTask.current
       ) {
         return false;
       }
-      try {
-        return (
-          Number(
-            (JSON.parse(task.payload) as { videoId?: unknown }).videoId,
-          ) === video.id
-        );
-      } catch {
-        return false;
-      }
+      return Number(notification.payload.videoId) === video.id;
     });
     if (!completed) return;
 
@@ -102,7 +92,7 @@ export default function VideoDetail({
         }
       });
     return () => controller.abort();
-  }, [tasks, video.id]);
+  }, [notifications, video.id]);
 
   return (
     <div className="flex flex-col gap-2">

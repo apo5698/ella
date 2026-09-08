@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Dot } from "@/components/ui/dot";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { TagReviewState } from "@/lib/types";
@@ -106,10 +107,10 @@ export default function TagStatePopover({
           />
         }
       >
-        <span
+        <Dot
           aria-hidden="true"
           className={cn(
-            "size-2 rounded-full transition-transform hover:scale-125",
+            "transition-transform hover:scale-125",
             TAG_STATE_DOT_STYLE[state],
           )}
         />
@@ -156,10 +157,10 @@ export default function TagStatePopover({
                   style={{ left: `${(index / (states.length - 1)) * 100}%` }}
                   onClick={() => setPendingIndex(index)}
                 >
-                  <span
+                  <Dot
                     aria-hidden="true"
                     className={cn(
-                      "size-1.5 shrink-0 -translate-x-1/2 rounded-full",
+                      "-translate-x-1/2",
                       TAG_STATE_DOT_STYLE[option],
                     )}
                   />

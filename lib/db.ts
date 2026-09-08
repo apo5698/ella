@@ -10,6 +10,73 @@ const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
+const tableExists = db.prepare(
+  "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+);
+const hasLegacyTasksTable = tableExists.get("tasks") !== undefined;
+const hasNotificationsTable = tableExists.get("notifications") !== undefined;
+const hasMigrationTable = tableExists.get("notifications_legacy") !== undefined;
+
+if (hasLegacyTasksTable && hasNotificationsTable) {
+  throw new Error(
+    "Database migration cannot continue while both tasks and notifications tables exist",
+  );
+}
+if (hasLegacyTasksTable) {
+  if (hasMigrationTable) {
+    throw new Error(
+      "Database migration table notifications_legacy already exists",
+    );
+  }
+  db.exec("ALTER TABLE tasks RENAME TO notifications_legacy");
+} else if (hasNotificationsTable) {
+  const columns = db.prepare("PRAGMA table_info(notifications)").all() as {
+    name: string;
+  }[];
+  const names = new Set(columns.map(({ name }) => name));
+  const isPureNotificationTable =
+    names.has("type") &&
+    names.has("payload") &&
+    names.has("is_read") &&
+    !names.has("status") &&
+    !names.has("processed") &&
+    !names.has("total") &&
+    !names.has("outcome");
+  if (!isPureNotificationTable) {
+    if (hasMigrationTable) {
+      throw new Error(
+        "Database migration table notifications_legacy already exists",
+      );
+    }
+    db.exec("ALTER TABLE notifications RENAME TO notifications_legacy");
+  }
+}
+
+const NOTIFICATIONS_TABLE_SQL = `
+CREATE TABLE notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL CHECK (type = upper(type)),
+  payload TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(payload)),
+  is_read BOOLEAN NOT NULL DEFAULT FALSE CHECK (is_read IN (FALSE, TRUE)),
+  created_at INTEGER NOT NULL
+);`;
+
+const BACKGROUND_JOBS_TABLE_SQL = `
+CREATE TABLE background_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL CHECK (kind = upper(kind)),
+  payload TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(payload)),
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (
+    status IN ('queued', 'running', 'succeeded', 'failed', 'canceled')
+  ),
+  processed INTEGER NOT NULL DEFAULT 0,
+  total INTEGER NOT NULL DEFAULT 0,
+  outcome TEXT CHECK (outcome IS NULL OR json_valid(outcome)),
+  created_at INTEGER NOT NULL,
+  started_at INTEGER,
+  finished_at INTEGER
+);`;
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS videos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,27 +135,12 @@ CREATE TABLE IF NOT EXISTS video_tags (
   PRIMARY KEY (video_id, tag_id)
 );
 
--- Background work the UI queued: one row per task, kept after it finishes so
--- the queue page can show what ran. The server owns execution (see
--- lib/taskRunner.ts); this table is the record of it, which is what lets a
--- task survive a restart mid-run.
-CREATE TABLE IF NOT EXISTS tasks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  kind TEXT NOT NULL,
-  -- What the queue page shows. Written once, so a later rename of the thing
-  -- the task acts on does not rewrite history.
-  title TEXT NOT NULL,
-  payload TEXT NOT NULL DEFAULT '{}',
-  -- queued | running | succeeded | failed | canceled
-  status TEXT NOT NULL DEFAULT 'queued',
-  processed INTEGER NOT NULL DEFAULT 0,
-  total INTEGER NOT NULL DEFAULT 0,
-  result TEXT,
-  error TEXT,
-  created_at INTEGER NOT NULL,
-  started_at INTEGER,
-  finished_at INTEGER
-);
+-- Notifications are immutable user-facing events. type selects presentation
+-- and localized copy; payload contains interpolation values only.
+${NOTIFICATIONS_TABLE_SQL.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")}
+
+-- Operational state belongs to the worker, not to the notification center.
+${BACKGROUND_JOBS_TABLE_SQL.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")}
 
 -- Key/value settings edited from the UI. Kept in the DB rather than a config
 -- file so the batch job reads exactly what the settings page wrote.
@@ -117,9 +169,7 @@ if (!tagColumns.some((c) => c.name === "clicks")) {
 }
 
 if (!tagColumns.some((c) => c.name === "assignable")) {
-  db.exec(
-    "ALTER TABLE tags ADD COLUMN assignable INTEGER NOT NULL DEFAULT 1",
-  );
+  db.exec("ALTER TABLE tags ADD COLUMN assignable INTEGER NOT NULL DEFAULT 1");
 }
 if (!tagColumns.some((c) => c.name === "review_state")) {
   db.exec(
@@ -189,6 +239,162 @@ db.exec(
   "CREATE INDEX IF NOT EXISTS idx_video_tags_status ON video_tags(video_id, status)",
 );
 
+if (tableExists.get("notifications_legacy") !== undefined) {
+  type LegacyNotification = {
+    id: number;
+    kind: string | null;
+    type: string | null;
+    event: string | null;
+    title: string | null;
+    payload: string | null;
+    args: string | null;
+    status: string | null;
+    processed: number;
+    total: number;
+    result: string | null;
+    outcome: string | null;
+    isRead: number;
+    createdAt: number;
+    startedAt: number | null;
+    finishedAt: number | null;
+  };
+
+  const columns = db
+    .prepare("PRAGMA table_info(notifications_legacy)")
+    .all() as { name: string }[];
+  const names = new Set(columns.map(({ name }) => name));
+  const select = (name: string, fallback = "NULL") =>
+    names.has(name) ? name : `${fallback} AS ${name}`;
+  const legacyRows = db
+    .prepare(
+      `SELECT id,
+       ${select("kind")}, ${select("type")}, ${select("event")},
+       ${select("title")}, ${select("payload")}, ${select("args")},
+       ${select("status")}, ${select("processed", "0")},
+       ${select("total", "0")}, ${select("result")}, ${select("outcome")},
+       ${names.has("is_read") ? "is_read" : "1"} AS isRead,
+       created_at AS createdAt,
+       ${names.has("started_at") ? "started_at" : "NULL"} AS startedAt,
+       ${names.has("finished_at") ? "finished_at" : "NULL"} AS finishedAt
+       FROM notifications_legacy`,
+    )
+    .all() as LegacyNotification[];
+
+  const parseObject = (value: string | null) => {
+    if (!value) return {};
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed !== null &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  };
+  const legacyType = (row: LegacyNotification) => {
+    const key = row.event ?? row.type ?? row.kind ?? "ERROR";
+    if (key === "promote-tag-source") return "TAG_APPROVAL";
+    if (key === "retag-video") return "VIDEO_RETAG";
+    if (key === "scan-video-catalog") return "VIDEO_CATALOG_SCAN";
+    if (key === "DUMMY_LONG_MESSAGE") return "WARNING";
+    return key.toUpperCase();
+  };
+  const legacyPayload = (row: LegacyNotification) => {
+    const payload = parseObject(row.args ?? row.payload);
+    if (row.kind === "promote-tag-source" && row.title) {
+      const match = row.title.match(/^将"(.+)"转为已审核标签（(\d+) 个视频）$/);
+      if (match) {
+        payload.tagName ??= match[1];
+        payload.pending ??= Number(match[2]);
+      }
+    }
+    if (row.kind === "retag-video" && row.title) {
+      const match = row.title.match(/^重新识别"(.+)"的标签$/);
+      if (match) payload.videoTitle ??= match[1];
+    }
+    return payload;
+  };
+  const legacyOutcome = (row: LegacyNotification) => {
+    const structured = parseObject(row.outcome);
+    if (Object.keys(structured).length > 0 || !row.result) return structured;
+    if (legacyType(row) === "TAG_APPROVAL") {
+      return {
+        count: Number(row.result.match(/^(\d+)/)?.[1] ?? row.processed),
+      };
+    }
+    if (legacyType(row) === "VIDEO_RETAG") {
+      return {
+        tagCount: Number(row.result.match(/共 (\d+) 个标签/)?.[1] ?? 0),
+      };
+    }
+    const scan = row.result.match(
+      /新增 (\d+)，更新 (\d+)，未变 (\d+)，移除 (\d+)/,
+    );
+    return scan
+      ? {
+          added: Number(scan[1]),
+          updated: Number(scan[2]),
+          skipped: Number(scan[3]),
+          removed: Number(scan[4]),
+        }
+      : {};
+  };
+
+  db.transaction(() => {
+    const insertJob = db.prepare(`
+      INSERT OR IGNORE INTO background_jobs (
+        id, kind, payload, status, processed, total, outcome,
+        created_at, started_at, finished_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertNotification = db.prepare(`
+      INSERT OR IGNORE INTO notifications (id, type, payload, is_read, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    for (const row of legacyRows) {
+      const type = legacyType(row);
+      const payload = legacyPayload(row);
+      const outcome = legacyOutcome(row);
+      if (row.status !== null) {
+        insertJob.run(
+          row.id,
+          type,
+          JSON.stringify(payload),
+          row.status,
+          row.processed,
+          row.total,
+          Object.keys(outcome).length > 0 ? JSON.stringify(outcome) : null,
+          row.createdAt,
+          row.startedAt,
+          row.finishedAt,
+        );
+      }
+
+      if (row.status === null || row.status === "succeeded") {
+        insertNotification.run(
+          row.id,
+          type,
+          JSON.stringify({ ...payload, ...outcome }),
+          row.isRead,
+          row.finishedAt ?? row.createdAt,
+        );
+      } else if (row.status === "failed") {
+        insertNotification.run(
+          row.id,
+          "ERROR",
+          JSON.stringify({ jobKind: type, ...payload }),
+          row.isRead,
+          row.finishedAt ?? row.createdAt,
+        );
+      }
+    }
+    db.exec("DROP TABLE notifications_legacy");
+  })();
+}
+
 // A manual active association means a human approved the tag. Keep this rule
 // at the database boundary so API routes, scripts, and task workers agree.
 db.exec(`
@@ -210,7 +416,16 @@ END;
 `);
 db.exec("CREATE INDEX IF NOT EXISTS idx_videos_series ON videos(series_id)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_tags_parent ON tags(parent_id)");
-db.exec("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status, id)");
+// Replace legacy queue indexes after the table split.
+db.exec("DROP INDEX IF EXISTS idx_tasks_status");
+db.exec("DROP INDEX IF EXISTS idx_tasks_read");
+db.exec("DROP INDEX IF EXISTS idx_notifications_status");
+db.exec(
+  "CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read, id)",
+);
+db.exec(
+  "CREATE INDEX IF NOT EXISTS idx_background_jobs_status ON background_jobs(status, id)",
+);
 
 // Series names follow the same spelling rule as tag names. Rows written before
 // that rule existed are brought in line here. Two spellings that normalize

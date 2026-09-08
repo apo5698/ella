@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { ChevronRightIcon, GripVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { AliasBadge, TagBadge } from "@/components/tags/TagBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,7 +98,7 @@ export default function TagNode({
             aria-label={isCollapsed ? "展开" : "折叠"}
             className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"
           >
-            <ChevronRight
+            <ChevronRightIcon
               className={cn(
                 "size-3.5 transition-transform",
                 !isCollapsed && "rotate-90",
@@ -154,7 +154,7 @@ export default function TagNode({
             title="编辑标签"
             className="text-muted-foreground"
           >
-            <Pencil />
+            <PencilIcon />
           </Button>
           <Button
             data-row-control=""
@@ -165,7 +165,7 @@ export default function TagNode({
             title="删除标签"
             className="text-muted-foreground hover:text-destructive"
           >
-            <Trash2 />
+            <Trash2Icon />
           </Button>
           <Button
             data-row-control=""
@@ -180,7 +180,7 @@ export default function TagNode({
               drag.active && "cursor-grabbing",
             )}
           >
-            <GripVertical />
+            <GripVerticalIcon />
           </Button>
         </div>
       </div>

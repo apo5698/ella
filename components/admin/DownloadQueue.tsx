@@ -6,14 +6,14 @@ import { useRef, useState, type ComponentType } from "react";
 import { useForm } from "@tanstack/react-form";
 import { diffChars, type Change } from "diff";
 import {
-  Check,
-  CheckCircle2,
-  FileDown,
-  Film,
-  Plus,
-  Sparkles,
-  Trash2,
-  X,
+  CheckIcon,
+  CheckCircle2Icon,
+  FileDownIcon,
+  FilmIcon,
+  PlusIcon,
+  SparklesIcon,
+  Trash2Icon,
+  XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AutoTagSuggestionList } from "@/components/tags/AutoTagSuggestionList";
@@ -144,7 +144,7 @@ function SimilarNameConflict({
         <ItemGroup className="text-foreground">
           <Item role="listitem" variant="muted" size="sm">
             <ItemMedia variant="icon">
-              <Film />
+              <FilmIcon />
             </ItemMedia>
             <ItemContent>
               <ItemTitle>已有视频</ItemTitle>
@@ -157,7 +157,7 @@ function SimilarNameConflict({
           </Item>
           <Item role="listitem" variant="muted" size="sm">
             <ItemMedia variant="icon">
-              <FileDown />
+              <FileDownIcon />
             </ItemMedia>
             <ItemContent>
               <ItemTitle>待下载视频</ItemTitle>
@@ -447,7 +447,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                             disabled={entries.length <= 1 || running}
                             onClick={() => removeEntry(index, entry.id)}
                           >
-                            <Trash2 />
+                            <Trash2Icon />
                           </Button>
                         </ItemActions>
                       </ItemHeader>
@@ -535,7 +535,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                       {state.status === "success" && state.result && (
                         <ItemFooter className="flex-col items-stretch">
                           <Alert>
-                            <CheckCircle2 />
+                            <CheckCircle2Icon />
                             <AlertTitle>视频已录入</AlertTitle>
                             <AlertDescription>
                               <VideoLink
@@ -572,7 +572,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                           </Alert>
                           {state.result.autoTagSuggestions.length > 0 && (
                             <Alert>
-                              <Sparkles />
+                              <SparklesIcon />
                               <AlertTitle>自动标记建议</AlertTitle>
                               <AlertDescription className="flex flex-col gap-2">
                                 <AutoTagSuggestionList
@@ -597,7 +597,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                                       )
                                     }
                                   >
-                                    <Check data-icon="inline-start" />
+                                    <CheckIcon data-icon="inline-start" />
                                     全部接受
                                   </AcceptButton>
                                   <Button
@@ -612,7 +612,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                                       )
                                     }
                                   >
-                                    <X data-icon="inline-start" />
+                                    <XIcon data-icon="inline-start" />
                                     全部跳过
                                   </Button>
                                 </div>
@@ -644,7 +644,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
               });
             }}
           >
-            <Plus data-icon="inline-start" />
+            <PlusIcon data-icon="inline-start" />
             增加
           </Button>
           <form.Subscribe selector={(state) => state.values.entries}>

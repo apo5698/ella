@@ -2,12 +2,13 @@
 // every page, so nothing is sent while nothing changes: a write to the table
 // is what pushes the next list.
 import db from "@/lib/db";
+import { listJobs, subscribeJobs } from "@/lib/jobs";
 import {
-  activeTaskCount,
-  listTasks,
-  subscribeTasks,
-  taskCount,
-} from "@/lib/tasks";
+  listNotifications,
+  notificationCount,
+  subscribeNotifications,
+  unreadNotificationCount,
+} from "@/lib/notifications";
 import "@/lib/taskRunner";
 
 export const runtime = "nodejs";
@@ -27,7 +28,8 @@ export async function GET(req: Request) {
   const stream = new ReadableStream({
     start(controller) {
       let closed = false;
-      let unsubscribe: () => void = () => {};
+      let unsubscribeNotifications: () => void = () => {};
+      let unsubscribeJobs: () => void = () => {};
       let heartbeat: ReturnType<typeof setInterval> | null = null;
       let pending: ReturnType<typeof setTimeout> | null = null;
       let lastSentAt = 0;
@@ -37,7 +39,8 @@ export async function GET(req: Request) {
         closed = true;
         if (heartbeat) clearInterval(heartbeat);
         if (pending) clearTimeout(pending);
-        unsubscribe();
+        unsubscribeNotifications();
+        unsubscribeJobs();
         req.signal.removeEventListener("abort", close);
         try {
           controller.close();
@@ -57,11 +60,16 @@ export async function GET(req: Request) {
 
       const send = () => {
         lastSentAt = Date.now();
+        const jobs = listJobs(db);
         write(
           `data: ${JSON.stringify({
-            tasks: listTasks(db),
-            total: taskCount(db),
-            activeCount: activeTaskCount(db),
+            jobs,
+            notifications: listNotifications(db),
+            total: notificationCount(db),
+            activeCount: jobs.filter(
+              ({ status }) => status === "queued" || status === "running",
+            ).length,
+            unreadCount: unreadNotificationCount(db),
           })}\n\n`,
         );
       };
@@ -84,7 +92,8 @@ export async function GET(req: Request) {
       // The first frame is the whole list, so a page that has just loaded
       // shows the queue without also fetching it.
       send();
-      unsubscribe = subscribeTasks(schedule);
+      unsubscribeNotifications = subscribeNotifications(schedule);
+      unsubscribeJobs = subscribeJobs(schedule);
       heartbeat = setInterval(() => write(": ping\n\n"), HEARTBEAT_MS);
     },
   });

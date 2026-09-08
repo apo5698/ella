@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 
 export const DOWNLOADER_SOURCES = [
   {
@@ -16,6 +16,6 @@ export const UTILITY_MODULES = [
     name: "下载器",
     description: "从不同来源下载视频并录入媒体库",
     href: `/admin/utilities/downloader?source=${DOWNLOADER_SOURCES[0].slug}`,
-    icon: Download,
+    icon: DownloadIcon,
   },
 ] as const;

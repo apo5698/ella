@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { XIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -110,7 +110,7 @@ export function RemovableBadge({
       {...props}
     >
       {children}
-      <X data-icon="inline-end" />
+      <XIcon data-icon="inline-end" />
     </Badge>
   );
 }

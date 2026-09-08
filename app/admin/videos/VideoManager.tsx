@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Library, Plus, RefreshCw, Tags } from "lucide-react";
+import { LibraryIcon, PlusIcon, RefreshCwIcon, TagsIcon } from "lucide-react";
 import { toast } from "sonner";
 import TagAutocomplete from "@/components/TagAutocomplete";
 import type { Option as TagOption } from "@/components/TagAutocomplete";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dot } from "@/components/ui/dot";
 import {
   Dialog,
   DialogContent,
@@ -594,7 +595,7 @@ function VideoManagerContent() {
       const response = await fetch("/api/videos/scan", { method: "POST" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "无法开始扫描");
-      toast.success("视频目录扫描已加入任务队列");
+      toast.success("视频目录扫描已提交后台处理");
     } catch (cause) {
       toast.error((cause as Error).message);
     } finally {
@@ -660,7 +661,7 @@ function VideoManagerContent() {
           {scanSubmitting ? (
             <Spinner data-icon="inline-start" />
           ) : (
-            <RefreshCw data-icon="inline-start" />
+            <RefreshCwIcon data-icon="inline-start" />
           )}
           扫描目录
         </Button>
@@ -677,15 +678,15 @@ function VideoManagerContent() {
           </span>
           <div className="ml-auto flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setBatchAction("add")}>
-              <Plus data-icon="inline-start" />
+              <PlusIcon data-icon="inline-start" />
               添加标签
             </Button>
             <Button variant="outline" onClick={() => setBatchAction("remove")}>
-              <Tags data-icon="inline-start" />
+              <TagsIcon data-icon="inline-start" />
               移除标签
             </Button>
             <Button variant="outline" onClick={() => setSeriesDialogOpen(true)}>
-              <Library data-icon="inline-start" />
+              <LibraryIcon data-icon="inline-start" />
               设置系列
             </Button>
             <Button variant="ghost" onClick={() => setSelected(new Set())}>
@@ -721,11 +722,11 @@ function VideoManagerContent() {
               <AccordionItem key={value} value={value}>
                 <AccordionTrigger className="items-center px-3 py-3 hover:no-underline">
                   <span className="flex min-w-0 items-center gap-2">
-                    <span
+                    <Dot
                       className={
                         group.id === null
-                          ? "size-2 shrink-0 rounded-full bg-muted-foreground"
-                          : "size-2 shrink-0 rounded-full bg-series-border"
+                          ? "bg-muted-foreground"
+                          : "bg-series-border"
                       }
                     />
                     <span className="truncate text-sm">{group.name}</span>

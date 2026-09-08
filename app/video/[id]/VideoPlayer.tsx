@@ -6,12 +6,12 @@ import { DefaultVideoLayout } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import {
-  ChevronsLeft,
-  ChevronsRight,
-  FileText,
-  Monitor,
-  TvMinimalPlay,
-  VideoOff,
+  ChevronsLeftIcon,
+  ChevronsRightIcon,
+  FileTextIcon,
+  MonitorIcon,
+  TvMinimalPlayIcon,
+  VideoOffIcon,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -127,7 +127,7 @@ export default function VideoPlayer({
     <>
       {unavailable ? (
         <Alert variant="destructive">
-          <VideoOff />
+          <VideoOffIcon />
           <AlertTitle>无法读取文件</AlertTitle>
           <AlertDescription>
             请确认存储设备已连接，且文件仍位于下方路径。
@@ -167,9 +167,9 @@ export default function VideoPlayer({
                 )}
               >
                 {seekFeedback.direction < 0 ? (
-                  <ChevronsLeft className="size-5" />
+                  <ChevronsLeftIcon className="size-5" />
                 ) : (
-                  <ChevronsRight className="size-5" />
+                  <ChevronsRightIcon className="size-5" />
                 )}
                 <span className="tabular-nums">
                   {seekFeedback.direction < 0 ? "−" : "+"}
@@ -182,15 +182,15 @@ export default function VideoPlayer({
       )}
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <TvMinimalPlay className="size-3" /> {views}
+          <TvMinimalPlayIcon className="size-3" /> {views}
         </span>
         {meta.resolution && (
           <span className="flex items-center gap-1">
-            <Monitor className="size-3" /> {meta.resolution}
+            <MonitorIcon className="size-3" /> {meta.resolution}
           </span>
         )}
         <span className="flex items-center gap-1">
-          <FileText className="size-3" /> {meta.size}
+          <FileTextIcon className="size-3" /> {meta.size}
         </span>
       </div>
     </>
