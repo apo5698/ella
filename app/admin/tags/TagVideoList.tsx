@@ -24,8 +24,8 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ItemGroup } from "@/components/ui/item";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import type { TagReviewState, Video } from "@/lib/types";
 
@@ -231,18 +231,7 @@ export default function TagVideoList({
         </div>
 
         {loading ? (
-          <ItemGroup>
-            {Array.from({ length: Math.min(3, pageSize) }, (_, index) => (
-              <Item key={index} role="listitem" variant="outline">
-                <Skeleton className="size-4" />
-                <Skeleton className="h-16 w-28" />
-                <ItemContent>
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-3 w-1/2" />
-                </ItemContent>
-              </Item>
-            ))}
-          </ItemGroup>
+          <LoadingSpinner />
         ) : videos.length === 0 ? (
           <Empty className="rounded-lg border">
             <EmptyHeader>

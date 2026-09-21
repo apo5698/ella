@@ -25,8 +25,13 @@ export function listVideoFiles(dir: string): string[] {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return files;
+  } catch (cause) {
+    throw new Error(
+      "无法读取视频目录，扫描已停止。请检查目录权限和挂载状态。",
+      {
+        cause,
+      },
+    );
   }
   for (const entry of entries) {
     if (entry.name.startsWith(".")) continue;

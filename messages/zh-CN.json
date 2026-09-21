@@ -52,6 +52,8 @@
     "pageTitle": "通知中心",
     "total": "共 {count} 条通知",
     "markAllRead": "全部已读",
+    "markRead": "标记已读",
+    "toggleDetails": "展开或收起详情",
     "markedAllRead": "已将 {count} 条通知标为已读",
     "all": "全部",
     "unread": "未读",

@@ -43,7 +43,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Check version logic
-        run: bun run check:releases
+        run: |
+          bun run check:releases
+          bun run check:updates
 
       - name: Check types
         run: |

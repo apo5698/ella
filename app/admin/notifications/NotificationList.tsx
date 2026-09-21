@@ -233,30 +233,33 @@ function NotificationItem({
     <AccordionItem
       value={String(notification.id)}
       className={cn(
-        "group/notification",
+        "group/notification select-text",
         !notification.isRead && "bg-primary/5",
       )}
     >
-      {isExpandable ? (
-        <AccordionTrigger
-          onClick={() => {
-            if (!notification.isRead) void onRead(notification.id);
-          }}
-          className="grid grid-cols-[2.5rem_minmax(0,1fr)_1rem] items-start gap-3 p-3 hover:no-underline"
-        >
-          {summary}
-        </AccordionTrigger>
-      ) : (
-        <Button
-          variant="ghost"
-          className="grid h-auto w-full grid-cols-[2.5rem_minmax(0,1fr)_1rem] items-start gap-3 rounded-none p-3 text-left hover:bg-transparent"
-          onClick={() => {
-            if (!notification.isRead) void onRead(notification.id);
-          }}
-        >
-          {summary}
-        </Button>
-      )}
+      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-start gap-3 p-3">
+        {summary}
+        <div className="flex items-center gap-1">
+          {!notification.isRead && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t("markRead")}
+              title={t("markRead")}
+              onClick={() => void onRead(notification.id)}
+            >
+              <CheckCheckIcon />
+            </Button>
+          )}
+          {isExpandable && (
+            <AccordionTrigger
+              aria-label={t("toggleDetails")}
+              title={t("toggleDetails")}
+              className="size-7 items-center justify-center rounded-md p-1 hover:bg-accent hover:no-underline"
+            />
+          )}
+        </div>
+      </div>
 
       {isExpandable && (
         <AccordionContent className="grid grid-cols-[2.5rem_minmax(0,1fr)_1rem] gap-x-3 gap-y-3 px-1 text-xs/relaxed font-normal text-muted-foreground">

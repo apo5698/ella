@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { ChevronRightIcon } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import SystemVersion from "@/components/settings/SystemVersion";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -15,40 +15,39 @@ import {
 export default function SettingsPage() {
   return (
     <>
-      <AdminPageHeader
-        title="设置"
-        description="查看系统信息，管理 Ella 的各项设置。"
-      />
-      <div className="flex max-w-3xl flex-col gap-4">
+      <AdminPageHeader title="设置" />
+      <div className="flex max-w-2xl flex-col gap-4">
         <Suspense
           fallback={
             <Card>
               <CardHeader>
-                <CardTitle>系统版本</CardTitle>
+                <CardTitle>软件更新</CardTitle>
               </CardHeader>
-              <CardContent role="status">正在检查版本…</CardContent>
+              <CardContent>
+                <LoadingSpinner className="min-h-32" label="正在检查更新" />
+              </CardContent>
             </Card>
           }
         >
           <SystemVersion />
         </Suspense>
-        <Card>
-          <CardHeader>
-            <CardTitle>智能识别</CardTitle>
-            <CardDescription>
-              识别模型、视频抽帧和自动标签任务。
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button
-              nativeButton={false}
-              variant="outline"
-              render={<Link href="/settings/recognition" />}
-            >
-              配置智能识别
-            </Button>
-          </CardFooter>
-        </Card>
+        <Link
+          href="/settings/recognition"
+          className="rounded-lg outline-offset-4"
+        >
+          <Card>
+            <CardHeader className="grid-cols-[1fr_auto] items-center">
+              <div className="flex flex-col gap-1">
+                <CardTitle>智能识别</CardTitle>
+                <CardDescription>模型、抽帧与自动标签</CardDescription>
+              </div>
+              <ChevronRightIcon
+                aria-hidden="true"
+                className="size-4 text-muted-foreground"
+              />
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </>
   );

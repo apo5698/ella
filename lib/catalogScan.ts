@@ -28,6 +28,11 @@ export async function scanVideoCatalog(
     id: number;
     path: string;
   }[];
+  if (files.length === 0 && dbPaths.length > 0) {
+    throw new Error(
+      "未发现视频文件，已停止扫描并保留现有记录。请检查视频目录和挂载状态。",
+    );
+  }
   const total = files.length + dbPaths.length;
   let processed = 0;
   let added = 0;

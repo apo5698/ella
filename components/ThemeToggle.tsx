@@ -26,7 +26,7 @@ export default function ThemeToggle() {
       <DropdownMenuContent side="top" align="start">
         <DropdownMenuGroup>
           <DropdownMenuRadioGroup
-            value={theme ?? "dark"}
+            value={theme ?? "system"}
             onValueChange={setTheme}
           >
             <DropdownMenuRadioItem value="light" closeOnClick>

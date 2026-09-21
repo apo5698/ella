@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:tags": "tsx tests/check-tag-order.ts && tsx tests/check-tag-hierarchy.ts",
-    "check:releases": "node --import tsx --test tests/releases.test.ts && node --test tests/release-rules.test.mjs"
+    "check:releases": "node --import tsx --test tests/releases.test.ts && node --test tests/release-rules.test.mjs",
+    "check:updates": "node --import tsx --test tests/updater.test.ts && python3 -B -m unittest discover -s deploy/updater -p 'test_*.py'"
   },
   "dependencies": {
     "7zip-bin": "^5.2.0",

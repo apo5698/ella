@@ -240,6 +240,15 @@ export function formatTagImpactFact(fact: TagImpactFact): TagImpactMessage {
           { kind: "text", text: "的别名，原标签不再存在。" },
         ],
       };
+    case "aliases-transferred":
+      return {
+        tone: "default",
+        segments: [
+          { kind: "text", text: `原有的 ${fact.count} 个别名将一并转移给` },
+          tag(fact.target),
+          { kind: "text", text: "，继续作为其别名。" },
+        ],
+      };
     case "video-tag-renamed":
       return fact.count === 0
         ? {

@@ -49,7 +49,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import SearchInput from "@/components/SearchInput";
-import { Skeleton } from "@/components/ui/skeleton";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -501,57 +501,61 @@ function VideoTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {loading
-            ? Array.from({ length: 6 }, (_, index) => (
-                <TableRow key={index} className="bg-background">
-                  <TableCell>
-                    <Skeleton className="size-4" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-2">
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <Skeleton className="h-4 w-12" />
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <Skeleton className="h-4 w-12" />
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell className="sticky right-0 z-10 bg-background">
-                    <Skeleton className="size-7" />
-                  </TableCell>
-                </TableRow>
-              ))
-            : videos.map((video) => {
-                const visibleTags = video.tags.slice(0, 3);
-                const tagCount = video.tags.length;
-                const checked = selected.has(video.id);
+          {loading ? (
+            <TableRow className="bg-background hover:bg-background">
+              <TableCell colSpan={7}>
+                <LoadingSpinner />
+              </TableCell>
+            </TableRow>
+          ) : (
+            videos.map((video) => {
+              const visibleTags = video.tags.slice(0, 3);
+              const tagCount = video.tags.length;
+              const checked = selected.has(video.id);
 
-                return (
-                  <TableRow
-                    key={video.id}
-                    className="group bg-background hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]"
-                    data-state={checked ? "selected" : undefined}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(value) =>
-                          onToggleVideo(video.id, value === true)
-                        }
-                        aria-label={`选择 ${video.title}`}
-                      />
-                    </TableCell>
-                    <TableCell className="whitespace-normal">
-                      <div className="flex min-w-0 flex-col gap-1">
+              return (
+                <TableRow
+                  key={video.id}
+                  className="group bg-background hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]"
+                  data-state={checked ? "selected" : undefined}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(value) =>
+                        onToggleVideo(video.id, value === true)
+                      }
+                      aria-label={`选择 ${video.title}`}
+                    />
+                  </TableCell>
+                  <TableCell className="whitespace-normal">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <VideoLink
+                        href={`/video/${video.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`打开视频：${video.title}`}
+                        className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-xs text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                      >
+                        <span aria-hidden="true">无封面</span>
+                        {video.thumbnail && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={video.thumbnail}
+                            src={video.thumbnail}
+                            alt=""
+                            width={80}
+                            height={45}
+                            loading="lazy"
+                            decoding="async"
+                            className="absolute inset-0 size-full object-cover"
+                            onError={(event) => {
+                              event.currentTarget.style.visibility = "hidden";
+                            }}
+                          />
+                        )}
+                      </VideoLink>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <div className="flex min-w-0 items-center justify-between gap-4">
                           <div className="flex min-w-0 flex-1 items-center gap-2">
                             {video.series_name && (
@@ -631,29 +635,31 @@ function VideoTable({
                           {videoResolution(video)}
                         </span>
                       </div>
-                    </TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
-                      {video.clicks.toLocaleString("zh-CN")}
-                    </TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
-                      {video.views.toLocaleString("zh-CN")}
-                    </TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground tabular-nums sm:table-cell">
-                      {formatSize(video.size_bytes)}
-                    </TableCell>
-                    <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
-                      <LocalTime value={video.mtime} />
-                    </TableCell>
-                    <TableCell className="sticky right-0 z-10 bg-background text-right transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-data-[state=selected]:bg-muted">
-                      <VideoRowActions
-                        video={video}
-                        onChanged={onChanged}
-                        onDeleted={onDeleted}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
+                    {video.clicks.toLocaleString("zh-CN")}
+                  </TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
+                    {video.views.toLocaleString("zh-CN")}
+                  </TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums sm:table-cell">
+                    {formatSize(video.size_bytes)}
+                  </TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
+                    <LocalTime value={video.mtime} />
+                  </TableCell>
+                  <TableCell className="sticky right-0 z-10 bg-background text-right transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-data-[state=selected]:bg-muted">
+                    <VideoRowActions
+                      video={video}
+                      onChanged={onChanged}
+                      onDeleted={onDeleted}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
         </TableBody>
       </Table>
     </div>
@@ -1077,7 +1083,7 @@ function VideoManagerContent() {
 
 export default function VideoManager() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoadingSpinner />}>
       <VideoManagerContent />
     </Suspense>
   );

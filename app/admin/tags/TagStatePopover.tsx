@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { TagBadge } from "@/components/tags/TagBadge";
 import {
   TAG_STATE_DOT_STYLE,
   TAG_STATE_LABEL,
@@ -16,7 +17,8 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Dot } from "@/components/ui/dot";
-import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import type { TagReviewState } from "@/lib/types";
 import TagImpactAnalysis from "./TagImpactAnalysis";
@@ -42,26 +44,21 @@ export default function TagStatePopover({
   directVideoCount: number;
   onChanged: () => Promise<void>;
 }) {
-  const states = useMemo(
-    () => (state === "automatic" ? ALL_STATES : HUMAN_STATES),
-    [state],
-  );
-  const stateIndex = states.indexOf(state);
+  const states = state === "automatic" ? ALL_STATES : HUMAN_STATES;
   const [open, setOpen] = useState(false);
-  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+  const [pendingState, setPendingState] = useState<TagReviewState | null>(null);
   const [busy, setBusy] = useState(false);
-  const value = pendingIndex ?? stateIndex;
-  const selectedState = states[value];
+  const selectedState = pendingState ?? state;
   const changed = selectedState !== state;
   const categoryBlocked = state !== "category" && directVideoCount > 0;
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
-    if (!nextOpen) setPendingIndex(null);
+    if (!nextOpen) setPendingState(null);
   }
 
-  async function changeState(index: number) {
-    const next = states[index];
+  async function changeState() {
+    const next = selectedState;
     if (
       !next ||
       next === state ||
@@ -84,7 +81,7 @@ export default function TagStatePopover({
       }
 
       await onChanged();
-      setPendingIndex(null);
+      setPendingState(null);
       setOpen(false);
     } catch {
       toast.error("无法更改标签状态");
@@ -101,23 +98,26 @@ export default function TagStatePopover({
             data-row-control=""
             type="button"
             aria-label={`${name}：${TAG_STATE_LABEL[state]}`}
-            className="flex size-5 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="flex min-h-5 pointer-coarse:py-3 shrink-0 cursor-pointer items-center gap-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           />
         }
       >
-        <Dot
-          aria-hidden="true"
-          className={cn(
-            "transition-transform hover:scale-125",
-            TAG_STATE_DOT_STYLE[state],
-          )}
-        />
+        <span className="flex size-5 shrink-0 items-center justify-center">
+          <Dot
+            aria-hidden="true"
+            className={cn(
+              "transition-transform hover:scale-125",
+              TAG_STATE_DOT_STYLE[state],
+            )}
+          />
+        </span>
+        <TagBadge state={state}>{name}</TagBadge>
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-96"
+        className="w-max max-w-[calc(100dvw-2rem)] [&_li]:[overflow-wrap:anywhere]"
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
@@ -125,55 +125,42 @@ export default function TagStatePopover({
           <PopoverTitle>标签状态</PopoverTitle>
           <PopoverDescription>选择后预览，点击应用生效</PopoverDescription>
         </PopoverHeader>
-        <div className="flex flex-col gap-2 pb-1">
-          <span id={`tag-state-${tagId}-label`} className="sr-only">
-            {name}的状态
-          </span>
-          <Slider
-            min={0}
-            max={states.length - 1}
-            step={1}
-            value={[value]}
-            disabled={busy}
-            onValueChange={(next) =>
-              setPendingIndex(
-                typeof next === "number" ? next : (next[0] ?? stateIndex),
-              )
-            }
-            className="pr-10"
-            aria-labelledby={`tag-state-${tagId}-label`}
-          />
-          <div className="mr-10 px-1.5">
-            <div className="relative h-5 text-xs text-foreground">
-              {states.map((option, index) => (
-                <button
-                  type="button"
-                  key={option}
-                  data-row-control=""
-                  className={cn(
-                    "absolute top-0 flex cursor-pointer items-center gap-1 whitespace-nowrap",
-                    option === selectedState && "text-foreground",
-                  )}
-                  style={{ left: `${(index / (states.length - 1)) * 100}%` }}
-                  onClick={() => setPendingIndex(index)}
-                >
-                  <Dot
-                    aria-hidden="true"
-                    className={cn(
-                      "-translate-x-1/2",
-                      TAG_STATE_DOT_STYLE[option],
-                    )}
-                  />
-                  {TAG_STATE_LABEL[option]}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <RadioGroup
+          aria-label={`${name}的状态`}
+          value={selectedState}
+          onValueChange={(value) => setPendingState(value as TagReviewState)}
+          disabled={busy}
+        >
+          {states.map((option) => (
+            <Field key={option} orientation="horizontal">
+              <RadioGroupItem
+                id={`tag-${tagId}-${option}`}
+                value={option}
+                disabled={option === "category" && categoryBlocked}
+              />
+              <FieldLabel
+                className="whitespace-nowrap"
+                htmlFor={`tag-${tagId}-${option}`}
+              >
+                <Dot
+                  aria-hidden="true"
+                  className={TAG_STATE_DOT_STYLE[option]}
+                />
+                {TAG_STATE_LABEL[option]}
+              </FieldLabel>
+            </Field>
+          ))}
+        </RadioGroup>
+        {categoryBlocked && (
+          <p className="text-xs text-muted-foreground">
+            仍有关联视频，暂不能设为分类。
+          </p>
+        )}
 
         {selectedState !== "automatic" &&
           (changed || selectedState === "category") && (
             <TagImpactAnalysis
+              className="[container-type:normal]"
               request={{ action: "state", id: tagId, state: selectedState }}
               showVideos={false}
             />
@@ -197,7 +184,7 @@ export default function TagStatePopover({
               busy ||
               (selectedState === "category" && categoryBlocked)
             }
-            onClick={() => changeState(value)}
+            onClick={() => changeState()}
           >
             应用
           </Button>
