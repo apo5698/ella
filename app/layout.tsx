@@ -51,7 +51,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </a>
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >

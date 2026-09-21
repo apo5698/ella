@@ -16,14 +16,18 @@ export type ReleaseStatus =
   | { status: "empty" }
   | { status: "unavailable" };
 
-export async function getLatestRelease(): Promise<ReleaseStatus> {
+export async function getLatestRelease(
+  refresh = false,
+): Promise<ReleaseStatus> {
   try {
     const options = {
       headers: {
         Accept: "application/vnd.github+json",
         "User-Agent": "Ella",
       },
-      next: { revalidate: 3600 },
+      ...(refresh
+        ? { cache: "no-store" as const }
+        : { next: { revalidate: 3600 } }),
       signal: AbortSignal.timeout(5000),
     };
     const response = await fetch(LATEST_RELEASE_API, options);

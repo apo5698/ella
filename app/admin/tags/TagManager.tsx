@@ -222,10 +222,18 @@ export default function TagManager({
     return () => window.removeEventListener("popstate", restorePagination);
   }, []);
 
-  const refresh = useCallback(async () => {
-    const res = await fetch("/api/tags/tree");
-    const data = await res.json();
-    setTree(data.tree ?? []);
+  const refresh = useCallback(async function refreshTree(): Promise<void> {
+    try {
+      const res = await fetch("/api/tags/tree");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!Array.isArray(data.tree)) throw new Error();
+      setTree(data.tree);
+    } catch {
+      toast.error("刷新失败，已保留当前列表", {
+        action: { label: "重试", onClick: () => void refreshTree() },
+      });
+    }
   }, []);
 
   const all = useMemo(() => flatten(tree), [tree]);
@@ -306,7 +314,18 @@ export default function TagManager({
   }
 
   function selectShown() {
-    setSelected(new Set(flatten(pageRoots).map((node) => node.id)));
+    const ids: number[] = [];
+    function visit(nodes: TagTreeNode[]) {
+      for (const node of nodes) {
+        const matches =
+          !trimmed ||
+          searchIndex.get(node.id)?.some((form) => form.includes(trimmed));
+        if (matches && categories.has(tagCategory(node))) ids.push(node.id);
+        if (!collapsed.has(node.id)) visit(node.children);
+      }
+    }
+    visit(pageRoots);
+    setSelected(new Set(ids));
   }
 
   function toggleCategory(category: TagCategory, shown: boolean) {
@@ -607,7 +626,7 @@ export default function TagManager({
       pageSize={{
         value: pageSize,
         options: MANAGER_PAGE_SIZES,
-        label: "每页标签",
+        label: "每页顶级标签",
         onChange: (nextPageSize) => {
           setPageSize(nextPageSize);
           setPage(1);
@@ -659,7 +678,7 @@ export default function TagManager({
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={selectShown}>
-          全选当前
+          选择当前可见标签
         </Button>
         <Button onClick={() => startCreate(null)}>
           <PlusIcon data-icon="inline-start" />
@@ -682,10 +701,7 @@ export default function TagManager({
               checked={categories.has(item.id)}
               onCheckedChange={(checked) => toggleCategory(item.id, checked)}
             />
-            <Dot
-              aria-hidden="true"
-              className={item.className}
-            />
+            <Dot aria-hidden="true" className={item.className} />
             {item.label}
             <span className="tabular-nums text-muted-foreground">
               {categoryCounts[item.id]}

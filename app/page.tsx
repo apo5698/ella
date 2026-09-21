@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { TagsIcon } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import VideoLink from "@/components/VideoLink";
 import PageContainer from "@/components/PageContainer";
@@ -11,8 +12,16 @@ import type { Video, TagCount } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SeriesBadge, TagBadge } from "@/components/tags/TagBadge";
+import { RemovableTagBadge, SeriesBadge, TagBadge } from "@/components/tags/TagBadge";
+import TagAutocomplete from "@/components/TagAutocomplete";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import ListPagination from "@/components/ListPagination";
 import SearchInput from "@/components/SearchInput";
 import {
@@ -190,16 +199,39 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <PageContainer>
+    <div className="flex min-h-[calc(100dvh-3rem-1px)] flex-1 bg-background p-6 text-foreground">
+      <PageContainer className="flex flex-1 flex-col">
         <h1 className="sr-only">视频库</h1>
-        <div className="flex gap-3 mb-4">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <SearchInput
             value={q}
             onValueChange={setQ}
             placeholder="搜索标题、文件名、标签或拼音"
-            className="flex-1"
+            className="min-w-0 basis-full sm:basis-auto sm:flex-1"
           />
+          <Popover>
+            <PopoverTrigger render={<Button variant="outline" />}>
+              <TagsIcon data-icon="inline-start" />
+              标签{activeTagIds.length > 0 && ` (${activeTagIds.length})`}
+            </PopoverTrigger>
+            <PopoverContent align="start" className="max-w-[calc(100vw-3rem)]">
+              <PopoverTitle>按标签筛选</PopoverTitle>
+              <TagAutocomplete
+                endpoint="/api/tags/suggest?limit=30"
+                mode="multi"
+                placeholder="搜索标签或拼音"
+                allowCreate={false}
+                disabledNames={tags
+                  .filter((tag) => activeTagIds.includes(tag.id))
+                  .map((tag) => tag.name)}
+                onSelect={(name, option) => {
+                  if (option.id !== undefined) toggleTag(option.id, name);
+                }}
+                inputId="home-tag-filter"
+                className="w-full"
+              />
+            </PopoverContent>
+          </Popover>
           <Select value={sort} onValueChange={(v) => setSort(v as string)}>
             <SelectTrigger aria-label="排序">
               <SelectValue placeholder="排序">
@@ -230,124 +262,136 @@ function HomeContent() {
           )}
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-1">
-          {tags.slice(0, 50).map((t) => (
-            <TagBadge
-              key={t.id}
-              render={<button type="button" />}
-              state={t.reviewState}
-              className={cn(
-                "min-h-6 cursor-pointer sm:min-h-5",
-                activeTagIds.includes(t.id) && "ring-2 ring-primary",
-              )}
-              onClick={() => toggleTag(t.id, t.name)}
-            >
-              {t.name} <span>{t.count}</span>
-            </TagBadge>
-          ))}
-        </div>
-
-        <div className="mb-3 text-xs text-foreground">
-          {loading ? "加载中" : `共 ${total} 个视频`}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {videos.map((v) => (
-            <Card key={v.id} className="p-0 gap-0 overflow-hidden">
-              <VideoLink
-                href={`/video/${v.id}`}
-                className="group block"
-                onClick={rememberScroll}
-              >
-                <div className="aspect-video bg-muted overflow-hidden relative">
-                  {v.thumbnail ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={v.thumbnail}
-                      alt=""
-                      className="w-full h-full object-cover transition group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      无缩略图
-                    </div>
-                  )}
-                  <div className="absolute bottom-1 right-1 flex gap-1">
-                    {resolutionLabel(v.width, v.height) && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-black/70 text-white border-0"
-                      >
-                        {resolutionLabel(v.width, v.height)}
-                      </Badge>
-                    )}
-                    <Badge
-                      variant="secondary"
-                      className="bg-black/70 text-white border-0"
-                    >
-                      {formatDuration(v.duration_sec)}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="px-2.5 pt-2">
-                  <div className="text-sm truncate" title={v.title}>
-                    {v.title}
-                  </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    播放次数 {v.views}
-                  </div>
-                </div>
-              </VideoLink>
-              <div className="flex flex-wrap gap-1 px-2.5 pb-2.5 pt-1">
-                {/* The series always leads, so a card's origin reads first. */}
-                {v.series_id !== null && v.series_name && (
-                  <SeriesBadge
-                    render={<button type="button" />}
-                    className={cn(
-                      "min-h-6 cursor-pointer sm:min-h-5",
-                      activeSeriesId === v.series_id && "ring-2 ring-primary",
-                    )}
-                    onClick={() => toggleSeries(v.series_id!)}
-                  >
-                    {v.series_name}
-                  </SeriesBadge>
-                )}
-                {v.tags.slice(0, 3).map((t) => (
-                  <TagBadge
-                    key={t.id}
-                    render={<button type="button" />}
-                    source={t.source}
-                    className={cn(
-                      "min-h-6 cursor-pointer sm:min-h-5",
-                      activeTagIds.includes(t.id) && "ring-2 ring-primary",
-                    )}
-                    onClick={() => toggleTag(t.id, t.name)}
-                  >
-                    {t.name}
-                  </TagBadge>
-                ))}
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {!loading && videos.length === 0 && (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>未找到匹配的视频</EmptyTitle>
-              <EmptyDescription>请调整搜索词或清除筛选条件。</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+        {activeTagIds.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-1" aria-label="已选标签">
+            {activeTagIds.map((id) => {
+              const tag = tags.find((item) => item.id === id);
+              const name = tag?.name ?? `标签 #${id}`;
+              return (
+                <RemovableTagBadge
+                  key={id}
+                  state={tag?.reviewState}
+                  removeLabel={`取消标签筛选：${name}`}
+                  className="min-h-6 max-w-full"
+                  onClick={() => setActiveTagIds((prev) => prev.filter((tagId) => tagId !== id))}
+                >
+                  <span className="truncate">{name}</span>
+                </RemovableTagBadge>
+              );
+            })}
+          </div>
         )}
 
-        {totalPages > 1 && (
-          <ListPagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            className="mt-8 justify-center"
-          />
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <>
+            <div className="mb-3 text-xs text-foreground">
+              共 {total} 个视频
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {videos.map((v) => (
+                <Card key={v.id} className="p-0 gap-0 overflow-hidden">
+                  <VideoLink
+                    href={`/video/${v.id}`}
+                    className="group block"
+                    onClick={rememberScroll}
+                  >
+                    <div className="aspect-video bg-muted overflow-hidden relative">
+                      {v.thumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={v.thumbnail}
+                          alt=""
+                          className="w-full h-full object-cover transition group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          无缩略图
+                        </div>
+                      )}
+                      <div className="absolute bottom-1 right-1 flex gap-1">
+                        {resolutionLabel(v.width, v.height) && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-black/70 text-white border-0"
+                          >
+                            {resolutionLabel(v.width, v.height)}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="secondary"
+                          className="bg-black/70 text-white border-0"
+                        >
+                          {formatDuration(v.duration_sec)}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="px-2.5 pt-2">
+                      <div className="text-sm truncate" title={v.title}>
+                        {v.title}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        播放次数 {v.views}
+                      </div>
+                    </div>
+                  </VideoLink>
+                  <div className="flex flex-wrap gap-1 px-2.5 pb-2.5 pt-1">
+                    {/* The series always leads, so a card's origin reads first. */}
+                    {v.series_id !== null && v.series_name && (
+                      <SeriesBadge
+                        render={<button type="button" />}
+                        className={cn(
+                          "min-h-6 cursor-pointer sm:min-h-5",
+                          activeSeriesId === v.series_id &&
+                            "ring-2 ring-primary",
+                        )}
+                        onClick={() => toggleSeries(v.series_id!)}
+                      >
+                        {v.series_name}
+                      </SeriesBadge>
+                    )}
+                    {v.tags.slice(0, 3).map((t) => (
+                      <TagBadge
+                        key={t.id}
+                        render={<button type="button" />}
+                        source={t.source}
+                        className={cn(
+                          "min-h-6 cursor-pointer sm:min-h-5",
+                          activeTagIds.includes(t.id) && "ring-2 ring-primary",
+                        )}
+                        onClick={() => toggleTag(t.id, t.name)}
+                      >
+                        {t.name}
+                      </TagBadge>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {videos.length === 0 && (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>未找到匹配的视频</EmptyTitle>
+                  <EmptyDescription>
+                    请调整搜索词或清除筛选条件。
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+
+            {totalPages > 1 && (
+              <ListPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                className="mt-8 justify-center"
+              />
+            )}
+          </>
         )}
       </PageContainer>
     </div>
@@ -356,7 +400,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoadingSpinner />}>
       <HomeContent />
     </Suspense>
   );

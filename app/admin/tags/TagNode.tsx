@@ -1,7 +1,12 @@
 "use client";
 
-import { ChevronRightIcon, GripVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { AliasBadge, TagBadge } from "@/components/tags/TagBadge";
+import {
+  ChevronRightIcon,
+  GripVerticalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
+import { AliasBadge } from "@/components/tags/TagBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -70,13 +75,8 @@ export default function TagNode({
     >
       <div
         data-tag-row={node.id}
-        onClick={(event) => {
-          if ((event.target as HTMLElement).closest("[data-row-control]"))
-            return;
-          onEdit(node);
-        }}
         className={cn(
-          "group flex cursor-pointer items-start gap-1.5 rounded-md py-1 pr-2",
+          "group flex items-start gap-1.5 rounded-md py-1 pr-2",
           isTarget ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50",
           isBlocked && "opacity-40",
         )}
@@ -110,17 +110,15 @@ export default function TagNode({
         )}
 
         <div className="flex min-w-0 flex-1 gap-1.5">
-          <TagStatePopover
-            tagId={node.id}
-            name={node.name}
-            state={node.reviewState}
-            directVideoCount={node.count}
-            onChanged={onStateChanged}
-          />
-
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-            <div className="flex h-5 shrink-0 items-center gap-1.5 text-sm">
-              <TagBadge state={node.reviewState}>{node.name}</TagBadge>
+            <div className="flex shrink-0 items-center gap-1.5 text-sm">
+              <TagStatePopover
+                tagId={node.id}
+                name={node.name}
+                state={node.reviewState}
+                directVideoCount={node.count}
+                onChanged={onStateChanged}
+              />
 
               {/* The parent's number covers its whole subtree, which is what
                   selecting it on the home page returns. */}
@@ -143,8 +141,8 @@ export default function TagNode({
           </div>
         </div>
 
-        {/* Shown outright where there is no hover to reveal them. */}
-        <div className="ml-auto flex shrink-0 items-center [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100">
+        {/* Keep actions visible so each operation has an explicit target. */}
+        <div className="ml-auto flex shrink-0 items-center [&>button]:pointer-coarse:h-auto [&>button]:pointer-coarse:w-auto [&>button]:pointer-coarse:p-3">
           <Button
             data-row-control=""
             type="button"
@@ -152,6 +150,7 @@ export default function TagNode({
             size="icon-sm"
             onClick={() => onEdit(node)}
             title="编辑标签"
+            aria-label={`编辑标签：${node.name}`}
             className="text-muted-foreground"
           >
             <PencilIcon />

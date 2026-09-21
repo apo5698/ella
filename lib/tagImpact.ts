@@ -79,6 +79,7 @@ export type TagImpactFact =
       target: ImpactedTag;
     }
   | { kind: "names-become-aliases"; count: number; target: ImpactedTag }
+  | { kind: "aliases-transferred"; count: number; target: ImpactedTag }
   | {
       kind: "video-tag-renamed";
       count: number;
@@ -447,6 +448,17 @@ export function mergeImpact(
   const names = sources.map((id) => tagOf(db, id).name).filter(Boolean);
   if (names.length > 0) {
     facts.push({ kind: "names-become-aliases", count: names.length, target });
+  }
+
+  if (sources.length > 0) {
+    const { count } = db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM tag_aliases WHERE tag_id IN (${list(sources)})`,
+      )
+      .get(...sources) as { count: number };
+    if (count > 0) {
+      facts.push({ kind: "aliases-transferred", count, target });
+    }
   }
 
   const children = childrenOf(db, sources);

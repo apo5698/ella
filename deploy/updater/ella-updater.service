@@ -1,0 +1,19 @@
+[Unit]
+Description=Ella deployment updater
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/ella-updater/server.py --config /etc/ella-updater.json
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=ella-updater
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+StateDirectory=ella-updater
+UMask=0077
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
