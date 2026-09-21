@@ -202,10 +202,7 @@ function NotificationItem({
             {message.title}
           </span>
           {!notification.isRead && (
-            <Dot
-              aria-label={t("unread")}
-              className="bg-primary"
-            />
+            <Dot aria-label={t("unread")} className="bg-primary" />
           )}
         </span>
 

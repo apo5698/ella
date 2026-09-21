@@ -12,7 +12,11 @@ import type { Video, TagCount } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RemovableTagBadge, SeriesBadge, TagBadge } from "@/components/tags/TagBadge";
+import {
+  RemovableTagBadge,
+  SeriesBadge,
+  TagBadge,
+} from "@/components/tags/TagBadge";
 import TagAutocomplete from "@/components/TagAutocomplete";
 import {
   Popover,
@@ -263,7 +267,10 @@ function HomeContent() {
         </div>
 
         {activeTagIds.length > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-1" aria-label="已选标签">
+          <div
+            className="mb-4 flex flex-wrap items-center gap-1"
+            aria-label="已选标签"
+          >
             {activeTagIds.map((id) => {
               const tag = tags.find((item) => item.id === id);
               const name = tag?.name ?? `标签 #${id}`;
@@ -273,7 +280,11 @@ function HomeContent() {
                   state={tag?.reviewState}
                   removeLabel={`取消标签筛选：${name}`}
                   className="min-h-6 max-w-full"
-                  onClick={() => setActiveTagIds((prev) => prev.filter((tagId) => tagId !== id))}
+                  onClick={() =>
+                    setActiveTagIds((prev) =>
+                      prev.filter((tagId) => tagId !== id),
+                    )
+                  }
                 >
                   <span className="truncate">{name}</span>
                 </RemovableTagBadge>

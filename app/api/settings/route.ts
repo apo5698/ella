@@ -41,7 +41,6 @@ function pending() {
   return { count: rows.length, seconds: Math.round(seconds), autoFrames };
 }
 
-
 export async function GET() {
   const settings = getTagSettings();
   return NextResponse.json({

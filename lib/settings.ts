@@ -1,4 +1,3 @@
-
 // Frame-extraction settings, editable from the settings page.
 //
 // Pure types, defaults and validation — no database import, so the settings
@@ -62,7 +61,6 @@ export function normalizeTagSettings(
 
   return { strategy, frameCount, frameWidth };
 }
-
 
 /**
  * Where the OpenAI-compatible model server lives and which model to call.
