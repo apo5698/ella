@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { loadSeries, normalizeSeriesName } from "@/lib/series";
@@ -12,16 +13,20 @@ export async function GET() {
  * management page can also introduce one before anything is assigned to it.
  */
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const name = normalizeSeriesName(String(body.name ?? ""));
   if (!name) {
-    return NextResponse.json({ error: "请输入系列名称。" }, { status: 400 });
+    return NextResponse.json(
+      { error: t("seriesNameRequired") },
+      { status: 400 },
+    );
   }
 
   const existing = db.prepare("SELECT id FROM series WHERE name = ?").get(name);
   if (existing) {
     return NextResponse.json(
-      { error: `系列"${name}"已存在。` },
+      { error: t("seriesExists", { name }) },
       { status: 409 },
     );
   }

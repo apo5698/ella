@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+
 import { useEffect, useState } from "react";
 import { Loader2Icon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +23,10 @@ import type { TagProgress } from "@/lib/types";
 const LOG_LIMIT = 200;
 
 export default function RecognitionSettings() {
+  const t = useTranslations("Recognition");
+  const logText = useTranslations("JobLog");
+  const errorText = useTranslations("Api");
+  const locale = useLocale();
   const [job, setJob] = useState<JobState | null>(null);
   const [progress, setProgress] = useState<TagProgress | null>(null);
   const [force, setForce] = useState(false);
@@ -92,7 +98,7 @@ export default function RecognitionSettings() {
       body: JSON.stringify({ action: "start", force }),
     });
     const data = await res.json();
-    if (!data.ok) setError(data.error ?? "任务启动失败");
+    if (!data.ok) setError(data.error ?? t("startFailed"));
   }
 
   async function stop() {
@@ -103,7 +109,7 @@ export default function RecognitionSettings() {
       body: JSON.stringify({ action: "stop" }),
     });
     const data = await res.json();
-    if (!data.ok) setError(data.error ?? "任务停止失败");
+    if (!data.ok) setError(data.error ?? t("stopFailed"));
   }
 
   const pct =
@@ -131,12 +137,8 @@ export default function RecognitionSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            AI 标签识别
-            <HelpTip side="right">
-              {
-                '依据"抽帧设置"选取画面，由本地视觉模型识别并生成标签。任务启动后修改设置不影响本次运行。'
-              }
-            </HelpTip>
+            {t("title")}
+            <HelpTip side="right">{t("description")}</HelpTip>
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -146,20 +148,28 @@ export default function RecognitionSettings() {
           {(progress || current) && (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-foreground">
-                <span>总进度</span>
+                <span>{t("overall")}</span>
                 <span className="tabular-nums">
                   {current
                     ? `${current.index} / ${current.total}`
-                    : `已识别 ${progress?.tagged} / ${progress?.total}`}
+                    : t("tagged", {
+                        count: progress?.tagged ?? 0,
+                        total: progress?.total ?? 0,
+                      })}
                 </span>
                 <span className="tabular-nums">{overallLabel}%</span>
                 {current?.overallEtaSec != null && (
                   <span className="ml-auto tabular-nums">
-                    预计剩余 {formatDurationText(current.overallEtaSec)}
+                    {t("remaining", {
+                      duration: formatDurationText(
+                        current.overallEtaSec,
+                        locale,
+                      ),
+                    })}
                   </span>
                 )}
               </div>
-              <Progress value={overallPct} aria-label="AI 标签识别总进度" />
+              <Progress value={overallPct} aria-label={t("overallLabel")} />
             </div>
           )}
 
@@ -167,20 +177,26 @@ export default function RecognitionSettings() {
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-foreground">
                 <Loader2Icon className="size-3.5 animate-spin" />
-                <span>{current.phase === "infer" ? "模型推理" : "抽帧"}</span>
+                <span>
+                  {current.phase === "infer" ? t("inference") : t("extraction")}
+                </span>
                 <span className="tabular-nums">
                   {Math.round(current.ratio * 100)}%
                 </span>
                 {current.etaSec != null && (
                   <span className="ml-auto tabular-nums">
-                    预计剩余 {formatDurationText(current.etaSec)}
+                    {t("remaining", {
+                      duration: formatDurationText(current.etaSec, locale),
+                    })}
                   </span>
                 )}
               </div>
               <Progress
                 value={Math.round(current.ratio * 100)}
                 aria-label={
-                  current.phase === "infer" ? "模型推理进度" : "抽帧进度"
+                  current.phase === "infer"
+                    ? t("inferenceProgress")
+                    : t("extractionProgress")
                 }
               />
               <div className="truncate text-foreground">{current.title}</div>
@@ -193,21 +209,21 @@ export default function RecognitionSettings() {
               onCheckedChange={(v) => setForce(Boolean(v))}
               disabled={job?.running}
             />
-            重新识别已有标签的视频
+            {t("retag")}
           </label>
 
           <div className="flex items-center gap-2">
             <Button onClick={start} disabled={job?.running}>
-              {job?.running ? "识别中" : "开始识别"}
+              {job?.running ? t("running") : t("start")}
             </Button>
             {job?.running && (
               <Button variant="outline" onClick={stop}>
-                停止
+                {t("stop")}
               </Button>
             )}
             {job && !job.running && job.finishedAt && (
               <span className="text-muted-foreground">
-                上次任务已结束（退出码 {job.exitCode}）
+                {t("exit", { code: job.exitCode ?? 0 })}
               </span>
             )}
           </div>
@@ -216,9 +232,26 @@ export default function RecognitionSettings() {
 
           {job && job.log.length > 0 && (
             <div>
-              <div className="mb-1.5 text-muted-foreground">运行日志</div>
+              <div className="mb-1.5 text-muted-foreground">{t("logs")}</div>
               <pre className="h-72 overflow-auto rounded-lg bg-muted p-3 leading-relaxed whitespace-pre-wrap">
-                {job.log.slice(-60).join("\n")}
+                {job.log
+                  .slice(-60)
+                  .map((entry) =>
+                    typeof entry === "string"
+                      ? entry
+                      : logText(entry.key, {
+                          ...entry.values,
+                          ...(entry.error
+                            ? {
+                                error: errorText(
+                                  entry.error.code,
+                                  entry.error.values,
+                                ),
+                              }
+                            : {}),
+                        }),
+                  )
+                  .join("\n")}
               </pre>
             </div>
           )}

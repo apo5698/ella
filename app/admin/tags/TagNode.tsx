@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   ChevronRightIcon,
   GripVerticalIcon,
@@ -61,6 +63,7 @@ export default function TagNode({
   onDelete: (node: TagTreeNode) => void;
   onStateChanged: () => Promise<void>;
 }) {
+  const t = useTranslations("TagNode");
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
   const isBlocked = drag.active && drag.blocked.has(node.id);
@@ -88,14 +91,14 @@ export default function TagNode({
           data-row-control=""
           checked={selected.has(node.id)}
           onCheckedChange={(checked) => onSelect(node.id, checked === true)}
-          aria-label={`选择"${node.name}"`}
+          aria-label={t("selectNamed", { name: node.name })}
           className="mt-0.5 mr-1 shrink-0"
         />
 
         {hasChildren ? (
           <CollapsibleTrigger
             data-row-control=""
-            aria-label={isCollapsed ? "展开" : "折叠"}
+            aria-label={isCollapsed ? t("expand") : t("collapse")}
             className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"
           >
             <ChevronRightIcon
@@ -122,7 +125,7 @@ export default function TagNode({
 
               {/* The parent's number covers its whole subtree, which is what
                   selecting it on the home page returns. */}
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
                 {!node.assignable
                   ? node.totalCount
                   : hasChildren && node.totalCount !== node.count
@@ -149,8 +152,8 @@ export default function TagNode({
             variant="ghost"
             size="icon-sm"
             onClick={() => onEdit(node)}
-            title="编辑标签"
-            aria-label={`编辑标签：${node.name}`}
+            title={t("edit")}
+            aria-label={t("editNamed", { name: node.name })}
             className="text-muted-foreground"
           >
             <PencilIcon />
@@ -161,7 +164,7 @@ export default function TagNode({
             variant="ghost"
             size="icon-sm"
             onClick={() => onDelete(node)}
-            title="删除标签"
+            title={t("delete")}
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2Icon />
@@ -172,8 +175,8 @@ export default function TagNode({
             variant="ghost"
             size="icon-sm"
             onPointerDown={(event) => drag.begin(node.id, event)}
-            aria-label={`拖动"${node.name}"`}
-            title="拖动标签"
+            aria-label={t("dragNamed", { name: node.name })}
+            title={t("drag")}
             className={cn(
               "cursor-grab text-muted-foreground/50 active:cursor-grabbing",
               drag.active && "cursor-grabbing",

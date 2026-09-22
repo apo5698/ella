@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { ensureSeries, normalizeSeriesName } from "@/lib/series";
@@ -12,11 +13,12 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const videoId = Number(id);
   if (!Number.isFinite(videoId)) {
     return NextResponse.json(
-      { ok: false, error: "视频 ID 无效" },
+      { ok: false, error: t("invalidVideoId") },
       { status: 400 },
     );
   }

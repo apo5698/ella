@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useRouter } from "next/navigation";
 import QinglanhuaDownloader from "@/components/admin/QinglanhuaDownloader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +15,7 @@ const SOURCE_DOWNLOADERS = {
 } satisfies Record<DownloaderSource, React.ComponentType>;
 
 export default function Downloader({ source }: { source: DownloaderSource }) {
+  const t = useTranslations("Utilities");
   const router = useRouter();
   const SourceDownloader = SOURCE_DOWNLOADERS[source];
 
@@ -26,7 +29,7 @@ export default function Downloader({ source }: { source: DownloaderSource }) {
       <TabsList>
         {DOWNLOADER_SOURCES.map((item) => (
           <TabsTrigger key={item.slug} value={item.slug}>
-            {item.name}
+            {t(item.name)}
           </TabsTrigger>
         ))}
       </TabsList>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useRef, useState } from "react";
 import { Field as FieldPrimitive } from "@base-ui/react";
 import {
@@ -67,6 +69,7 @@ export default function TagAutocomplete({
   kind?: "tag" | "series";
   inputId?: string;
 }) {
+  const t = useTranslations("Autocomplete");
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -149,7 +152,7 @@ export default function TagAutocomplete({
       setQuery("");
       return;
     }
-    // Held to the same rule the server applies, so "新建"x"" shows the
+    // Held to the same rule the server applies, so t("create")x"" shows the
     // name that will actually be stored.
     setQuery(normalizeNameInput(next));
   }
@@ -163,7 +166,7 @@ export default function TagAutocomplete({
   }
 
   const accessibleLabel =
-    placeholder ?? (kind === "series" ? "选择系列" : "选择标签");
+    placeholder ?? (kind === "series" ? t("selectSeries") : t("selectTag"));
 
   return (
     <FieldPrimitive.Root className="contents">
@@ -189,7 +192,7 @@ export default function TagAutocomplete({
           showClear={query.length > 0}
         />
         <ComboboxContent>
-          <ComboboxEmpty>无匹配项</ComboboxEmpty>
+          <ComboboxEmpty>{t("empty")}</ComboboxEmpty>
           <ComboboxList>
             {(item: Option) => (
               <ComboboxItem
@@ -209,7 +212,7 @@ export default function TagAutocomplete({
                   </span>
                 ) : (
                   <span className="flex min-w-0 flex-1 items-center gap-1">
-                    {item.isNew && <span>新建</span>}
+                    {item.isNew && <span>{t("create")}</span>}
                     {optionBadge(item)}
                   </span>
                 )}

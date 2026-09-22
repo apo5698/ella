@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useState } from "react";
 import { Trash2Icon } from "lucide-react";
 import {
@@ -14,31 +16,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DeleteMode } from "@/app/api/videos/[id]/route";
 
-const DELETE_OPTIONS: {
-  mode: DeleteMode;
-  label: string;
-  description: string;
-  destructive?: boolean;
-}[] = [
-  {
-    mode: "record",
-    label: "仅移除记录",
-    description:
-      "从库中删除该视频及其标签，文件保留在原位置。重新扫描后会再次加入。",
-  },
-  {
-    mode: "trash",
-    label: "移至回收目录",
-    description: "删除记录，文件移动至视频根目录下的 .trash，扫描时不再收录。",
-  },
-  {
-    mode: "file",
-    label: "删除记录与文件",
-    description: "删除记录，并永久删除该文件。此操作无法撤销。",
-    destructive: true,
-  },
-];
-
 export default function VideoDeleteDialog({
   open,
   onOpenChange,
@@ -52,6 +29,30 @@ export default function VideoDeleteDialog({
   title: string;
   onDeleted: () => void;
 }) {
+  const t = useTranslations("VideoDelete");
+  const DELETE_OPTIONS: {
+    mode: DeleteMode;
+    label: string;
+    description: string;
+    destructive?: boolean;
+  }[] = [
+    {
+      mode: "record",
+      label: t("record"),
+      description: t("recordDescription"),
+    },
+    {
+      mode: "trash",
+      label: t("trash"),
+      description: t("trashDescription"),
+    },
+    {
+      mode: "file",
+      label: t("file"),
+      description: t("fileDescription"),
+      destructive: true,
+    },
+  ];
   // Opens on the option that leaves the file untouched.
   const [mode, setMode] = useState<DeleteMode>("record");
   const [deleting, setDeleting] = useState(false);
@@ -66,7 +67,7 @@ export default function VideoDeleteDialog({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "删除失败");
+        setError(data.error ?? t("failed"));
         return;
       }
       onDeleted();
@@ -81,7 +82,7 @@ export default function VideoDeleteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>删除视频</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription className="break-all">{title}</DialogDescription>
         </DialogHeader>
 
@@ -120,11 +121,11 @@ export default function VideoDeleteDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
+            {t("cancel")}
           </Button>
           <Button variant="destructive" onClick={remove} disabled={deleting}>
             <Trash2Icon />
-            {deleting ? "删除中" : "删除"}
+            {deleting ? t("deleting") : t("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import {
@@ -24,7 +26,7 @@ import { formatSize } from "@/lib/format";
 import type { DownloadProgress } from "@/lib/utilities/qinglanhua";
 import {
   QINGLANHUA_DEFAULT_PASSWORD,
-  qinglanhuaDownloadSchema,
+  createQinglanhuaDownloadSchema,
   type QinglanhuaDownloadInput,
 } from "@/lib/utilities/qinglanhuaSchema";
 
@@ -36,6 +38,7 @@ function QinglanhuaFields({
   hasConflict,
   onChange,
 }: DownloadSourceFieldsProps<QinglanhuaDownloadInput>) {
+  const t = useTranslations("DownloadFields");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const nameInvalid = Boolean(errors.name?.length || hasConflict);
   const urlInvalid = Boolean(errors.url?.length);
@@ -46,7 +49,9 @@ function QinglanhuaFields({
         data-disabled={disabled || undefined}
         data-invalid={nameInvalid || undefined}
       >
-        <FieldLabel htmlFor={`qinglanhua-${entryId}-name`}>文件名</FieldLabel>
+        <FieldLabel htmlFor={`qinglanhua-${entryId}-name`}>
+          {t("name")}
+        </FieldLabel>
         <Input
           id={`qinglanhua-${entryId}-name`}
           value={value.name}
@@ -54,14 +59,16 @@ function QinglanhuaFields({
           aria-invalid={nameInvalid || undefined}
           onChange={(event) => onChange("name", event.target.value)}
         />
-        <FieldDescription>无需填写扩展名</FieldDescription>
+        <FieldDescription>{t("nameHelp")}</FieldDescription>
         <FieldError errors={errors.name} />
       </Field>
       <Field
         data-disabled={disabled || undefined}
         data-invalid={urlInvalid || undefined}
       >
-        <FieldLabel htmlFor={`qinglanhua-${entryId}-url`}>视频 URL</FieldLabel>
+        <FieldLabel htmlFor={`qinglanhua-${entryId}-url`}>
+          {t("url")}
+        </FieldLabel>
         <Input
           id={`qinglanhua-${entryId}-url`}
           value={value.url}
@@ -74,7 +81,7 @@ function QinglanhuaFields({
       </Field>
       <Field data-disabled={disabled || undefined}>
         <FieldLabel htmlFor={`qinglanhua-${entryId}-password`}>
-          解压密码
+          {t("password")}
         </FieldLabel>
         <InputGroup>
           <InputGroupInput
@@ -89,7 +96,9 @@ function QinglanhuaFields({
             <InputGroupButton
               type="button"
               size="icon-xs"
-              aria-label={passwordVisible ? "隐藏密码" : "显示密码"}
+              aria-label={
+                passwordVisible ? t("hidePassword") : t("showPassword")
+              }
               aria-pressed={passwordVisible}
               disabled={disabled}
               onClick={() => setPasswordVisible((visible) => !visible)}
@@ -103,10 +112,13 @@ function QinglanhuaFields({
   );
 }
 
-function presentProgress(progress: DownloadProgress) {
+function presentProgress(
+  progress: DownloadProgress,
+  t: (key: string) => string,
+) {
   if (progress.phase === "downloading") {
     return {
-      label: "下载中",
+      label: t("downloading"),
       percent: progress.total
         ? Math.round((progress.received / progress.total) * 100)
         : null,
@@ -118,12 +130,14 @@ function presentProgress(progress: DownloadProgress) {
     };
   }
   if (progress.phase === "extracting") {
-    return { label: "解压中", percent: progress.percent };
+    return { label: t("extracting"), percent: progress.percent };
   }
-  return { label: "录入中", percent: null };
+  return { label: t("importing"), percent: null };
 }
 
 export default function QinglanhuaDownloader() {
+  const validation = useTranslations("DownloadValidation");
+  const t = useTranslations("DownloadFields");
   return (
     <DownloadQueue
       endpoint="/api/admin/utilities/qinglanhua"
@@ -132,10 +146,12 @@ export default function QinglanhuaDownloader() {
         url: "",
         password: QINGLANHUA_DEFAULT_PASSWORD,
       })}
-      schema={qinglanhuaDownloadSchema}
+      schema={createQinglanhuaDownloadSchema(validation)}
       fields={QinglanhuaFields}
       getRequestedName={(fields) => fields.name}
-      presentProgress={presentProgress}
+      presentProgress={(progress: DownloadProgress) =>
+        presentProgress(progress, t)
+      }
     />
   );
 }

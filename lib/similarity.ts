@@ -5,12 +5,7 @@ import { pinyin } from "pinyin-pro";
 
 const BRACKETED = /[[({【（]([^\])}】）]*)[\])}】）]/g;
 
-/**
- * What a bracketed note has to say to survive. Brackets in this library
- * mostly carry the group a file came from, which is not part of the name, but
- * a number or a part marker inside them is the only thing telling one part of
- * a video from the next.
- */
+// Preserve numeric and textual part markers when removing bracketed notes.
 const PART_NOTE = /^[\d\s.]+$|^[上中下前后]篇?$/;
 
 /**
@@ -117,11 +112,7 @@ export function nameSimilarity(a: string, b: string): number {
   return Math.max(direct, reading >= PINYIN_MATCH_MIN ? reading : 0);
 }
 
-/**
- * Above this two names are the same name. Set from the library: with the two
- * exemptions below applied, 20 of its 393k title pairs reach it, and those are
- * videos it already holds twice.
- */
+/** Minimum similarity score for a potential duplicate title. */
 const DUPLICATE_NAME_THRESHOLD = 0.9;
 
 /** Shorter than this a name carries nothing to compare. */

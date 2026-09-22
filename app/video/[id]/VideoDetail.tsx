@@ -62,7 +62,7 @@ export default function VideoDetail({
     const controller = new AbortController();
     void fetch(`/api/videos/${video.id}`, { signal: controller.signal })
       .then((response) => {
-        if (!response.ok) throw new Error("无法更新标签");
+        if (!response.ok) throw new Error("Unable to refresh tags");
         return response.json() as Promise<{ tagState?: VideoTagState }>;
       })
       .then((result) => {
@@ -70,7 +70,7 @@ export default function VideoDetail({
       })
       .catch((cause) => {
         if ((cause as Error).name !== "AbortError") {
-          console.error("[video] 无法同步重新识别结果", cause);
+          console.error("[video] Unable to synchronize tagging results", cause);
         }
       });
     return () => controller.abort();
@@ -80,7 +80,7 @@ export default function VideoDetail({
     <div className="flex flex-col gap-2">
       <div className="mt-2 mb-4 min-w-0">
         <h1 className="break-all text-2xl font-semibold">{video.title}</h1>
-        <p className="text-xs text-muted-foreground">id={video.id}</p>
+        <p className="text-sm text-muted-foreground">id={video.id}</p>
       </div>
 
       <VideoPlayer

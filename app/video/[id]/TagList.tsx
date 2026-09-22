@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { SeriesBadge, TagBadge } from "@/components/tags/TagBadge";
 import { groupTags } from "@/lib/tagOrder";
@@ -13,8 +16,9 @@ export default function TagList({
   series: string | null;
   tags: { id: number; name: string; source: string; path?: string[] }[];
 }) {
+  const t = useTranslations("Common");
   if (!series && tags.length === 0) {
-    return <p className="text-sm text-muted-foreground">暂无标签</p>;
+    return <p className="text-sm text-muted-foreground">{t("noTags")}</p>;
   }
 
   // Tags of one family sit closer together than the space between families,

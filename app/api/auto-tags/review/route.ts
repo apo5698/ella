@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import db from "@/lib/db";
 import {
   autoTagKind,
@@ -22,6 +23,7 @@ type RequestedSuggestion = {
  * database, neither the link nor the tag it named.
  */
 export async function POST(req: Request) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const videoId = Number(body.videoId);
   const requested: RequestedSuggestion[] = Array.isArray(body.suggestions)
@@ -43,15 +45,15 @@ export async function POST(req: Request) {
     : [];
 
   if (!Number.isInteger(videoId) || videoId < 1) {
-    return Response.json({ error: "视频无效" }, { status: 400 });
+    return Response.json({ error: t("invalidVideo") }, { status: 400 });
   }
   if (requested.length === 0) {
-    return Response.json({ error: "没有可接受的建议" }, { status: 400 });
+    return Response.json({ error: t("noSuggestions") }, { status: 400 });
   }
 
   const video = loadAutoTagVideo(db, videoId);
   if (!video) {
-    return Response.json({ error: "视频不存在" }, { status: 404 });
+    return Response.json({ error: t("videoMissing") }, { status: 404 });
   }
 
   const valid = requested.filter((item) => {
@@ -71,10 +73,7 @@ export async function POST(req: Request) {
   });
 
   if (valid.length === 0) {
-    return Response.json(
-      { error: "这些建议已经处理或不再适用" },
-      { status: 409 },
-    );
+    return Response.json({ error: t("staleSuggestions") }, { status: 409 });
   }
 
   const canonicalNames: string[] = [];

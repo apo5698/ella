@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import { compareNames } from "./tagOrder";
 import { normalizeName } from "./names";
@@ -19,7 +20,7 @@ export function ensureSeries(
   rawName: string,
 ): SeriesRecord {
   const name = normalizeSeriesName(rawName);
-  if (!name) throw new Error("系列名称不能为空。");
+  if (!name) throw new AppError("seriesNameEmpty");
 
   const existing = db
     .prepare("SELECT id, name FROM series WHERE name = ?")

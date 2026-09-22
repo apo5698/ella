@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 // Connectivity probe for the model server.
 //
 // The only assumption is the OpenAI-compatible surface: `GET {url}/models`
@@ -15,6 +16,8 @@ export type LlmProbe = {
   httpStatus: number | null;
   latencyMs: number | null;
   error: string | null;
+  errorCode?: "modelTimeout" | "modelUnavailable";
+  timeoutSeconds?: number;
   /**
    * Model identifiers taken from the standard list shape (`data[].id`). Empty
    * when the server answers in some other shape; the model can then be typed
@@ -78,9 +81,16 @@ export async function probeLlm(baseUrl: string): Promise<LlmProbe> {
     return {
       ...base,
       latencyMs: Date.now() - startedAt,
+      ...(aborted
+        ? {
+            errorCode: "modelTimeout" as const,
+            timeoutSeconds: PROBE_TIMEOUT_MS / 1000,
+          }
+        : { errorCode: "modelUnavailable" as const }),
       error: aborted
-        ? `连接超时（${PROBE_TIMEOUT_MS / 1000} 秒）`
-        : (err as Error).message,
+        ? new AppError("modelTimeout", { seconds: PROBE_TIMEOUT_MS / 1000 })
+            .message
+        : new AppError("modelUnavailable").message,
     };
   } finally {
     clearTimeout(timer);

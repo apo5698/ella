@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import {
   ensureTag,
@@ -84,7 +85,7 @@ export function replaceVideoTagState(
       source === "vision" ? "automatic" : "approved",
     );
     if (!isAssignableTag(db, tag.id)) {
-      throw new Error(`"${tag.name}"是分类标签，请改用其下的子标签`);
+      throw new AppError("categoryTag", { name: tag.name });
     }
     if (seen.has(tag.name)) continue;
     seen.add(tag.name);

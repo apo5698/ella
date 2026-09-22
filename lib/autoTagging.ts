@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import { normalizeName } from "./names";
 import {
@@ -130,12 +131,12 @@ export function seriesFromFilenamePrefix(filename: string): string | null {
 
 export function createFilenameTagRegex(pattern: string): RegExp {
   const source = pattern.trim();
-  if (!source) throw new Error("请输入正则表达式");
+  if (!source) throw new AppError("regexRequired");
 
   try {
     return new RegExp(source, "u");
   } catch {
-    throw new Error("正则表达式无效");
+    throw new AppError("invalidRegex");
   }
 }
 

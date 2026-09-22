@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { CircleCheckIcon, CircleXIcon } from "lucide-react";
@@ -48,8 +50,6 @@ const PATH_DEBOUNCE_MS = 300;
 /** How long the slider rests before the frame at that position is decoded. */
 const FRAME_DEBOUNCE_MS = 180;
 
-const pathSchema = z.string().trim().min(1, "路径不能为空");
-
 const titleSchema = z.string();
 
 /** The name a video takes when the name field is left empty. */
@@ -82,6 +82,8 @@ export default function VideoEditDialog({
   onSaved: (patch: VideoMetadataPatch) => void;
   onTagStateChange: (state: VideoTagState) => void;
 }) {
+  const t = useTranslations("VideoEdit");
+  const pathSchema = z.string().trim().min(1, t("pathRequired"));
   // Whether a file sits at the typed path, which drives the mark inside the
   // input. Seeded from the server so it is right before anything is typed.
   const [pathExists, setPathExists] = useState(initialPathExists);
@@ -134,7 +136,7 @@ export default function VideoEditDialog({
       });
       const data = await res.json();
       if (!res.ok) {
-        setSubmitError(data.error ?? "保存失败");
+        setSubmitError(data.error ?? t("saveFailed"));
         return;
       }
       onSaved({
@@ -156,7 +158,7 @@ export default function VideoEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-5/6 flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader className="shrink-0">
-          <DialogTitle>编辑视频</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="min-h-0 flex-1">
@@ -173,7 +175,7 @@ export default function VideoEditDialog({
                 <form.Field name="title" validators={{ onChange: titleSchema }}>
                   {(field) => (
                     <Field>
-                      <FieldLabel htmlFor="video-title">名称</FieldLabel>
+                      <FieldLabel htmlFor="video-title">{t("name")}</FieldLabel>
                       <Input
                         id="video-title"
                         value={field.state.value}
@@ -181,7 +183,7 @@ export default function VideoEditDialog({
                         onBlur={field.handleBlur}
                         placeholder={fileBaseName(form.getFieldValue("path"))}
                       />
-                      <FieldDescription>留空则使用文件名。</FieldDescription>
+                      <FieldDescription>{t("nameHint")}</FieldDescription>
                     </Field>
                   )}
                 </form.Field>
@@ -203,7 +205,9 @@ export default function VideoEditDialog({
                         const check: PathCheck = await res.json();
                         setPathExists(check.exists);
                         return check.taken
-                          ? `已被视频"${check.takenBy?.title}"使用。`
+                          ? t("pathTaken", {
+                              title: check.takenBy?.title ?? "",
+                            })
                           : undefined;
                       } catch {
                         // Offline or mid-restart. Saving still validates server side.
@@ -218,7 +222,9 @@ export default function VideoEditDialog({
                     const validating = field.state.meta.isValidating;
                     return (
                       <Field data-invalid={invalid || undefined}>
-                        <FieldLabel htmlFor="video-path">路径</FieldLabel>
+                        <FieldLabel htmlFor="video-path">
+                          {t("path")}
+                        </FieldLabel>
                         <InputGroup data-invalid={invalid || undefined}>
                           <InputGroupInput
                             id="video-path"
@@ -258,12 +264,12 @@ export default function VideoEditDialog({
                 <form.Field name="thumbnailSec">
                   {(field) => (
                     <Field>
-                      <FieldLabel>封面</FieldLabel>
+                      <FieldLabel>{t("thumbnail")}</FieldLabel>
                       <div className="relative w-full max-w-sm overflow-hidden rounded-lg bg-muted aspect-video">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={`/api/videos/${video.id}/frame?t=${Math.round(frameSec)}`}
-                          alt="封面预览"
+                          alt={t("thumbnailPreview")}
                           className="h-full w-full object-cover"
                           onLoad={() => setFrameLoading(false)}
                           onError={() => setFrameLoading(false)}
@@ -279,7 +285,7 @@ export default function VideoEditDialog({
                           id="video-thumbnail-position-label"
                           className="sr-only"
                         >
-                          封面位置
+                          {t("thumbnailPosition")}
                         </span>
                         <Slider
                           min={0}
@@ -302,9 +308,7 @@ export default function VideoEditDialog({
                           {formatDuration(Math.round(field.state.value))}
                         </span>
                       </div>
-                      <FieldDescription>
-                        拖动以选取画面。不调整则保留当前封面。
-                      </FieldDescription>
+                      <FieldDescription>{t("thumbnailHint")}</FieldDescription>
                     </Field>
                   )}
                 </form.Field>
@@ -334,7 +338,7 @@ export default function VideoEditDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            取消
+            {t("cancel")}
           </Button>
           <form.Subscribe
             selector={(s) => [s.canSubmit, s.isSubmitting] as const}
@@ -345,7 +349,7 @@ export default function VideoEditDialog({
                 form={FORM_ID}
                 disabled={!canSubmit || isSubmitting}
               >
-                {isSubmitting ? "保存中" : "保存"}
+                {isSubmitting ? t("saving") : t("save")}
               </Button>
             )}
           </form.Subscribe>

@@ -21,22 +21,12 @@ export type BatchProgress = PhaseProgress & {
   overallEtaSec: number | null;
 };
 
-// Decode throughput on the network drive. Deliberately the pessimistic end of
-// the observed range: this only seeds the live estimate, which then corrects
-// itself from the pass's own rate, and starting low means the bar slows down
-// rather than stalling at the end.
+// Initial decode-rate estimate, refined from observed progress.
 export const ASSUMED_DECODE_RATE = 45;
 
-/**
- * The full observed spread, for up-front estimates that cannot self-correct.
- * Measured on this library: a 1029s file took 18s cold (57x) while a 1278s
- * file took 9.5s (135x); the original 26-minute sample ran at 28x. Throughput
- * swings with codec, resolution and how much of the file the SMB cache holds,
- * so a single figure would be wrong by ~3x in one direction or the other.
- */
+// Decode-rate bounds for preliminary duration estimates.
 export const DECODE_RATE_RANGE = [28, 135] as const;
-// Model latency against frame count: 2 frames took 3.4s, 6 took 6.2s and 8.7s,
-// 8 took 9.8s. Close enough to linear to estimate the phase we cannot measure.
+// Linear inference-time estimate based on frame count.
 const INFER_BASE_SEC = 1.5;
 const INFER_PER_FRAME_SEC = 1.1;
 const DEFAULT_FRAMES = 6;
@@ -73,8 +63,7 @@ export function createTracker(
       phase = update.phase;
       if (update.phase === "extract") {
         extractRatio = update.ratio;
-        // Refine from what the pass has actually achieved rather than trusting
-        // the assumed rate: throughput varies with caching on the SMB share.
+        // Refine the estimate from observed decode throughput.
         if (update.ratio > 0.03) {
           extractEst = (Date.now() - startedAt) / 1000 / update.ratio;
         }

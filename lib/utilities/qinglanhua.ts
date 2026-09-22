@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import { constants } from "node:fs";
 import {
   access,
@@ -59,7 +60,7 @@ export function buildSafeVideoName(
   videoExtension: string,
 ) {
   const input = requestedName.trim();
-  if (!input) throw new Error("请输入文件名");
+  if (!input) throw new AppError("downloadNameRequired");
   const inputExtension = path.extname(input).toLowerCase();
   const base = VIDEO_EXTENSIONS.has(inputExtension)
     ? input.slice(0, -inputExtension.length)
@@ -93,7 +94,7 @@ async function downloadArchive(
 ) {
   const response = await fetch(source, { redirect: "follow" });
   if (!response.ok || !response.body)
-    throw new Error(`下载失败 (${response.status})`);
+    throw new AppError("downloadHttpFailed", { status: response.status });
 
   const declared = Number(response.headers.get("content-length"));
   const total = Number.isFinite(declared) && declared > 0 ? declared : null;
@@ -164,8 +165,10 @@ async function extractArchive(
       if (code === 0) resolve();
       else
         reject(
-          new Error(
-            errorOutput.trim() || "压缩包解压失败，请检查下载地址和密码",
+          new AppError(
+            "archiveFailed",
+            {},
+            { cause: new Error(errorOutput.trim()) },
           ),
         );
     });
@@ -177,17 +180,17 @@ async function assertHttpUrl(value: string) {
   try {
     url = new URL(value);
   } catch {
-    throw new Error("请输入有效的视频 URL");
+    throw new AppError("downloadUrlInvalid");
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("视频 URL 必须使用 HTTP 或 HTTPS");
+    throw new AppError("downloadProtocol");
   }
   return url;
 }
 
 export type DownloadConflict = {
   reason: "name" | "file" | "similar";
-  message: string;
+  error: AppError;
   /** The video to link to, where the conflict is with a record. */
   video: (VideoRef & { score?: number }) | null;
 };
@@ -207,13 +210,17 @@ export function findDownloadConflict(input: {
   if (taken) {
     // The title is not repeated here: it can be long, and the video it names
     // is one link away.
-    return { reason: "name", message: "媒体库中已有同名视频", video: taken };
+    return {
+      reason: "name",
+      error: new AppError("downloadNameExists"),
+      video: taken,
+    };
   }
   // A file put there by hand is on disk before any scan records it.
   if (fileBaseExists(base)) {
     return {
       reason: "file",
-      message: `媒体库目录中已存在同名文件 ${base}`,
+      error: new AppError("downloadFileExists", { name: base }),
       video: null,
     };
   }
@@ -224,7 +231,7 @@ export function findDownloadConflict(input: {
   if (duplicate) {
     return {
       reason: "similar",
-      message: "媒体库中已有名称几乎相同的视频",
+      error: new AppError("downloadSimilarExists"),
       video: duplicate,
     };
   }
@@ -232,11 +239,11 @@ export function findDownloadConflict(input: {
 }
 
 /** Carries the video a refusal points at, which an Error cannot. */
-export class DuplicateContentError extends Error {
+export class DuplicateContentError extends AppError {
   readonly video: VideoRef;
 
   constructor(video: VideoRef) {
-    super("内容与媒体库中的视频完全一致");
+    super("downloadDuplicate");
     this.name = "DuplicateContentError";
     this.video = video;
   }
@@ -252,7 +259,7 @@ export async function downloadQinglanhua(
   // otherwise tested only once the archive is open, by which point the
   // transfer has already been paid for.
   const conflict = findDownloadConflict(input);
-  if (conflict) throw new Error(conflict.message);
+  if (conflict) throw conflict.error;
 
   const workspace = await mkdtemp(path.join(tmpdir(), "ella-qinglanhua-"));
   const archive = path.join(workspace, "download");
@@ -266,9 +273,7 @@ export async function downloadQinglanhua(
 
     const videos = listVideoFiles(extracted);
     if (videos.length !== 1)
-      throw new Error(
-        `压缩包中应有且仅有一个视频，当前找到 ${videos.length} 个`,
-      );
+      throw new AppError("archiveVideoCount", { count: videos.length });
 
     onProgress({ phase: "importing" });
     // The only look the content itself gets, and the one that catches a video
@@ -291,7 +296,7 @@ export async function downloadQinglanhua(
     await mkdir(VIDEO_ROOT, { recursive: true });
     target = path.join(VIDEO_ROOT, safeName.filename);
     if (await exists(target))
-      throw new Error(`视频文件 ${safeName.filename} 已存在`);
+      throw new AppError("downloadFileExists", { name: safeName.filename });
     await copyFile(videos[0], target, constants.COPYFILE_EXCL);
 
     try {

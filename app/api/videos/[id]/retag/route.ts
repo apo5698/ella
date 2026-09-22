@@ -1,3 +1,5 @@
+import { errorMessage } from "@/lib/appError";
+import { getLocale, getTranslations } from "next-intl/server";
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { enqueueVideoRetag } from "@/lib/taskRunner";
@@ -14,22 +16,23 @@ export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const videoId = parseId((await params).id);
   if (videoId === null) {
     return NextResponse.json(
-      { ok: false, error: "视频 ID 无效" },
+      { ok: false, error: t("invalidVideoId") },
       { status: 400 },
     );
   }
   try {
-    const taskId = enqueueVideoRetag(db, videoId);
+    const taskId = enqueueVideoRetag(db, videoId, await getLocale());
     return NextResponse.json(
       { ok: true, taskId, queued: taskId !== null },
       { status: 202 },
     );
   } catch (cause) {
     return NextResponse.json(
-      { ok: false, error: (cause as Error).message },
+      { ok: false, error: errorMessage(cause, t) },
       { status: 404 },
     );
   }

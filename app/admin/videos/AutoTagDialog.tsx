@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, RotateCwIcon, SparklesIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -83,6 +85,7 @@ export default function AutoTagDialog({
 }: {
   onCommitted: () => void;
 }) {
+  const t = useTranslations("AutoTags");
   const [open, setOpen] = useState(false);
   const [filenamePrefix, setFilenamePrefix] = useState(true);
   const [filenameManualTag, setFilenameManualTag] = useState(true);
@@ -109,7 +112,7 @@ export default function AutoTagDialog({
     if (!filenameRegex) return { error: "", valid: false };
     if (!regexPattern.trim()) {
       return {
-        error: regexHadValue ? "请输入正则表达式" : "",
+        error: regexHadValue ? t("regexRequired") : "",
         valid: false,
       };
     }
@@ -117,9 +120,9 @@ export default function AutoTagDialog({
       new RegExp(regexPattern.trim(), "u");
       return { error: "", valid: true };
     } catch {
-      return { error: "正则表达式无效", valid: false };
+      return { error: t("regexInvalid"), valid: false };
     }
-  }, [filenameRegex, regexHadValue, regexPattern]);
+  }, [filenameRegex, regexHadValue, regexPattern, t]);
 
   useEffect(
     () => () => {
@@ -249,9 +252,9 @@ export default function AutoTagDialog({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error ?? "自动标记失败");
+        throw new Error(data.error ?? t("scanFailed"));
       }
-      if (!response.body) throw new Error("浏览器无法读取扫描进度");
+      if (!response.body) throw new Error(t("streamUnavailable"));
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -315,7 +318,7 @@ export default function AutoTagDialog({
       }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? "审核失败");
+    if (!response.ok) throw new Error(data.error ?? t("reviewFailed"));
     return data.names as string[];
   }
 
@@ -326,7 +329,7 @@ export default function AutoTagDialog({
     try {
       const names = await postAccept(group, selected);
       drop(selected);
-      toast.success(`已接受 ${names.length} 项建议`);
+      toast.success(t("accepted", { count: names.length }));
       onCommitted();
     } catch (cause) {
       toast.error((cause as Error).message);
@@ -367,18 +370,18 @@ export default function AutoTagDialog({
     setAcceptingAll(false);
 
     if (accepted > 0) {
-      toast.success(`已接受 ${accepted} 项建议`);
+      toast.success(t("accepted", { count: accepted }));
       onCommitted();
     }
     if (failures > 0) {
-      toast.error(`${failures} 个视频的建议未接受：${firstError}`);
+      toast.error(t("failedVideos", { count: failures, error: firstError }));
     }
   }
 
   /** Nothing is written: a later scan is free to suggest it again. */
   function skip(selected: AutoTagSuggestion[]) {
     drop(selected);
-    toast.success(`已跳过 ${selected.length} 项建议`);
+    toast.success(t("skipped", { count: selected.length }));
   }
 
   return (
@@ -388,7 +391,7 @@ export default function AutoTagDialog({
         onClick={() => setOpen(true)}
       >
         <SparklesIcon data-icon="inline-start" />
-        自动标记
+        {t("title")}
         {suggestions.length > 0 && (
           <Badge className="bg-automation-foreground/20 text-automation-foreground">
             {suggestions.length}
@@ -399,10 +402,8 @@ export default function AutoTagDialog({
       <Dialog open={open} onOpenChange={changeOpen}>
         <DialogContent className="flex max-h-5/6 flex-col overflow-hidden sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>自动标记</DialogTitle>
-            <DialogDescription>
-              扫描只生成临时建议，不会自动应用到视频
-            </DialogDescription>
+            <DialogTitle>{t("title")}</DialogTitle>
+            <DialogDescription>{t("description")}</DialogDescription>
           </DialogHeader>
 
           <FieldSet disabled={running}>
@@ -421,42 +422,50 @@ export default function AutoTagDialog({
                 />
                 <FieldContent>
                   <FieldLabel htmlFor="filename-prefix-strategy">
-                    前缀匹配
+                    {t("prefix")}
                   </FieldLabel>
                   <FieldDescription>
-                    当视频名包含
-                    <HoverCard>
-                      <HoverCardTrigger
-                        className="decoration-dotted"
-                        delay={100}
-                        closeDelay={200}
-                      >
-                        括号
-                      </HoverCardTrigger>
-                      <HoverCardContent
-                        side="top"
-                        align="start"
-                        className="flex flex-col gap-2"
-                      >
-                        <div>
-                          <span className="font-medium">中文括号</span>
-                          <ul className="list-inside list-disc">
-                            <li>（）</li>
-                            <li>【】</li>
-                          </ul>
-                        </div>
-                        <Separator />
-                        <div>
-                          <span className="font-medium">英文括号</span>
-                          <ul className="list-inside list-disc">
-                            <li>()</li>
-                            <li>[]</li>
-                          </ul>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                    环绕的系列名称时，推荐此&nbsp;
-                    <SeriesBadge>系列标签</SeriesBadge>
+                    {t.rich("prefixHelp", {
+                      brackets: (children) => (
+                        <HoverCard>
+                          <HoverCardTrigger
+                            className="decoration-dotted"
+                            delay={100}
+                            closeDelay={200}
+                          >
+                            {children}
+                          </HoverCardTrigger>
+                          <HoverCardContent
+                            side="top"
+                            align="start"
+                            className="flex flex-col gap-2"
+                          >
+                            <div>
+                              <span className="font-medium">
+                                {t("fullWidthBrackets")}
+                              </span>
+                              <ul className="list-inside list-disc">
+                                <li>（）</li>
+                                <li>【】</li>
+                              </ul>
+                            </div>
+                            <Separator />
+                            <div>
+                              <span className="font-medium">
+                                {t("asciiBrackets")}
+                              </span>
+                              <ul className="list-inside list-disc">
+                                <li>()</li>
+                                <li>[]</li>
+                              </ul>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      ),
+                      series: (children) => (
+                        <SeriesBadge>{children}</SeriesBadge>
+                      ),
+                    })}
                   </FieldDescription>
                 </FieldContent>
               </Field>
@@ -474,11 +483,14 @@ export default function AutoTagDialog({
                 />
                 <FieldContent>
                   <FieldLabel htmlFor="filename-manual-tag-strategy">
-                    关键词匹配
+                    {t("keyword")}
                   </FieldLabel>
                   <FieldDescription>
-                    当视频名包含已有的已审核标签时，推荐此&nbsp;
-                    <TagBadge source={"manual"}>已审核标签</TagBadge>
+                    {t.rich("keywordHelp", {
+                      tag: (children) => (
+                        <TagBadge source="manual">{children}</TagBadge>
+                      ),
+                    })}
                   </FieldDescription>
                 </FieldContent>
               </Field>
@@ -492,11 +504,12 @@ export default function AutoTagDialog({
                 />
                 <FieldContent>
                   <FieldLabel htmlFor="filename-regex-strategy">
-                    正则表达式匹配
+                    {t("regexMatching")}
                   </FieldLabel>
                   <FieldDescription>
-                    当视频名匹配正则表达式时，推荐第一个<Code>(捕获组)</Code>
-                    作为标签
+                    {t.rich("regexHelp", {
+                      code: (children) => <Code>{children}</Code>,
+                    })}
                   </FieldDescription>
                   <Field
                     className="mt-1"
@@ -510,7 +523,7 @@ export default function AutoTagDialog({
                       htmlFor="filename-regex-pattern"
                       className="sr-only"
                     >
-                      正则表达式
+                      {t("regex")}
                     </FieldLabel>
                     <Input
                       id="filename-regex-pattern"
@@ -539,8 +552,10 @@ export default function AutoTagDialog({
 
           {started && (
             <Progress value={processed} max={Math.max(total, 1)}>
-              <ProgressLabel>{running ? "正在扫描" : "扫描进度"}</ProgressLabel>
-              <span className="ml-auto text-xs/relaxed tabular-nums text-muted-foreground">
+              <ProgressLabel>
+                {running ? t("scanning") : t("progress")}
+              </ProgressLabel>
+              <span className="ml-auto text-sm/relaxed tabular-nums text-muted-foreground">
                 {processed} / {total}
               </span>
             </Progress>
@@ -551,9 +566,12 @@ export default function AutoTagDialog({
           {suggestions.length > 0 ? (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">待审核</span>
+                <span className="font-medium">{t("pending")}</span>
                 <span className="text-muted-foreground">
-                  {groups.length} 个视频，{suggestions.length} 项建议
+                  {t("summary", {
+                    videos: groups.length,
+                    suggestions: suggestions.length,
+                  })}
                 </span>
               </div>
               <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden pr-3 [&_[data-slot=scroll-area-viewport]]:overflow-x-hidden">
@@ -612,7 +630,7 @@ export default function AutoTagDialog({
                             onClick={() => accept(group, group.suggestions)}
                           >
                             <CheckIcon data-icon="inline-start" />
-                            全部接受
+                            {t("acceptAll")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -622,7 +640,7 @@ export default function AutoTagDialog({
                             onClick={() => skip(group.suggestions)}
                           >
                             <XIcon data-icon="inline-start" />
-                            全部跳过
+                            {t("skipAll")}
                           </Button>
                         </ItemActions>
                       </Item>
@@ -635,22 +653,20 @@ export default function AutoTagDialog({
             <Empty className="border">
               <EmptyHeader>
                 <EmptyTitle>
-                  {foundCount > 0 ? "所有建议均已审核" : "没有新的建议"}
+                  {foundCount > 0 ? t("reviewed") : t("noSuggestions")}
                 </EmptyTitle>
                 <EmptyDescription>
-                  {foundCount > 0
-                    ? "本次扫描发现的建议均已接受或跳过"
-                    : "匹配的标签与系列可能已经存在"}
+                  {foundCount > 0 ? t("reviewedHelp") : t("noSuggestionsHelp")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : running ? (
-            <p className="text-muted-foreground">发现的建议会立即显示在这里</p>
+            <p className="text-muted-foreground">{t("waiting")}</p>
           ) : null}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => changeOpen(false)}>
-              关闭
+              {t("close")}
             </Button>
             {suggestions.length > 0 && (
               <AcceptButton
@@ -662,7 +678,7 @@ export default function AutoTagDialog({
                 ) : (
                   <CheckIcon data-icon="inline-start" />
                 )}
-                接受全部建议
+                {t("acceptAllSuggestions")}
               </AcceptButton>
             )}
             <Button
@@ -681,7 +697,7 @@ export default function AutoTagDialog({
               ) : (
                 <SparklesIcon data-icon="inline-start" />
               )}
-              {running ? "扫描中" : started ? "重新扫描" : "开始"}
+              {running ? t("running") : started ? t("rescan") : t("start")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -127,6 +129,9 @@ export default function TagManager({
   initialCategories: TagCategory[];
   initialSort: TagSort;
 }) {
+  const t = useTranslations("TagManager");
+  const sortText = useTranslations("TagSort");
+  const labels = useTranslations("TagLabels");
   const router = useRouter();
   const [tree, setTree] = useState<TagTreeNode[]>(initialTree);
   const [query, setQuery] = useState(initialQuery);
@@ -222,19 +227,22 @@ export default function TagManager({
     return () => window.removeEventListener("popstate", restorePagination);
   }, []);
 
-  const refresh = useCallback(async function refreshTree(): Promise<void> {
-    try {
-      const res = await fetch("/api/tags/tree");
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      if (!Array.isArray(data.tree)) throw new Error();
-      setTree(data.tree);
-    } catch {
-      toast.error("刷新失败，已保留当前列表", {
-        action: { label: "重试", onClick: () => void refreshTree() },
-      });
-    }
-  }, []);
+  const refresh = useCallback(
+    async function refreshTree(): Promise<void> {
+      try {
+        const res = await fetch("/api/tags/tree");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (!Array.isArray(data.tree)) throw new Error();
+        setTree(data.tree);
+      } catch {
+        toast.error(t("refreshFailed"), {
+          action: { label: t("retry"), onClick: () => void refreshTree() },
+        });
+      }
+    },
+    [t],
+  );
 
   const all = useMemo(() => flatten(tree), [tree]);
   const index = useMemo(
@@ -354,7 +362,7 @@ export default function TagManager({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setCreateError(data.error ?? "创建失败，请重试。");
+      setCreateError(data.error ?? t("createFailed"));
       return;
     }
     // A new child is worth seeing, so its parent is opened if it was shut.
@@ -412,37 +420,42 @@ export default function TagManager({
       await runBatch(
         "/api/tags/batch",
         { action: "setParent", ids, parentId },
-        picked.name === null ? (
-          `${ids.length} 个标签已移至顶级`
-        ) : (
-          <>
-            {ids.length} 个标签已移至
-            <InlineTagBadge
-              state={index.get(picked.name)?.reviewState ?? "approved"}
-            >
-              {picked.name}
-            </InlineTagBadge>
-            下
-          </>
-        ),
+        picked.name === null
+          ? t("movedRoot", { count: ids.length })
+          : t.rich("movedUnder", {
+              count: ids.length,
+              name: picked.name ?? "",
+              tag: (children) => (
+                <InlineTagBadge
+                  state={
+                    index.get(picked.name ?? "")?.reviewState ?? "approved"
+                  }
+                >
+                  {children}
+                </InlineTagBadge>
+              ),
+            }),
       );
       return;
     }
     if (batch === "merge" && picked.name) {
       const targetId = index.get(picked.name)?.id;
       if (targetId === undefined) {
-        setError("目标标签不存在。");
+        setError(t("targetMissing"));
         return;
       }
       await runBatch(
         "/api/tags/merge",
         { sourceIds: ids, targetId },
-        <>
-          {ids.length} 个标签已合并到
-          <InlineTagBadge state={index.get(picked.name)?.reviewState}>
-            {picked.name}
-          </InlineTagBadge>
-        </>,
+        t.rich("mergedInto", {
+          count: ids.length,
+          name: picked.name,
+          tag: (children) => (
+            <InlineTagBadge state={index.get(picked.name ?? "")?.reviewState}>
+              {children}
+            </InlineTagBadge>
+          ),
+        }),
       );
     }
   }
@@ -465,7 +478,7 @@ export default function TagManager({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      const message = data.error ?? "操作失败，请重试。";
+      const message = data.error ?? t("failed");
       // Shown in the dialog when one is open, and as a toast when the failure
       // came from a drop.
       setError(message);
@@ -478,20 +491,22 @@ export default function TagManager({
   }
 
   /** The row's own delete. One dialog serves every row rather than each row
-   *  carrying its own, which at this list length is thousands of them. */
+   *  carrying a separate dialog instance. */
   async function removeTag(node: TagTreeNode) {
     const res = await fetch(`/api/tags/${node.id}`, { method: "DELETE" });
     setDeleting(null);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data.error ?? "删除失败，请重试。");
+      toast.error(data.error ?? t("deleteFailed"));
       return;
     }
     toast.success(
-      <>
-        已删除标签
-        <InlineTagBadge state={node.reviewState}>{node.name}</InlineTagBadge>
-      </>,
+      t.rich("deletedTag", {
+        name: node.name,
+        tag: (children) => (
+          <InlineTagBadge state={node.reviewState}>{children}</InlineTagBadge>
+        ),
+      }),
     );
     await refresh();
   }
@@ -508,7 +523,7 @@ export default function TagManager({
   // explicit choice.
 
   // Dragging a row that is part of the selection moves the whole selection,
-  // which is what makes rearranging seventy tags bearable.
+  // so a selection can be moved as a group.
   const idsFor = useCallback(
     (id: number) => (selected.has(id) ? [...selected] : [id]),
     [selected],
@@ -533,17 +548,17 @@ export default function TagManager({
       void post(
         "/api/tags/batch",
         { action: "setParent", ids, parentId },
-        parent === null ? (
-          `${ids.length} 个标签已移至顶级`
-        ) : (
-          <>
-            {ids.length} 个标签已移至
-            <InlineTagBadge state={parent?.reviewState}>
-              {parent?.name}
-            </InlineTagBadge>
-            下
-          </>
-        ),
+        parent === null
+          ? t("movedRoot", { count: ids.length })
+          : t.rich("movedUnder", {
+              count: ids.length,
+              name: parent?.name ?? "",
+              tag: (children) => (
+                <InlineTagBadge state={parent?.reviewState}>
+                  {children}
+                </InlineTagBadge>
+              ),
+            }),
       );
     },
     // post reads the current tree through refresh, and nothing it closes over
@@ -595,7 +610,7 @@ export default function TagManager({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "创建失败，请重试。");
+      setError(data.error ?? t("createFailed"));
       return null;
     }
     return (await res.json()).id as number;
@@ -611,7 +626,7 @@ export default function TagManager({
       ))}
       {selectedNames.length > NAMES_SHOWN && (
         <Badge variant="outline" className="text-muted-foreground">
-          另有 {selectedNames.length - NAMES_SHOWN} 个
+          {t("more", { count: selectedNames.length - NAMES_SHOWN })}
         </Badge>
       )}
     </div>
@@ -626,7 +641,7 @@ export default function TagManager({
       pageSize={{
         value: pageSize,
         options: MANAGER_PAGE_SIZES,
-        label: "每页顶级标签",
+        label: t("pageSize"),
         onChange: (nextPageSize) => {
           setPageSize(nextPageSize);
           setPage(1);
@@ -650,7 +665,7 @@ export default function TagManager({
             setPage(1);
             updatePaginationUrl(1, pageSize, "replace", { query: nextQuery });
           }}
-          placeholder="搜索标签、别名或拼音"
+          placeholder={t("search")}
           className="basis-full sm:flex-1"
         />
         <Select
@@ -662,34 +677,34 @@ export default function TagManager({
             updatePaginationUrl(1, pageSize, "replace", { sort: value });
           }}
         >
-          <SelectTrigger aria-label="排序">
+          <SelectTrigger aria-label={t("sort")}>
             <SelectValue>
-              {(value: TagSort) => TAG_SORT_LABELS[value] ?? "排序"}
+              {(value: TagSort) => sortText(TAG_SORT_LABELS[value])}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               {TAG_SORT_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {sortText(option.label)}
                 </SelectItem>
               ))}
             </SelectGroup>
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={selectShown}>
-          选择当前可见标签
+          {t("selectVisible")}
         </Button>
         <Button onClick={() => startCreate(null)}>
           <PlusIcon data-icon="inline-start" />
-          新建标签
+          {t("newTag")}
         </Button>
       </div>
 
       {/* The legend and the display filter are one control: each dot names a
           group, and its switch decides whether that group is listed. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-        <span>显示</span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <span>{t("show")}</span>
         {TAG_DOT_LEGEND.map((item) => (
           <label
             key={item.id}
@@ -697,12 +712,12 @@ export default function TagManager({
           >
             <Switch
               size="sm"
-              aria-label={`显示${item.label}标签`}
+              aria-label={labels("showTags", { state: labels(item.label) })}
               checked={categories.has(item.id)}
               onCheckedChange={(checked) => toggleCategory(item.id, checked)}
             />
             <Dot aria-hidden="true" className={item.className} />
-            {item.label}
+            {labels(item.label)}
             <span className="tabular-nums text-muted-foreground">
               {categoryCounts[item.id]}
             </span>
@@ -712,28 +727,30 @@ export default function TagManager({
 
       {selected.size > 0 ? (
         <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-card/80 px-3 py-2 backdrop-blur-md">
-          <span className="text-xs">已选择 {selected.size} 个标签</span>
+          <span className="text-sm">
+            {t("selected", { count: selected.size })}
+          </span>
           <div className="ml-auto flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => openBatch("parent")}
             >
-              设置父标签
+              {t("setParent")}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => openBatch("merge")}
             >
-              合并到
+              {t("mergeInto")}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => openBatch("exclude")}
             >
-              排除
+              {t("exclude")}
             </Button>
             {/* Offered only when the selection holds something to restore, so
                 the bar stays as short as the situation allows. */}
@@ -743,7 +760,7 @@ export default function TagManager({
                 size="sm"
                 onClick={() => openBatch("restore")}
               >
-                取消排除
+                {t("restore")}
               </Button>
             )}
             <Button
@@ -751,20 +768,20 @@ export default function TagManager({
               size="sm"
               onClick={() => openBatch("delete")}
             >
-              删除
+              {t("delete")}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelected(new Set())}
             >
-              取消选择
+              {t("deselect")}
             </Button>
           </div>
         </div>
       ) : (
-        <span className="text-muted-foreground text-xs">
-          共 {all.length} 个标签
+        <span className="text-muted-foreground text-sm">
+          {t("total", { count: all.length })}
         </span>
       )}
 
@@ -776,12 +793,10 @@ export default function TagManager({
         <Empty className="rounded-xl border">
           <EmptyHeader>
             <EmptyTitle>
-              {categories.size === 0 ? "未选择标签类型" : "未找到匹配的标签"}
+              {categories.size === 0 ? t("noTypes") : t("empty")}
             </EmptyTitle>
             <EmptyDescription>
-              {categories.size === 0
-                ? "请至少开启一种类型。"
-                : "请调整搜索词或显示类型。"}
+              {categories.size === 0 ? t("selectType") : t("adjustFilters")}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -826,13 +841,13 @@ export default function TagManager({
                 : "border-border bg-background/90 text-muted-foreground",
             )}
           >
-            拖放至此移至顶级
+            {t("dropRoot")}
           </div>
           {dragState.cursor && (
             <div
               // Must not be hit-testable: the drop target is whatever sits
               // under the pointer, and this follows the pointer.
-              className="pointer-events-none fixed z-50 translate-x-3.5 translate-y-3.5 rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
+              className="pointer-events-none fixed z-50 translate-x-3.5 translate-y-3.5 rounded-md border bg-popover px-2 py-1 text-sm text-popover-foreground shadow-md"
               style={{
                 left: dragState.cursor.x,
                 top: dragState.cursor.y,
@@ -847,7 +862,7 @@ export default function TagManager({
                       </TagBadge>
                     ) : null;
                   })()
-                : `${dragState.ids.length} 个标签`}
+                : t("count", { count: dragState.ids.length })}
             </div>
           )}
         </>
@@ -857,21 +872,20 @@ export default function TagManager({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {creatingUnder ? (
-                <>
-                  在
-                  <InlineTagBadge state={creatingUnder.reviewState}>
-                    {creatingUnder.name}
-                  </InlineTagBadge>
-                  下新建标签
-                </>
-              ) : (
-                "新建标签"
-              )}
+              {creatingUnder
+                ? t.rich("newUnder", {
+                    name: creatingUnder.name,
+                    tag: (children) => (
+                      <InlineTagBadge state={creatingUnder.reviewState}>
+                        {children}
+                      </InlineTagBadge>
+                    ),
+                  })
+                : t("newTag")}
             </DialogTitle>
           </DialogHeader>
           <Field>
-            <FieldLabel htmlFor="new-tag-name">名称</FieldLabel>
+            <FieldLabel htmlFor="new-tag-name">{t("name")}</FieldLabel>
             <Input
               id="new-tag-name"
               value={newName}
@@ -890,21 +904,24 @@ export default function TagManager({
             ) : (
               creatingUnder && (
                 <FieldDescription>
-                  筛选
-                  <InlineTagBadge state={creatingUnder.reviewState}>
-                    {creatingUnder.name}
-                  </InlineTagBadge>
-                  时一并返回该标签的视频
+                  {t.rich("underHelp", {
+                    name: creatingUnder.name,
+                    tag: (children) => (
+                      <InlineTagBadge state={creatingUnder.reviewState}>
+                        {children}
+                      </InlineTagBadge>
+                    ),
+                  })}
                 </FieldDescription>
               )
             )}
           </Field>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setCreating(false)}>
-              取消
+              {t("cancel")}
             </Button>
             <Button onClick={create} disabled={!newName.trim()}>
-              创建
+              {t("create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -917,8 +934,8 @@ export default function TagManager({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {batch === "parent" && `为 ${selected.size} 个标签设置父标签`}
-              {batch === "merge" && `合并 ${selected.size} 个标签`}
+              {batch === "parent" && t("parentCount", { count: selected.size })}
+              {batch === "merge" && t("mergeCount", { count: selected.size })}
             </DialogTitle>
           </DialogHeader>
 
@@ -926,46 +943,42 @@ export default function TagManager({
 
           {batch === "parent" && (
             <Field className="mt-4">
-              <FieldLabel>父标签</FieldLabel>
+              <FieldLabel>{t("parent")}</FieldLabel>
               <TagAutocomplete
                 endpoint="/api/tags/suggest"
                 mode="single"
-                placeholder="选择或新建父标签"
+                placeholder={t("chooseParent")}
                 disabledNames={selectedNames}
                 // Choosing only fills in the target. Applying it is a separate
                 // press, so the impact below can be read first.
                 onSelect={(name) => setPicked({ name })}
                 className="w-64"
               />
-              <FieldDescription>
-                筛选父标签时一并返回其下所有子标签的视频。
-              </FieldDescription>
+              <FieldDescription>{t("parentHelp")}</FieldDescription>
               <Button
                 variant="outline"
                 size="sm"
                 className="mt-2 self-start"
                 onClick={() => setPicked({ name: null })}
               >
-                移至顶级
+                {t("moveRoot")}
               </Button>
             </Field>
           )}
 
           {batch === "merge" && (
             <Field className="mt-4">
-              <FieldLabel>目标标签</FieldLabel>
+              <FieldLabel>{t("target")}</FieldLabel>
               <TagAutocomplete
                 endpoint="/api/tags/suggest"
                 mode="single"
-                placeholder="选择目标标签"
+                placeholder={t("chooseTarget")}
                 allowCreate={false}
                 disabledNames={selectedNames}
                 onSelect={(name) => setPicked({ name })}
                 className="w-64"
               />
-              <FieldDescription>
-                所选标签的视频改为使用目标标签，其名称成为目标标签的别名。
-              </FieldDescription>
+              <FieldDescription>{t("mergeHelp")}</FieldDescription>
             </Field>
           )}
 
@@ -977,10 +990,10 @@ export default function TagManager({
 
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setBatch(null)}>
-              取消
+              {t("cancel")}
             </Button>
             <Button disabled={busy || picked === null} onClick={applyBatch}>
-              {batch === "merge" ? "合并" : "移动"}
+              {batch === "merge" ? t("merge") : t("move")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -991,14 +1004,14 @@ export default function TagManager({
       {deleting && (
         <TagConfirmDialog
           key={deleting.id}
-          title={
-            <>
-              删除标签
+          title={t.rich("deleteTag", {
+            name: deleting.name,
+            tag: (children) => (
               <InlineTagBadge state={deleting.reviewState}>
-                {deleting.name}
+                {children}
               </InlineTagBadge>
-            </>
-          }
+            ),
+          })}
           request={{ action: "delete", ids: [deleting.id] }}
           onOpenChange={(open) => !open && setDeleting(null)}
           onConfirm={() => removeTag(deleting)}
@@ -1007,7 +1020,7 @@ export default function TagManager({
 
       {batch === "delete" && batchImpact && (
         <TagConfirmDialog
-          title={`删除 ${selected.size} 个标签`}
+          title={t("deleteCount", { count: selected.size })}
           subject={chosen}
           request={batchImpact}
           onOpenChange={(open) => !open && setBatch(null)}
@@ -1015,7 +1028,7 @@ export default function TagManager({
             runBatch(
               "/api/tags/batch",
               { action: "delete", ids: [...selected] },
-              `已删除 ${selected.size} 个标签`,
+              t("deletedCount", { count: selected.size }),
             )
           }
         />
@@ -1023,10 +1036,12 @@ export default function TagManager({
 
       {(batch === "exclude" || batch === "restore") && batchImpact && (
         <TagConfirmDialog
-          title={`${batch === "exclude" ? "排除" : "取消排除"} ${selected.size} 个标签`}
+          title={t(batch === "exclude" ? "excludeCount" : "restoreCount", {
+            count: selected.size,
+          })}
           subject={chosen}
           request={batchImpact}
-          confirmLabel={batch === "exclude" ? "排除" : "取消排除"}
+          confirmLabel={batch === "exclude" ? t("exclude") : t("restore")}
           confirmVariant={batch === "exclude" ? "destructive" : "default"}
           onOpenChange={(open) => !open && setBatch(null)}
           onConfirm={() =>
@@ -1034,8 +1049,8 @@ export default function TagManager({
               "/api/tags/batch",
               { action: batch, ids: [...selected] },
               batch === "exclude"
-                ? `已排除 ${selected.size} 个标签`
-                : `已取消排除 ${selected.size} 个标签`,
+                ? t("excludedCount", { count: selected.size })
+                : t("restoredCount", { count: selected.size }),
             )
           }
         />

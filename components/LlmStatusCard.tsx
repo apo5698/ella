@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, PlugIcon, XIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,12 +44,13 @@ const CONNECTED_POLL_MS = 15000;
 const SWEEP_STEP_MS = 100;
 
 function CountdownRing({ value }: { value: number }) {
+  const t = useTranslations("ModelService");
   return (
     <svg
       viewBox="0 0 16 16"
       className="-rotate-90"
       role="img"
-      aria-label="距离下次测速"
+      aria-label={t("countdown")}
     >
       <circle
         cx="8"
@@ -75,6 +78,7 @@ function CountdownRing({ value }: { value: number }) {
 }
 
 export default function LlmStatusCard() {
+  const t = useTranslations("ModelService");
   const [settings, setSettings] = useState<LlmSettings | null>(null);
   const [probe, setProbe] = useState<LlmProbe | null>(null);
   const [url, setUrl] = useState("");
@@ -191,11 +195,8 @@ export default function LlmStatusCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5">
-          模型服务
-          <HelpTip side="right">
-            任何兼容 OpenAI 接口的服务均可使用，需提供 /models 与
-            /chat/completions。识别所需的画面仅发送至该地址。
-          </HelpTip>
+          {t("title")}
+          <HelpTip side="right">{t("description")}</HelpTip>
           {probe && (
             <Badge
               variant="outline"
@@ -207,7 +208,7 @@ export default function LlmStatusCard() {
               )}
             >
               {probe.reachable ? <CheckIcon /> : <XIcon />}
-              {probe.reachable ? "已连接" : "未连接"}
+              {probe.reachable ? t("connected") : t("disconnected")}
               {probe.latencyMs !== null && probe.reachable && (
                 <span className="tabular-nums">{probe.latencyMs} ms</span>
               )}
@@ -218,7 +219,7 @@ export default function LlmStatusCard() {
               click to recover from. */}
           {probe && !probe.reachable && (
             <span className="font-normal text-muted-foreground">
-              自动重试中
+              {t("retrying")}
             </span>
           )}
         </CardTitle>
@@ -241,7 +242,7 @@ export default function LlmStatusCard() {
 
             <FieldGroup>
               <Field>
-                <FieldLabel>地址</FieldLabel>
+                <FieldLabel>{t("address")}</FieldLabel>
                 <div className="flex gap-2">
                   <Input
                     value={url}
@@ -255,18 +256,16 @@ export default function LlmStatusCard() {
                   />
                   <Button onClick={connect} disabled={busy || !url.trim()}>
                     <PlugIcon data-icon="inline-start" />
-                    {busy ? "连接中" : "连接"}
+                    {busy ? t("connecting") : t("connect")}
                   </Button>
                 </div>
                 {dirty && (
-                  <FieldDescription>
-                    {'地址已修改，点击"连接"后生效。'}
-                  </FieldDescription>
+                  <FieldDescription>{t("addressChanged")}</FieldDescription>
                 )}
               </Field>
 
               <Field data-invalid={modelMissing || undefined}>
-                <FieldLabel>模型</FieldLabel>
+                <FieldLabel>{t("model")}</FieldLabel>
                 {ids.length > 0 ? (
                   <>
                     <Select
@@ -275,10 +274,10 @@ export default function LlmStatusCard() {
                     >
                       <SelectTrigger
                         className="w-full font-mono"
-                        aria-label="模型"
+                        aria-label={t("model")}
                         aria-invalid={modelMissing || undefined}
                       >
-                        <SelectValue placeholder="选择模型" />
+                        <SelectValue placeholder={t("chooseModel")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
@@ -296,7 +295,7 @@ export default function LlmStatusCard() {
                     </Select>
                     {modelMissing && (
                       <FieldDescription>
-                        该服务未提供模型 {settings.model}，请重新选择。
+                        {t("missingModel", { model: settings.model })}
                       </FieldDescription>
                     )}
                   </>
@@ -310,13 +309,11 @@ export default function LlmStatusCard() {
                         setSettings({ ...settings, model: e.target.value })
                       }
                       onBlur={(e) => selectModel(e.target.value)}
-                      placeholder="模型名称"
+                      placeholder={t("modelName")}
                       spellCheck={false}
                       className="font-mono"
                     />
-                    <FieldDescription>
-                      未从响应中读取到模型列表，请手动填写模型名称。
-                    </FieldDescription>
+                    <FieldDescription>{t("manualModel")}</FieldDescription>
                   </>
                 )}
               </Field>

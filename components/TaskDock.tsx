@@ -58,7 +58,7 @@ export default function TaskDock() {
       </div>
 
       {!collapsed && (
-        <div className="flex flex-col gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex flex-col gap-2 border-t px-3 py-2 text-sm text-muted-foreground">
           {running && (
             <div className="flex flex-col gap-1">
               <span

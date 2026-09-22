@@ -78,6 +78,7 @@ function NavigationMenu({
 
 export default function SidebarNav() {
   const t = useTranslations("Navigation");
+  const utilities = useTranslations("Utilities");
   const pathname = usePathname();
   const [utilitiesOpen, setUtilitiesOpen] = useState(() =>
     pathname.startsWith("/admin/utilities"),
@@ -106,7 +107,7 @@ export default function SidebarNav() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Admin</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("administration")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavigationMenu
               items={ADMIN_NAVIGATION}
@@ -180,7 +181,7 @@ export default function SidebarNav() {
                           }
                         >
                           <item.icon />
-                          <span>{item.label}</span>
+                          <span>{utilities(item.label)}</span>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}

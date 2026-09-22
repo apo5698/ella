@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import { compareNames } from "./tagOrder";
 import type { TagReviewState, TagTreeNode } from "./types";
@@ -94,7 +95,7 @@ export function ensureTag(
   initialReviewState: TagReviewState = "approved",
 ): { id: number; name: string } {
   const resolved = resolveTagName(db, raw);
-  if (!resolved.name) throw new Error("tag name required");
+  if (!resolved.name) throw new AppError("tagNameRequired");
   if (resolved.id !== null) return { id: resolved.id, name: resolved.name };
   const info = db
     .prepare("INSERT INTO tags (name, review_state) VALUES (?, ?)")
@@ -338,7 +339,7 @@ export function mergeTags(
   const target = db
     .prepare("SELECT id, name FROM tags WHERE id = ?")
     .get(targetId) as { id: number; name: string } | undefined;
-  if (!target) throw new Error("目标标签不存在。");
+  if (!target) throw new AppError("tagMissing");
 
   const aliases: string[] = [];
   let merged = 0;

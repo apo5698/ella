@@ -130,7 +130,7 @@ function NotificationMeta({
       ? notification.payload.actor
       : t("system");
   return (
-    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+    <span className="flex items-center gap-2 text-sm text-muted-foreground">
       <span>{actor}</span>
       <span aria-hidden="true">·</span>
       <LocalTime value={notification.createdAt} interactive={interactiveTime} />
@@ -209,7 +209,7 @@ function NotificationItem({
         <span
           ref={previewRef}
           className={cn(
-            "line-clamp-1 text-xs/relaxed font-normal text-muted-foreground group-data-open/notification:hidden",
+            "line-clamp-1 text-sm/relaxed font-normal text-muted-foreground group-data-open/notification:hidden",
             notification.type === "ERROR" && "text-destructive",
           )}
         >
@@ -259,7 +259,7 @@ function NotificationItem({
       </div>
 
       {isExpandable && (
-        <AccordionContent className="grid grid-cols-[2.5rem_minmax(0,1fr)_1rem] gap-x-3 gap-y-3 px-1 text-xs/relaxed font-normal text-muted-foreground">
+        <AccordionContent className="grid grid-cols-[2.5rem_minmax(0,1fr)_1rem] gap-x-3 gap-y-3 px-1 text-sm/relaxed font-normal text-muted-foreground">
           <div
             className={cn(
               "col-start-2 col-end-3",

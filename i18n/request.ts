@@ -1,15 +1,10 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
-
-export const DEFAULT_LOCALE = "zh-CN";
-export const LOCALES = [DEFAULT_LOCALE] as const;
-export type AppLocale = (typeof LOCALES)[number];
+import { DEFAULT_LOCALE, isAppLocale, LOCALE_COOKIE } from "./config";
 
 export default getRequestConfig(async () => {
-  const store = await cookies();
-  const requested = store.get("locale")?.value;
-  const locale: AppLocale =
-    requested === DEFAULT_LOCALE ? requested : DEFAULT_LOCALE;
+  const requested = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const locale = isAppLocale(requested) ? requested : DEFAULT_LOCALE;
 
   return {
     locale,

@@ -14,7 +14,7 @@
   --media-menu-checkbox-bg-active: var(--primary);
   --media-menu-checkbox-handle-bg: var(--primary-foreground);
   --media-menu-divider: 1px solid var(--border);
-  --media-menu-font-size: 0.75rem;
+  --media-menu-font-size: 0.875rem;
   --media-menu-font-weight: 400;
   --media-menu-item-border-radius: calc(var(--radius) * 0.8);
   --media-menu-item-height: 1.75rem;
@@ -40,14 +40,14 @@
   --media-slider-thumb-size: 0.75rem;
   --media-slider-track-border-radius: calc(var(--radius) * 0.8);
   --media-slider-track-height: 0.25rem;
-  --media-time-font-size: 0.75rem;
+  --media-time-font-size: 0.875rem;
   --media-time-font-weight: 400;
   --media-time-letter-spacing: 0;
   --media-tooltip-bg-color: var(--foreground);
   --media-tooltip-border: 0;
   --media-tooltip-border-radius: calc(var(--radius) * 0.8);
   --media-tooltip-color: var(--background);
-  --media-tooltip-font-size: 0.75rem;
+  --media-tooltip-font-size: 0.875rem;
   --media-tooltip-font-weight: 400;
   --media-tooltip-padding: 0.375rem 0.75rem;
   --video-border: 0;

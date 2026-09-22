@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { XIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +11,6 @@ import {
   GLOBAL_STYLE,
   INLINE_STYLE,
   SERIES_STYLE,
-  SOURCE_LABEL,
   TAG_STATE_LABEL,
   TAG_STATE_STYLE,
 } from "./tag-presentation";
@@ -26,16 +28,13 @@ export function TagBadge({
   variant = "secondary",
   ...props
 }: BadgeProps & { source?: string; state?: TagReviewState }) {
+  const t = useTranslations("TagLabels");
   const resolvedState =
     state ?? (source === "manual" ? "approved" : "automatic");
   return (
     <Badge
       variant={variant}
-      title={
-        title ??
-        TAG_STATE_LABEL[resolvedState] ??
-        (source ? (SOURCE_LABEL[source] ?? source) : undefined)
-      }
+      title={title ?? t(TAG_STATE_LABEL[resolvedState])}
       className={cn(GLOBAL_STYLE, TAG_STATE_STYLE[resolvedState], className)}
       {...props}
     />
@@ -52,14 +51,15 @@ export function InlineTagBadge({
 
 export function SeriesBadge({
   className,
-  title = "系列",
+  title,
   variant = "secondary",
   ...props
 }: BadgeProps) {
+  const t = useTranslations("TagLabels");
   return (
     <Badge
       variant={variant}
-      title={title}
+      title={title ?? t("series")}
       className={cn(GLOBAL_STYLE, SERIES_STYLE, className)}
       {...props}
     />
@@ -75,14 +75,15 @@ export function InlineSeriesBadge({
 
 export function AliasBadge({
   className,
-  title = "别名",
+  title,
   variant = "outline",
   ...props
 }: BadgeProps) {
+  const t = useTranslations("TagLabels");
   return (
     <Badge
       variant={variant}
-      title={title}
+      title={title ?? t("alias")}
       className={cn(GLOBAL_STYLE, ALIAS_STYLE, className)}
       {...props}
     />
@@ -122,12 +123,13 @@ export function RemovableTagBadge({
   title,
   ...props
 }: RemovableBadgeProps & { source?: string; state?: TagReviewState }) {
+  const t = useTranslations("TagLabels");
   const resolvedState =
     state ?? (source === "manual" ? "approved" : "automatic");
   return (
     <RemovableBadge
       variant="secondary"
-      title={title ?? TAG_STATE_LABEL[resolvedState]}
+      title={title ?? t(TAG_STATE_LABEL[resolvedState])}
       className={cn(GLOBAL_STYLE, TAG_STATE_STYLE[resolvedState], className)}
       {...props}
     />
@@ -136,13 +138,14 @@ export function RemovableTagBadge({
 
 export function RemovableSeriesBadge({
   className,
-  title = "系列",
+  title,
   ...props
 }: RemovableBadgeProps) {
+  const t = useTranslations("TagLabels");
   return (
     <RemovableBadge
       variant="secondary"
-      title={title}
+      title={title ?? t("series")}
       className={cn(GLOBAL_STYLE, SERIES_STYLE, className)}
       {...props}
     />
@@ -151,13 +154,14 @@ export function RemovableSeriesBadge({
 
 export function RemovableAliasBadge({
   className,
-  title = "移除别名",
+  title,
   ...props
 }: RemovableBadgeProps) {
+  const t = useTranslations("TagLabels");
   return (
     <RemovableBadge
       variant="outline"
-      title={title}
+      title={title ?? t("removeAlias")}
       className={cn(GLOBAL_STYLE, ALIAS_STYLE, className)}
       {...props}
     />

@@ -1,3 +1,5 @@
+import { errorMessage } from "@/lib/appError";
+import { getTranslations } from "next-intl/server";
 import db from "@/lib/db";
 import {
   createAutoTagSuggester,
@@ -15,29 +17,21 @@ const encoder = new TextEncoder();
  * persisted: the browser owns them until the user explicitly reviews them.
  */
 export async function POST(req: Request) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const strategies = parseAutoTagStrategies(body.strategies);
   const regexPattern = String(body.regexPattern ?? "");
   if (strategies.length === 0) {
-    return Response.json(
-      { error: "请至少选择一种自动标记策略" },
-      { status: 400 },
-    );
+    return Response.json({ error: t("selectStrategy") }, { status: 400 });
   }
   if (strategies.includes("filename-regex")) {
     if (strategies.length !== 1) {
-      return Response.json(
-        { error: "正则表达式不能与其他策略同时使用" },
-        { status: 400 },
-      );
+      return Response.json({ error: t("exclusiveRegex") }, { status: 400 });
     }
     try {
       createFilenameTagRegex(regexPattern);
     } catch (cause) {
-      return Response.json(
-        { error: cause instanceof Error ? cause.message : "正则表达式无效" },
-        { status: 400 },
-      );
+      return Response.json({ error: errorMessage(cause, t) }, { status: 400 });
     }
   }
 
@@ -78,7 +72,7 @@ export async function POST(req: Request) {
       } catch (cause) {
         send({
           kind: "error",
-          error: cause instanceof Error ? cause.message : "自动标记失败",
+          error: errorMessage(cause, t),
         });
       } finally {
         controller.close();

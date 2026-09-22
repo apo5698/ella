@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { wouldCycle } from "@/lib/tagHierarchy";
@@ -7,12 +8,13 @@ import { wouldCycle } from "@/lib/tagHierarchy";
  * rewrites video links rather than just moving tags about.
  */
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const ids = Array.isArray(body.ids)
     ? body.ids.map(Number).filter(Number.isFinite)
     : [];
   if (ids.length === 0) {
-    return NextResponse.json({ error: "请选择标签。" }, { status: 400 });
+    return NextResponse.json({ error: t("selectTags") }, { status: 400 });
   }
 
   if (body.action === "delete") {
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
       parentId !== null &&
       !db.prepare("SELECT 1 FROM tags WHERE id = ?").get(parentId)
     ) {
-      return NextResponse.json({ error: "父标签不存在。" }, { status: 400 });
+      return NextResponse.json({ error: t("parentMissing") }, { status: 400 });
     }
 
     // A selection that includes the chosen parent, or anything above it, is
@@ -107,7 +109,7 @@ export async function POST(req: NextRequest) {
             { name: string } | undefined
         )?.name;
         return NextResponse.json(
-          { error: `"${name ?? id}"不能移动到自身或其子标签下。` },
+          { error: t("invalidNamedParent", { name: name ?? String(id) }) },
           { status: 400 },
         );
       }
@@ -125,5 +127,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, count: ids.length });
   }
 
-  return NextResponse.json({ error: "未知操作。" }, { status: 400 });
+  return NextResponse.json({ error: t("unknownAction") }, { status: 400 });
 }

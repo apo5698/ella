@@ -8,11 +8,11 @@ import type { TagTreeNode } from "./types";
  * is chosen.
  */
 export const TAG_SORT_OPTIONS = [
-  { value: "name_asc", label: "名称 A-Z" },
-  { value: "name_desc", label: "名称 Z-A" },
-  { value: "count_desc", label: "视频最多" },
-  { value: "count_asc", label: "视频最少" },
-  { value: "category", label: "类别" },
+  { value: "name_asc", label: "name_asc" },
+  { value: "name_desc", label: "name_desc" },
+  { value: "count_desc", label: "count_desc" },
+  { value: "count_asc", label: "count_asc" },
+  { value: "category", label: "category" },
 ] as const;
 
 export type TagSort = (typeof TAG_SORT_OPTIONS)[number]["value"];

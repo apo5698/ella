@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import type { ComponentProps } from "react";
 import { XIcon } from "lucide-react";
 import {
@@ -24,6 +26,7 @@ export default function SearchInput({
   onValueChange,
   ...props
 }: SearchInputProps) {
+  const t = useTranslations("Common");
   return (
     <InputGroup className={className}>
       <InputGroupInput
@@ -35,7 +38,7 @@ export default function SearchInput({
         <InputGroupAddon align="inline-end">
           <InputGroupButton
             size="icon-xs"
-            aria-label="清空搜索"
+            aria-label={t("clearSearch")}
             onClick={() => onValueChange("")}
           >
             <XIcon />

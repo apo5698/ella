@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useRef, useState } from "react";
 import { Undo2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,8 @@ export default function TagEditor({
   initialSeries?: string | null;
   onChange?: (state: VideoTagState) => void;
 }) {
+  const t = useTranslations("TagEditor");
+  const labels = useTranslations("TagLabels");
   const [tags, setTags] = useState<VideoDetailTag[]>(initialTags);
   const [rejected, setRejected] = useState<string[]>(initialRejected);
   const [series, setSeries] = useState<string | null>(initialSeries);
@@ -98,14 +102,14 @@ export default function TagEditor({
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
-        <FieldLabel htmlFor="video-series">系列</FieldLabel>
+        <FieldLabel htmlFor="video-series">{t("series")}</FieldLabel>
         {/* One series per video, so the input gives way once one is set. */}
         {series ? (
           <div className="flex flex-wrap gap-1">
             <RemovableSeriesBadge
-              removeLabel={`移除系列"${series}"`}
+              removeLabel={t("removeNamedSeries", { name: series })}
               onClick={() => setSeriesName(null)}
-              title="移除系列"
+              title={t("removeSeries")}
             >
               {series}
             </RemovableSeriesBadge>
@@ -115,7 +119,7 @@ export default function TagEditor({
             endpoint="/api/series/suggest"
             kind="series"
             mode="single"
-            placeholder="设置系列"
+            placeholder={t("setSeries")}
             onSelect={(name) => setSeriesName(name)}
             className="w-56"
             inputId="video-series"
@@ -125,12 +129,12 @@ export default function TagEditor({
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <FieldLabel htmlFor="video-tags">内容标签</FieldLabel>
+          <FieldLabel htmlFor="video-tags">{t("tags")}</FieldLabel>
           <span className="flex items-center gap-3 text-muted-foreground">
             {(["vision", "manual"] as const).map((source) => (
               <span key={source} className="flex items-center gap-1">
                 <Dot className={sourceDotStyle([source])} />
-                {SOURCE_LABEL[source]}
+                {labels(SOURCE_LABEL[source])}
               </span>
             ))}
           </span>
@@ -140,7 +144,7 @@ export default function TagEditor({
         <TagAutocomplete
           endpoint="/api/tags/suggest?assignable=1"
           mode="multi"
-          placeholder="添加标签"
+          placeholder={t("addTag")}
           disabledNames={tags.map((t) => t.name)}
           onSelect={addTag}
           className="w-56"
@@ -167,7 +171,7 @@ export default function TagEditor({
             </div>
           ))}
           {tags.length === 0 && (
-            <span className="text-muted-foreground">暂无标签</span>
+            <span className="text-muted-foreground">{t("empty")}</span>
           )}
         </div>
       </section>
@@ -175,8 +179,8 @@ export default function TagEditor({
       {rejected.length > 0 && (
         <section className="flex flex-col gap-2">
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <FieldLabel>已排除标签</FieldLabel>
-            <HelpTip>重新识别时不再生成该标签。点击可恢复。</HelpTip>
+            <FieldLabel>{t("excluded")}</FieldLabel>
+            <HelpTip>{t("excludedHelp")}</HelpTip>
           </div>
           <div className="flex flex-wrap gap-1">
             {rejected.map((name) => (
@@ -184,7 +188,7 @@ export default function TagEditor({
                 key={name}
                 render={<button type="button" />}
                 variant="outline"
-                title="恢复标签"
+                title={t("restore")}
                 className="gap-1 cursor-pointer border-dashed text-muted-foreground line-through hover:text-foreground hover:no-underline"
                 onClick={() => restoreTag(name)}
               >

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BackLabel from "@/components/BackLabel";
@@ -20,6 +21,7 @@ export default async function DownloaderPage({
     ? (requested as DownloaderSource)
     : DOWNLOADER_SOURCES[0].slug;
 
+  const t = await getTranslations("Utilities");
   return (
     <>
       <Link
@@ -29,8 +31,8 @@ export default async function DownloaderPage({
         <BackLabel />
       </Link>
       <AdminPageHeader
-        title="下载器"
-        description="从不同来源下载视频并录入媒体库"
+        title={t("downloader")}
+        description={t("downloadDescription")}
       />
       <Downloader source={source} />
     </>

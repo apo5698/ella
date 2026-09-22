@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import {
@@ -17,19 +18,20 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const raw = String(body.name ?? "");
   const resolved = resolveTagName(db, raw);
   if (!resolved.name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
+    return NextResponse.json({ error: t("tagNameRequired") }, { status: 400 });
   }
 
   // A tag that only groups others is refused here rather than silently
   // dropped: the request named it, and its children are what to use instead.
   if (resolved.id !== null && !isAssignableTag(db, resolved.id)) {
     return NextResponse.json(
-      { error: `"${resolved.name}"是分类标签，请改用其下的子标签` },
+      { error: t("categoryTag", { name: resolved.name }) },
       { status: 400 },
     );
   }
@@ -71,11 +73,12 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const resolved = resolveTagName(db, searchParams.get("name") ?? "");
   if (!resolved.name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
+    return NextResponse.json({ error: t("tagNameRequired") }, { status: 400 });
   }
   const videoId = Number(id);
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -33,10 +35,11 @@ export default function ListPagination({
   buttonSize?: "default" | "sm";
   className?: string;
 }) {
+  const t = useTranslations("Common");
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 text-xs text-foreground",
+        "flex flex-wrap items-center gap-2 text-sm text-foreground",
         className,
       )}
     >
@@ -65,11 +68,11 @@ export default function ListPagination({
 
       <span
         className={cn(
-          "text-xs font-medium tabular-nums text-foreground",
+          "text-sm font-medium tabular-nums text-foreground",
           pageSize && "ml-auto",
         )}
       >
-        第 {page} / {totalPages} 页
+        {t("pageOf", { page, totalPages })}
       </span>
       <Button
         variant="outline"
@@ -77,7 +80,7 @@ export default function ListPagination({
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
-        上一页
+        {t("previousPage")}
       </Button>
       <Button
         variant="outline"
@@ -85,7 +88,7 @@ export default function ListPagination({
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >
-        下一页
+        {t("nextPage")}
       </Button>
     </div>
   );

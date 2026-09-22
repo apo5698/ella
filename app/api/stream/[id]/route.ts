@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import fs from "node:fs";
 import { Readable } from "node:stream";
 import db from "@/lib/db";
@@ -20,17 +21,18 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const row = db
     .prepare("SELECT path, ext FROM videos WHERE id = ?")
     .get(id) as { path: string; ext: string } | undefined;
-  if (!row) return new Response("Not found", { status: 404 });
+  if (!row) return new Response(t("videoMissing"), { status: 404 });
 
   let stat: fs.Stats;
   try {
     stat = fs.statSync(row.path);
   } catch {
-    return new Response("File missing on disk", { status: 404 });
+    return new Response(t("videoFileMissing"), { status: 404 });
   }
 
   const mime = MIME_MAP[row.ext.toLowerCase()] ?? "application/octet-stream";

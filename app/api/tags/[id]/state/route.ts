@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { directActiveVideoCount } from "@/lib/tagHierarchy";
@@ -14,12 +15,13 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const tagId = Number((await params).id);
   const tag = db
     .prepare("SELECT review_state FROM tags WHERE id = ?")
     .get(tagId) as { review_state: TagReviewState } | undefined;
   if (!tag) {
-    return NextResponse.json({ error: "标签不存在" }, { status: 404 });
+    return NextResponse.json({ error: t("tagMissing") }, { status: 404 });
   }
 
   const body = (await req.json().catch(() => ({}))) as { state?: unknown };
@@ -28,10 +30,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true, state });
   }
   if (!WRITABLE_STATES.has(state)) {
-    return NextResponse.json(
-      { error: "自动状态只能由自动识别产生" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t("automaticOnly") }, { status: 400 });
   }
 
   if (state === "category") {
@@ -39,7 +38,7 @@ export async function PATCH(
     if (directCount > 0) {
       return NextResponse.json(
         {
-          error: `${directCount} 个视频仍直接使用该标签，请先移除或改用子标签`,
+          error: t("categoryAssigned", { count: directCount }),
         },
         { status: 409 },
       );

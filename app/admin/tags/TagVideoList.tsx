@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { UnlinkIcon } from "lucide-react";
@@ -40,6 +42,7 @@ export default function TagVideoList({
   tagState: TagReviewState;
   initialTotal: number;
 }) {
+  const t = useTranslations("TagVideos");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -88,7 +91,7 @@ export default function TagVideoList({
     fetch(`/api/videos?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "加载失败");
+        if (!response.ok) throw new Error(data.error ?? t("loadFailed"));
         setVideos(data.videos);
         setTotal(data.total);
       })
@@ -101,7 +104,7 @@ export default function TagVideoList({
       });
 
     return () => controller.abort();
-  }, [debouncedQuery, page, pageSize, refreshEpoch, requestKey, tagId]);
+  }, [debouncedQuery, page, pageSize, refreshEpoch, requestKey, tagId, t]);
 
   function updateUrl(
     nextQuery: string,
@@ -165,14 +168,17 @@ export default function TagVideoList({
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      toast.error(data.error ?? "移除失败，请重试");
+      toast.error(data.error ?? t("removeFailed"));
       return;
     }
     toast.success(
-      <>
-        已从 {selected.size} 个视频移除
-        <InlineTagBadge state={tagState}>{tagName}</InlineTagBadge>
-      </>,
+      t.rich("removed", {
+        count: selected.size,
+        name: tagName,
+        tag: (children) => (
+          <InlineTagBadge state={tagState}>{children}</InlineTagBadge>
+        ),
+      }),
     );
     setSelected(new Set());
     setRefreshEpoch((value) => value + 1);
@@ -188,7 +194,7 @@ export default function TagVideoList({
       pageSize={{
         value: pageSize,
         options: MANAGER_PAGE_SIZES,
-        label: "每页视频",
+        label: t("pageSize"),
         onChange: changePageSize,
       }}
     />
@@ -197,8 +203,8 @@ export default function TagVideoList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>视频（{total}）</CardTitle>
-        <CardDescription>直接使用该标签的视频</CardDescription>
+        <CardTitle>{t("title", { count: total })}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
         <CardAction>
           <Button
             variant="outline"
@@ -206,7 +212,7 @@ export default function TagVideoList({
             onClick={removeSelected}
           >
             <UnlinkIcon data-icon="inline-start" />
-            从所选视频移除
+            {t("removeSelected")}
           </Button>
         </CardAction>
       </CardHeader>
@@ -214,18 +220,18 @@ export default function TagVideoList({
         <SearchInput
           value={query}
           onValueChange={changeQuery}
-          placeholder="搜索这些视频"
+          placeholder={t("search")}
         />
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Checkbox
             checked={allSelected}
             indeterminate={someSelected}
             onCheckedChange={togglePage}
-            aria-label="全选当前页"
+            aria-label={t("selectPage")}
           />
           <button type="button" className="cursor-pointer" onClick={togglePage}>
-            全选当前页
+            {t("selectPage")}
           </button>
           <div className="ml-auto">{pagination}</div>
         </div>
@@ -235,9 +241,9 @@ export default function TagVideoList({
         ) : videos.length === 0 ? (
           <Empty className="rounded-lg border">
             <EmptyHeader>
-              <EmptyTitle>没有视频</EmptyTitle>
+              <EmptyTitle>{t("empty")}</EmptyTitle>
               <EmptyDescription>
-                {query ? "没有匹配的视频" : "没有视频直接使用该标签"}
+                {query ? t("noMatches") : t("noAssignments")}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

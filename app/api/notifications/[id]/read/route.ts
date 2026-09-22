@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import {
@@ -13,6 +14,7 @@ export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const notificationId = Number(id);
   if (
@@ -20,7 +22,10 @@ export async function POST(
     notificationId <= 0 ||
     !getNotification(db, notificationId)
   ) {
-    return NextResponse.json({ error: "通知不存在" }, { status: 404 });
+    return NextResponse.json(
+      { error: t("notificationMissing") },
+      { status: 404 },
+    );
   }
 
   const updated = markNotificationRead(db, notificationId);

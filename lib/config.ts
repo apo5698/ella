@@ -4,8 +4,7 @@ export const VIDEO_ROOT =
   process.env.VIDEO_ROOT || path.join(process.cwd(), "videos");
 export const FFMPEG_PATH = process.env.FFMPEG_PATH || "ffmpeg";
 export const FFPROBE_PATH = process.env.FFPROBE_PATH || "ffprobe";
-// OpenAI-compatible endpoint of the local vision model server.
-// Nothing leaves the machine: frames are posted to this address only.
+// OpenAI-compatible endpoint used for video recognition.
 export const LMSTUDIO_URL =
   process.env.LMSTUDIO_URL || "http://localhost:1234/v1";
 export const LMSTUDIO_MODEL = process.env.LMSTUDIO_MODEL || "qwen/qwen3-vl-8b";

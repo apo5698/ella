@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { normalizeTagName, resolveTagName } from "@/lib/tagHierarchy";
@@ -11,22 +12,20 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const tagId = Number(id);
   const tag = db.prepare("SELECT name FROM tags WHERE id = ?").get(tagId) as
     { name: string } | undefined;
   if (!tag)
-    return NextResponse.json({ error: "标签不存在。" }, { status: 404 });
+    return NextResponse.json({ error: t("tagMissing") }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const alias = normalizeTagName(String(body.alias ?? ""));
   if (!alias)
-    return NextResponse.json({ error: "请输入别名。" }, { status: 400 });
+    return NextResponse.json({ error: t("aliasRequired") }, { status: 400 });
   if (alias === tag.name) {
-    return NextResponse.json(
-      { error: "别名不能与标签名称相同。" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t("aliasSameName") }, { status: 400 });
   }
 
   const clash = resolveTagName(db, alias);
@@ -34,8 +33,8 @@ export async function POST(
     return NextResponse.json(
       {
         error: clash.alias
-          ? `"${alias}"已是标签"${clash.name}"的别名。`
-          : `"${alias}"已是一个标签，请先将其删除或重命名。`,
+          ? t("aliasExists", { alias, name: clash.name })
+          : t("aliasIsTag", { alias }),
       },
       { status: 409 },
     );
@@ -52,12 +51,13 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const alias = normalizeTagName(
     new URL(req.url).searchParams.get("alias") ?? "",
   );
   if (!alias)
-    return NextResponse.json({ error: "请输入别名。" }, { status: 400 });
+    return NextResponse.json({ error: t("aliasRequired") }, { status: 400 });
   db.prepare("DELETE FROM tag_aliases WHERE alias = ? AND tag_id = ?").run(
     alias,
     Number(id),

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { enqueueTagPromotion } from "@/lib/taskRunner";
@@ -15,13 +16,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const name = String(body.name ?? "")
     .trim()
     .toLowerCase();
   if (!name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
+    return NextResponse.json({ error: t("tagNameRequired") }, { status: 400 });
   }
 
   const info = db
@@ -33,7 +35,7 @@ export async function POST(
 
   if (info.changes === 0) {
     return NextResponse.json(
-      { ok: false, error: "标签不存在" },
+      { ok: false, error: t("tagMissing") },
       { status: 404 },
     );
   }
