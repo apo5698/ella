@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -79,6 +81,7 @@ export default function TagDetailManager({
   descendantIds: number[];
   tagListHref: string;
 }) {
+  const t = useTranslations("TagDetail");
   const router = useRouter();
   const [name, setName] = useState(node.name);
   const [parentId, setParentId] = useState<number | null>(node.parentId);
@@ -131,7 +134,7 @@ export default function TagDetailManager({
     const response = await fetch(url, init);
     if (response.ok) return true;
     const data = await response.json().catch(() => ({}));
-    setError(data.error ?? "操作失败，请重试");
+    setError(data.error ?? t("failed"));
     return false;
   }
 
@@ -154,7 +157,7 @@ export default function TagDetailManager({
     }
     setSaving(false);
     if (!ok) return;
-    toast.success("标签已保存");
+    toast.success(t("saved"));
     router.refresh();
   }
 
@@ -169,11 +172,14 @@ export default function TagDetailManager({
     if (!ok) return;
     setAliases((current) => [...current, alias].sort());
     toast.success(
-      <>
-        <InlineAliasBadge>{alias}</InlineAliasBadge>
-        将解析为
-        <InlineTagBadge state={node.reviewState}>{node.name}</InlineTagBadge>
-      </>,
+      t.rich("aliasAdded", {
+        source: alias,
+        name: node.name,
+        alias: (children) => <InlineAliasBadge>{children}</InlineAliasBadge>,
+        tag: (children) => (
+          <InlineTagBadge state={node.reviewState}>{children}</InlineTagBadge>
+        ),
+      }),
     );
     router.refresh();
   }
@@ -197,17 +203,20 @@ export default function TagDetailManager({
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setError(data.error ?? "合并失败，请重试");
+      setError(data.error ?? t("mergeFailed"));
       setMerging(null);
       return;
     }
     setAliases(data.targetAliases ?? aliases);
     toast.success(
-      <>
-        <InlineAliasBadge>{merging.name}</InlineAliasBadge>
-        已并入
-        <InlineTagBadge state={node.reviewState}>{node.name}</InlineTagBadge>
-      </>,
+      t.rich("merged", {
+        source: merging.name,
+        name: node.name,
+        alias: (children) => <InlineAliasBadge>{children}</InlineAliasBadge>,
+        tag: (children) => (
+          <InlineTagBadge state={node.reviewState}>{children}</InlineTagBadge>
+        ),
+      }),
     );
     setMerging(null);
     router.refresh();
@@ -217,10 +226,12 @@ export default function TagDetailManager({
     const ok = await call(`/api/tags/${node.id}`, { method: "DELETE" });
     if (!ok) return;
     toast.success(
-      <>
-        已删除标签
-        <InlineTagBadge state={node.reviewState}>{node.name}</InlineTagBadge>
-      </>,
+      t.rich("deleted", {
+        name: node.name,
+        tag: (children) => (
+          <InlineTagBadge state={node.reviewState}>{children}</InlineTagBadge>
+        ),
+      }),
     );
     router.push("/admin/tags");
   }
@@ -229,9 +240,9 @@ export default function TagDetailManager({
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>基本信息</CardTitle>
+          <CardTitle>{t("details")}</CardTitle>
           <CardDescription>
-            直接关联 {node.count} 个视频，共覆盖 {node.totalCount} 个视频
+            {t("coverage", { direct: node.count, total: node.totalCount })}
           </CardDescription>
           <CardAction>
             <Button
@@ -239,14 +250,14 @@ export default function TagDetailManager({
               disabled={saving || !trimmedName || classificationBlocked}
             >
               {saving && <Spinner data-icon="inline-start" />}
-              {saving ? "保存中" : "保存"}
+              {saving ? t("saving") : t("save")}
             </Button>
           </CardAction>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="tag-name">名称</FieldLabel>
+              <FieldLabel htmlFor="tag-name">{t("name")}</FieldLabel>
               <Input
                 id="tag-name"
                 value={name}
@@ -256,7 +267,7 @@ export default function TagDetailManager({
             </Field>
 
             <Field>
-              <FieldLabel>父标签</FieldLabel>
+              <FieldLabel>{t("parent")}</FieldLabel>
               <div className="flex items-center gap-2">
                 {parentName ? (
                   <RemovableTagBadge
@@ -264,9 +275,9 @@ export default function TagDetailManager({
                       tagOptions.find((option) => option.id === parentId)
                         ?.reviewState
                     }
-                    removeLabel={`移除父标签"${parentName}"`}
+                    removeLabel={t("removeParent", { name: parentName })}
                     onClick={() => setParentId(null)}
-                    title="移至顶级"
+                    title={t("moveRoot")}
                   >
                     {parentName}
                   </RemovableTagBadge>
@@ -274,7 +285,7 @@ export default function TagDetailManager({
                   <TagAutocomplete
                     endpoint="/api/tags/suggest"
                     mode="single"
-                    placeholder="选择父标签"
+                    placeholder={t("chooseParent")}
                     allowCreate={false}
                     disabledNames={blockedNames}
                     onSelect={(picked) => {
@@ -285,24 +296,20 @@ export default function TagDetailManager({
                   />
                 )}
               </div>
-              <FieldDescription>
-                筛选父标签时一并返回其下所有子标签的视频
-              </FieldDescription>
+              <FieldDescription>{t("parentHelp")}</FieldDescription>
             </Field>
 
             <Field>
               <FieldLabel>
-                别名
-                <HelpTip>
-                  添加标签时输入别名将解析为本标签，别名不会出现在视频上
-                </HelpTip>
+                {t("aliases")}
+                <HelpTip>{t("aliasHelp")}</HelpTip>
               </FieldLabel>
               {aliases.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {aliases.map((alias) => (
                     <RemovableAliasBadge
                       key={alias}
-                      removeLabel={`移除别名"${alias}"`}
+                      removeLabel={t("removeAlias", { name: alias })}
                       onClick={() => removeAlias(alias)}
                     >
                       {alias}
@@ -313,7 +320,7 @@ export default function TagDetailManager({
               <TagAutocomplete
                 endpoint="/api/tags/suggest"
                 mode="single"
-                placeholder="输入新别名，或选择要并入的标签"
+                placeholder={t("newAlias")}
                 disabledNames={[node.name, ...aliases]}
                 onSelect={(picked, option) => {
                   if (option.isNew || option.id === undefined)
@@ -331,7 +338,7 @@ export default function TagDetailManager({
             </Field>
 
             <FieldSet>
-              <FieldLegend variant="label">选项</FieldLegend>
+              <FieldLegend variant="label">{t("options")}</FieldLegend>
               <FieldGroup data-slot="checkbox-group">
                 <Field orientation="horizontal">
                   <Switch
@@ -340,10 +347,10 @@ export default function TagDetailManager({
                     onCheckedChange={setExcluded}
                   />
                   <FieldContent>
-                    <FieldLabel htmlFor="tag-excluded">排除该标签</FieldLabel>
-                    <FieldDescription>
-                      从所有视频上移除该标签，重新识别时不再生成
-                    </FieldDescription>
+                    <FieldLabel htmlFor="tag-excluded">
+                      {t("exclude")}
+                    </FieldLabel>
+                    <FieldDescription>{t("excludeHelp")}</FieldDescription>
                   </FieldContent>
                 </Field>
 
@@ -354,15 +361,17 @@ export default function TagDetailManager({
                     onCheckedChange={(checked) => setAssignable(!checked)}
                   />
                   <FieldContent>
-                    <FieldLabel htmlFor="tag-assignable">升级为分类</FieldLabel>
+                    <FieldLabel htmlFor="tag-assignable">
+                      {t("category")}
+                    </FieldLabel>
                     <FieldDescription
                       className={
                         classificationBlocked ? "text-destructive" : undefined
                       }
                     >
                       {classificationBlocked
-                        ? `${node.count} 个视频仍直接使用该标签，请先移除或改用子标签`
-                        : "该标签将不能直接添加到视频上"}
+                        ? t("categoryBlocked", { count: node.count })
+                        : t("categoryHelp")}
                     </FieldDescription>
                   </FieldContent>
                 </Field>
@@ -384,22 +393,24 @@ export default function TagDetailManager({
             onClick={() => setConfirmingDelete(true)}
           >
             <Trash2Icon data-icon="inline-start" />
-            删除标签
+            {t("delete")}
           </Button>
         </CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>子标签（{node.children.length}）</CardTitle>
-          <CardDescription>直接位于该标签下的标签</CardDescription>
+          <CardTitle>
+            {t("children", { count: node.children.length })}
+          </CardTitle>
+          <CardDescription>{t("childrenHelp")}</CardDescription>
         </CardHeader>
         <CardContent>
           {node.children.length === 0 ? (
             <Empty className="rounded-lg border">
               <EmptyHeader>
-                <EmptyTitle>没有子标签</EmptyTitle>
-                <EmptyDescription>可在其他标签页面设置父标签</EmptyDescription>
+                <EmptyTitle>{t("noChildren")}</EmptyTitle>
+                <EmptyDescription>{t("noChildrenHelp")}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -421,8 +432,10 @@ export default function TagDetailManager({
                         </TagBadge>
                       </ItemTitle>
                       <ItemDescription>
-                        直接关联 {child.count} 个视频，共覆盖 {child.totalCount}{" "}
-                        个视频
+                        {t("coverage", {
+                          direct: child.count,
+                          total: child.totalCount,
+                        })}
                       </ItemDescription>
                     </ItemContent>
                     <ItemActions>
@@ -446,14 +459,14 @@ export default function TagDetailManager({
 
       {confirmingDelete && (
         <TagConfirmDialog
-          title={
-            <>
-              删除标签
+          title={t.rich("deleteNamed", {
+            name: node.name,
+            tag: (children) => (
               <InlineTagBadge state={node.reviewState}>
-                {node.name}
+                {children}
               </InlineTagBadge>
-            </>
-          }
+            ),
+          })}
           request={{ action: "delete", ids: [node.id] }}
           onOpenChange={(open) => !open && setConfirmingDelete(false)}
           onConfirm={remove}
@@ -467,28 +480,36 @@ export default function TagDetailManager({
         <DialogContent className="flex max-h-5/6 flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>
-              将
-              {merging && (
-                <InlineTagBadge state={merging.reviewState}>
-                  {merging.name}
-                </InlineTagBadge>
-              )}
-              并入
-              <InlineTagBadge state={node.reviewState}>
-                {node.name}
-              </InlineTagBadge>
+              {t.rich("mergeTitle", {
+                sourceName: merging?.name ?? "",
+                name: node.name,
+                source: (children) => (
+                  <InlineTagBadge state={merging?.reviewState}>
+                    {children}
+                  </InlineTagBadge>
+                ),
+                tag: (children) => (
+                  <InlineTagBadge state={node.reviewState}>
+                    {children}
+                  </InlineTagBadge>
+                ),
+              })}
             </DialogTitle>
             <DialogDescription>
-              {merging && (
-                <InlineTagBadge state={merging.reviewState}>
-                  {merging.name}
-                </InlineTagBadge>
-              )}
-              是一个标签，并入后成为
-              <InlineTagBadge state={node.reviewState}>
-                {node.name}
-              </InlineTagBadge>
-              的别名
+              {t.rich("mergeDescription", {
+                sourceName: merging?.name ?? "",
+                name: node.name,
+                source: (children) => (
+                  <InlineTagBadge state={merging?.reviewState}>
+                    {children}
+                  </InlineTagBadge>
+                ),
+                tag: (children) => (
+                  <InlineTagBadge state={node.reviewState}>
+                    {children}
+                  </InlineTagBadge>
+                ),
+              })}
             </DialogDescription>
           </DialogHeader>
           {merging && (
@@ -502,10 +523,10 @@ export default function TagDetailManager({
           )}
           <DialogFooter className="shrink-0">
             <DialogClose render={<Button variant="outline" />}>
-              取消
+              {t("cancel")}
             </DialogClose>
             <Button variant="destructive" onClick={mergeIn}>
-              合并
+              {t("merge")}
             </Button>
           </DialogFooter>
         </DialogContent>

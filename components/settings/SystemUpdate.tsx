@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { GhostIcon, LoaderCircleIcon } from "lucide-react";
 import { APP_NAME } from "@/lib/brand";
@@ -12,14 +13,6 @@ import {
 } from "@/lib/releases";
 import type { UpdateStatus } from "@/lib/updater";
 
-const stages = {
-  idle: "",
-  pulling: "正在下载新版本…",
-  restarting: "正在安装更新…",
-  succeeded: "更新完成。",
-  failed: "更新未完成，请重试。",
-};
-
 export default function SystemUpdate({
   currentVersion,
   initialRelease,
@@ -27,6 +20,7 @@ export default function SystemUpdate({
   currentVersion: string;
   initialRelease: ReleaseStatus;
 }) {
+  const t = useTranslations("SystemUpdate");
   const [release, setRelease] = useState(initialRelease);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
@@ -57,34 +51,34 @@ export default function SystemUpdate({
           if (active) {
             setPending(true);
             setTarget(data.update.version);
-            setMessage(stages[data.update.state]);
+            setMessage(t(data.update.state));
           } else if (data.update.state === "failed") {
             setPending(false);
             setTarget(null);
-            setMessage(stages.failed);
+            setMessage(t("failed"));
           } else if (
             data.update.state === "succeeded" &&
             data.currentVersion === data.update.version
           ) {
             setPending(false);
             setTarget(null);
-            setMessage(`已更新到 v${data.currentVersion}。`);
+            setMessage(t("updated", { version: data.currentVersion }));
             if (data.currentVersion !== currentVersion)
               window.location.reload();
           } else if (target && data.currentVersion === target) {
             setPending(false);
             setTarget(null);
-            setMessage(`已更新到 v${target}。`);
+            setMessage(t("updated", { version: target }));
             window.location.reload();
           }
         }
       } catch {
-        if (!stopped && target) setMessage("正在完成更新…");
+        if (!stopped && target) setMessage(t("finishing"));
       }
       if (!stopped) {
         if (target && Date.now() > deadline) {
           setPending(false);
-          setMessage("更新用时较长，请稍后刷新查看。");
+          setMessage(t("delayed"));
         } else timer = setTimeout(poll, target ? 3000 : 15000);
       }
     }
@@ -93,7 +87,7 @@ export default function SystemUpdate({
       stopped = true;
       clearTimeout(timer);
     };
-  }, [target, currentVersion]);
+  }, [target, currentVersion, t]);
 
   async function check() {
     setChecking(true);
@@ -109,11 +103,11 @@ export default function SystemUpdate({
         latest.status === "available"
           ? ""
           : latest.status === "empty"
-            ? "暂无可用更新。"
-            : "暂时无法检查更新，请稍后重试。",
+            ? t("noUpdatesMessage")
+            : t("checkUnavailableMessage"),
       );
     } catch {
-      setMessage("检查更新失败，请稍后重试。");
+      setMessage(t("checkFailed"));
     } finally {
       setChecking(false);
     }
@@ -121,7 +115,7 @@ export default function SystemUpdate({
 
   async function update() {
     setPending(true);
-    setMessage("正在准备更新…");
+    setMessage(t("preparing"));
     try {
       const response = await fetch("/api/system/update", {
         method: "POST",
@@ -134,11 +128,11 @@ export default function SystemUpdate({
         return;
       }
       setTarget(data.update.version);
-      setMessage(stages[data.update.state as keyof typeof stages]);
+      setMessage(t(data.update.state));
     } catch {
       // The container can restart before the acceptance response arrives.
       if (release.status === "available") setTarget(release.version);
-      setMessage("正在确认更新状态…");
+      setMessage(t("confirming"));
     }
   }
 
@@ -153,22 +147,22 @@ export default function SystemUpdate({
         ? release.version
         : currentVersion;
   const description = checking
-    ? "正在检查更新…"
+    ? t("checkingUpdates")
     : message ||
       (pending
-        ? "正在更新…"
+        ? t("updating")
         : newer
-          ? `可更新至新版本 · 当前版本 ${currentVersion}`
+          ? t("available", { version: currentVersion })
           : release.status === "available"
-            ? "已是最新版本"
+            ? t("upToDate")
             : release.status === "empty"
-              ? "暂无可用更新"
-              : "暂时无法检查更新");
+              ? t("noUpdates")
+              : t("checkUnavailable"));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>软件更新</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-4 sm:grid-cols-[auto_1fr_auto]">
         <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
@@ -178,7 +172,7 @@ export default function SystemUpdate({
           <h2 className="text-sm font-medium">
             {APP_NAME} {displayedVersion}
           </h2>
-          <p role="status" className="text-xs text-muted-foreground">
+          <p role="status" className="text-sm text-muted-foreground">
             {description}
           </p>
         </div>
@@ -196,26 +190,26 @@ export default function SystemUpdate({
             />
           )}
           {pending
-            ? "正在更新…"
+            ? t("updating")
             : checking
-              ? "正在检查…"
+              ? t("checking")
               : newer
-                ? "现在更新"
-                : "检查更新"}
+                ? t("updateNow")
+                : t("check")}
         </Button>
         {release.status === "available" && !busy && (
           <a
             href={release.url || RELEASES_URL}
             target="_blank"
             rel="noreferrer"
-            className="col-start-2 w-fit text-xs text-primary underline-offset-4 hover:underline"
+            className="col-start-2 w-fit text-sm text-primary underline-offset-4 hover:underline"
           >
-            关于此版本
+            {t("releaseNotes")}
           </a>
         )}
         {newer && available === false && !pending && (
-          <p className="col-span-full text-xs text-muted-foreground">
-            此设备暂不支持直接更新。
+          <p className="col-span-full text-sm text-muted-foreground">
+            {t("unsupported")}
           </p>
         )}
       </CardContent>

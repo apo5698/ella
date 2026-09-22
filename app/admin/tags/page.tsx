@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import db from "@/lib/db";
 import { loadTagTree } from "@/lib/tagHierarchy";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
@@ -16,6 +17,7 @@ export default async function AdminTagsPage({
     sort?: string | string[];
   }>;
 }) {
+  const t = await getTranslations("Navigation");
   const params = await searchParams;
   const initialQuery = Array.isArray(params.q) ? params.q[0] : (params.q ?? "");
   const initialPage = Number(
@@ -32,7 +34,7 @@ export default async function AdminTagsPage({
 
   return (
     <>
-      <AdminPageHeader title="标签管理" description="" />
+      <AdminPageHeader title={t("tags")} description="" />
       <TagManager
         initialTree={loadTagTree(db)}
         initialQuery={initialQuery}

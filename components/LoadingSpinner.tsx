@@ -1,13 +1,17 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 export default function LoadingSpinner({
   className,
-  label = "加载中",
+  label,
 }: {
   className?: string;
   label?: string;
 }) {
+  const t = useTranslations("Common");
   return (
     <div
       className={cn(
@@ -15,7 +19,7 @@ export default function LoadingSpinner({
         className,
       )}
     >
-      <Spinner className="size-8" aria-label={label} />
+      <Spinner className="size-8" aria-label={label ?? t("loading")} />
     </div>
   );
 }

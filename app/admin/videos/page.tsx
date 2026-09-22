@@ -1,10 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import VideoManager from "./VideoManager";
 
-export default function AdminVideosPage() {
+export default async function AdminVideosPage() {
+  const t = await getTranslations("Navigation");
   return (
     <>
-      <AdminPageHeader title="视频管理" description="" />
+      <AdminPageHeader title={t("videos")} description="" />
       <VideoManager />
     </>
   );

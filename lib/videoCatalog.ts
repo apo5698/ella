@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -26,12 +27,7 @@ export function listVideoFiles(dir: string): string[] {
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch (cause) {
-    throw new Error(
-      "无法读取视频目录，扫描已停止。请检查目录权限和挂载状态。",
-      {
-        cause,
-      },
-    );
+    throw new AppError("catalogUnreadable", {}, { cause });
   }
   for (const entry of entries) {
     if (entry.name.startsWith(".")) continue;

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import {
@@ -26,10 +27,11 @@ export async function GET() {
 
 /** Creates a tag, optionally under a parent. */
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const name = normalizeTagName(String(body.name ?? ""));
   if (!name) {
-    return NextResponse.json({ error: "请输入标签名称。" }, { status: 400 });
+    return NextResponse.json({ error: t("tagNameRequired") }, { status: 400 });
   }
 
   const existing = resolveTagName(db, name);
@@ -37,8 +39,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: existing.alias
-          ? `"${existing.alias}"已是标签"${existing.name}"的别名。`
-          : `标签"${existing.name}"已存在。`,
+          ? t("aliasExists", {
+              alias: existing.alias ?? "",
+              name: existing.name,
+            })
+          : t("tagExists", { name: existing.name }),
       },
       { status: 409 },
     );
@@ -52,7 +57,7 @@ export async function POST(req: NextRequest) {
     parentId !== null &&
     !db.prepare("SELECT 1 FROM tags WHERE id = ?").get(parentId)
   ) {
-    return NextResponse.json({ error: "父标签不存在。" }, { status: 400 });
+    return NextResponse.json({ error: t("parentMissing") }, { status: 400 });
   }
 
   const info = db

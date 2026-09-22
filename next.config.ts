@@ -5,12 +5,11 @@ const nextConfig: NextConfig = {
   // Emit a minimal, self-contained Node.js server for the production image.
   output: "standalone",
 
-  // Next blocks cross-origin requests to dev-only assets by default, which
-  // covers anything reaching the dev server by an address other than the one
-  // it was started with. Without these, a phone on the LAN loads the page but
-  // its HMR and dev asset requests are refused. The subnet is matched as a
-  // pattern because WSL takes its address by DHCP.
-  allowedDevOrigins: ["10.0.0.*", "*.local"],
+  // Additional development origins, supplied by the local environment.
+  allowedDevOrigins: (process.env.ALLOWED_DEV_ORIGINS ?? "*.local")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   // 7zip-bin locates its bundled binary with __dirname, which the server
   // bundler rewrites to a placeholder root, producing paths like

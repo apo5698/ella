@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import VideoLink from "@/components/VideoLink";
@@ -86,6 +88,7 @@ function AffectedVideosDialog({
   label: string;
   videos: TagImpact["videos"];
 }) {
+  const t = useTranslations("Impact");
   if (videos.length === 0) return <span>{label}</span>;
 
   return (
@@ -102,8 +105,10 @@ function AffectedVideosDialog({
       </DialogTrigger>
       <DialogContent className="flex h-5/6 min-w-0 flex-col overflow-hidden sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>直接使用该标签的视频</DialogTitle>
-          <DialogDescription>共 {videos.length} 个视频</DialogDescription>
+          <DialogTitle>{t("videoTitle")}</DialogTitle>
+          <DialogDescription>
+            {t("total", { count: videos.length })}
+          </DialogDescription>
         </DialogHeader>
         <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden pr-3 [&_[data-slot=scroll-area-viewport]]:overflow-x-hidden">
           <ItemGroup className="min-w-0">
@@ -149,7 +154,8 @@ function ImpactFactMessage({
   fact: TagImpactFact;
   videos: TagImpact["videos"];
 }) {
-  const message = formatTagImpactFact(fact);
+  const t = useTranslations("Impact");
+  const message = formatTagImpactFact(fact, t);
 
   return (
     <li className={cn(message.tone === "destructive" && "text-destructive")}>
@@ -214,6 +220,7 @@ export default function TagImpactAnalysis({
   className?: string;
   showVideos?: boolean;
 }) {
+  const t = useTranslations("Impact");
   const [impact, setImpact] = useState<TagImpact | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -247,13 +254,13 @@ export default function TagImpactAnalysis({
     <FieldGroup className={cn("min-h-0 min-w-0 flex-1", className)}>
       <Field className="min-h-0 min-w-0 flex-1">
         <FieldLabel>
-          影响分析
+          {t("title")}
           {loading && <Spinner />}
         </FieldLabel>
 
         {impact && (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-            <ul className="flex shrink-0 list-disc flex-col gap-1 pl-4 text-xs/relaxed text-foreground">
+            <ul className="flex shrink-0 list-disc flex-col gap-1 pl-4 text-sm/relaxed text-foreground">
               {impact.facts.map((fact, index) => (
                 <ImpactFactMessage
                   key={`${fact.kind}-${index}`}
@@ -307,7 +314,7 @@ export default function TagImpactAnalysis({
                       className="text-link hover:underline"
                       target="_blank"
                     >
-                      显示所有视频（{impact.total}）
+                      {t("showAll", { count: impact.total })}
                     </Link>
                   </FieldDescription>
                 )}

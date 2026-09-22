@@ -81,11 +81,7 @@ export function findDuplicateName(
   return best;
 }
 
-/**
- * Titles close enough to the requested name to be worth a second look. Every
- * title is scored: the library is small, and the noise a name picks up along
- * the way defeats any index that could narrow the field first.
- */
+/** Scores all titles and returns the closest matches to the requested name. */
 export function findSimilarNames(
   db: Database.Database,
   name: string,

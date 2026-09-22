@@ -1,5 +1,4 @@
-// Frame extraction + local vision-LLM tagging. Nothing leaves the machine:
-// frames go to the model server configured on the settings page.
+// Frame extraction and recognition using the configured model endpoint.
 //
 // Shared by the in-process batch job and the per-video re-tag API route, so
 // both use identical extraction and prompting.
@@ -8,6 +7,10 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import db from "./db";
+import { AppError } from "./appError";
+import { parseRecognitionTags } from "./recognitionTags";
+import { buildPrompt } from "./recognitionPrompt";
+export { buildPrompt } from "./recognitionPrompt";
 import { FFMPEG_PATH } from "./config";
 import {
   upsertVideoTags,
@@ -38,41 +41,6 @@ export type ProgressUpdate = {
   frames?: number;
 };
 export type ProgressFn = (update: ProgressUpdate) => void;
-
-const BASE_PROMPT = `请只根据画面中【可见】的内容，为这段视频生成 6-10 个中文检索标签，用逗号分隔。
-只描述客观可见信息：人物发型/发色、服装/配饰的颜色材质、场景/环境、明显道具、姿势动作类型。
-不要输出完整句子、不要输出解释、不要输出问候语，只输出逗号分隔的标签列表。`;
-
-/**
- * Folds the user's own corrections into the prompt: their manual tags are
- * stated as confirmed facts (so the model reuses that vocabulary instead of
- * inventing a synonym), and tags they previously removed are listed as
- * forbidden output.
- *
- * `libraryTags` is every tag the user has added by hand anywhere, and is the
- * only part of the prompt that is not about this one video. A model left to
- * itself reaches for general language and never produces a term it was not
- * given, so a library whose useful words are domain-specific has to hand them
- * over. It is stated as a preference rather than a closed set: the model must
- * still be able to describe something the list has no word for.
- */
-export function buildPrompt(
-  manualTags: string[],
-  rejectedTags: string[],
-  libraryTags: string[] = [],
-): string {
-  let prompt = BASE_PROMPT;
-  if (libraryTags.length > 0) {
-    prompt += `\n\n下列词汇是本标签库已有的用词。画面中确实出现对应内容时，请直接使用这些词，不要改写成近义词；画面中没有的内容不要输出，本列表不限制你描述其他可见细节：${libraryTags.join("、")}。`;
-  }
-  if (manualTags.length > 0) {
-    prompt += `\n\n以下标签由用户人工确认，是准确的，请优先沿用这些用词，并围绕它们补充其他可见细节：${manualTags.join("、")}。`;
-  }
-  if (rejectedTags.length > 0) {
-    prompt += `\n\n以下标签此前被用户判定为不适用于本视频，绝对不要输出它们，也不要输出它们的近义词：${rejectedTags.join("、")}。`;
-  }
-  return prompt;
-}
 
 // Some files have container metadata (duration) that outlives the actual
 // decodable video stream (broken tail from a bad download/encode). If the
@@ -203,18 +171,7 @@ export function frameBudget(durationSec: number | null): number {
   return 8;
 }
 
-/**
- * Decodes the whole file once and reports ffmpeg's per-frame scene-change
- * score as [pts_time, score] pairs. Nothing is encoded — the output is
- * discarded — so the cost is a plain decode pass, about 30-55x realtime.
- *
- * This replaces an earlier `select='gt(scene,0.35)'` filter that wrote out
- * matching frames directly. That threshold never fired on this library: a
- * 26-minute sample peaked at 0.0545 across 19240 frames (mean 0.0021),
- * because the footage is continuous single-camera with no hard cuts. The
- * pass ran, selected nothing, and silently fell back to fixed timestamps.
- * Scoring every frame and ranking them avoids depending on any threshold.
- */
+/** Scores scene changes across the video without encoding output. */
 function scoreScenes(
   file: string,
   onProgress?: ProgressFn,
@@ -403,22 +360,9 @@ export async function extractFrames(
   );
 }
 
-function parseTags(text: string): string[] {
-  return text
-    .split(/[,，、\n]/)
-    .map((s) =>
-      s
-        .trim()
-        .replace(/^[#\-\d.\s]+/, "")
-        .toLowerCase(),
-    )
-    .filter((s) => s.length >= 1 && s.length <= 14)
-    .slice(0, 12);
-}
-
 export async function describeFrames(
   images: string[],
-  prompt: string = BASE_PROMPT,
+  prompt: string = buildPrompt([], []),
   signal?: AbortSignal,
 ): Promise<string[]> {
   type ContentPart =
@@ -446,33 +390,44 @@ export async function describeFrames(
     }),
   });
   if (!res.ok) {
-    throw new Error(`模型服务返回 ${res.status}：${await res.text()}`);
+    throw new AppError(
+      "modelRequestFailed",
+      { status: res.status },
+      {
+        cause: new Error(await res.text()),
+      },
+    );
   }
   const data = await res.json();
   const text: string = data.choices?.[0]?.message?.content ?? "";
-  return parseTags(text);
+  return parseRecognitionTags(text);
 }
 
 /** Recognizes tags without changing the video's stored associations. */
 export async function suggestVideoTagsById(
   videoId: number,
   onProgress?: ProgressFn,
-): Promise<{ ok: true; tags: string[] } | { ok: false; error: string }> {
+  uiLocale?: string,
+): Promise<{ ok: true; tags: string[] } | { ok: false; error: AppError }> {
   const row = db
-    .prepare("SELECT id, path, duration_sec FROM videos WHERE id = ?")
+    .prepare("SELECT id, path, title, duration_sec FROM videos WHERE id = ?")
     .get(videoId) as
-    { id: number; path: string; duration_sec: number | null } | undefined;
+    | { id: number; path: string; title: string; duration_sec: number | null }
+    | undefined;
 
-  if (!row) return { ok: false, error: "视频记录不存在" };
-  if (!fs.existsSync(row.path)) return { ok: false, error: "视频文件不存在" };
+  if (!row) return { ok: false, error: new AppError("videoMissing") };
+  if (!fs.existsSync(row.path))
+    return { ok: false, error: new AppError("videoFileMissing") };
 
   const frames = await extractFrames(row.path, row.duration_sec, onProgress);
-  if (frames.length === 0) return { ok: false, error: "无法抽取视频画面" };
+  if (frames.length === 0)
+    return { ok: false, error: new AppError("framesUnavailable") };
 
   const prompt = buildPrompt(
     getManualTags(db, videoId),
     getRejectedTags(db, videoId),
     getAllManualTags(db),
+    { language: getTagSettings().tagLanguage, title: row.title, uiLocale },
   );
   onProgress?.({ phase: "infer", ratio: 1, frames: frames.length });
   const tags = await describeFrames(frames, prompt);
@@ -483,8 +438,9 @@ export async function suggestVideoTagsById(
 export async function tagVideoById(
   videoId: number,
   onProgress?: ProgressFn,
-): Promise<{ ok: true; tags: string[] } | { ok: false; error: string }> {
-  const result = await suggestVideoTagsById(videoId, onProgress);
+  uiLocale?: string,
+): Promise<{ ok: true; tags: string[] } | { ok: false; error: AppError }> {
+  const result = await suggestVideoTagsById(videoId, onProgress, uiLocale);
   if (!result.ok) return result;
   const tags = result.tags;
   upsertVideoTags(db, videoId, tags, "vision");

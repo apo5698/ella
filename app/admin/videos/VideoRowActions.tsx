@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useState } from "react";
 import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +43,7 @@ export default function VideoRowActions({
   onChanged: () => void;
   onDeleted: (videoId: number) => void;
 }) {
+  const t = useTranslations("VideoActions");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -54,7 +57,7 @@ export default function VideoRowActions({
       const detailResponse = await fetch(`/api/videos/${video.id}`);
       const detail = await detailResponse.json();
       if (!detailResponse.ok) {
-        throw new Error(detail.error ?? "无法加载视频信息");
+        throw new Error(detail.error ?? t("loadFailed"));
       }
 
       const pathResponse = await fetch(
@@ -62,7 +65,7 @@ export default function VideoRowActions({
       );
       const pathCheck = await pathResponse.json();
       if (!pathResponse.ok) {
-        throw new Error(pathCheck.error ?? "无法检查视频路径");
+        throw new Error(pathCheck.error ?? t("pathFailed"));
       }
 
       setEditor({
@@ -111,7 +114,7 @@ export default function VideoRowActions({
             <Button
               variant="ghost"
               size="icon"
-              aria-label={`${video.title}的操作`}
+              aria-label={t("actions", { title: video.title })}
             />
           }
         >
@@ -124,7 +127,7 @@ export default function VideoRowActions({
               onClick={() => void openEditor()}
             >
               <PencilIcon />
-              编辑
+              {t("edit")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -134,7 +137,7 @@ export default function VideoRowActions({
               onClick={() => setDeleteOpen(true)}
             >
               <Trash2Icon />
-              删除
+              {t("delete")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
@@ -167,7 +170,7 @@ export default function VideoRowActions({
         title={video.title}
         onDeleted={() => {
           setDeleteOpen(false);
-          toast.success("视频已删除");
+          toast.success(t("deleted"));
           onDeleted(video.id);
         }}
       />

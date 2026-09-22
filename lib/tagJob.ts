@@ -1,3 +1,4 @@
+import { AppError, errorDetails, type ErrorDetails } from "@/lib/appError";
 // In-process batch tagging job. The route schedules its runner with Next.js
 // after(), while this module owns state and pushes updates to SSE subscribers.
 import db from "./db";
@@ -11,12 +12,26 @@ import {
 } from "./tags";
 import { buildPrompt, describeFrames, extractFrames } from "./vision";
 
+export type JobLogEntry = {
+  key:
+    | "started"
+    | "frames"
+    | "skipped"
+    | "tagged"
+    | "videoFailed"
+    | "finished"
+    | "stopped"
+    | "failed";
+  values?: Record<string, string | number>;
+  error?: ErrorDetails;
+};
+
 export type JobState = {
   running: boolean;
   startedAt: number | null;
   finishedAt: number | null;
   exitCode: number | null;
-  log: string[];
+  log: (JobLogEntry | string)[];
   /** The video currently being processed, while a job is running. */
   current: BatchProgress | null;
   /**
@@ -32,14 +47,15 @@ export type JobStatus = Omit<JobState, "log">;
 
 export type JobEvent =
   | { kind: "snapshot"; state: JobState }
-  | { kind: "log"; lines: string[]; logSeq: number }
+  | { kind: "log"; lines: JobLogEntry[]; logSeq: number }
   | { kind: "status"; status: JobStatus };
 
 type Listener = (event: JobEvent) => void;
 type JobRunner = () => Promise<void>;
 
 export type StartTagJobResult =
-  { ok: false; error: string } | { ok: true; run: JobRunner };
+  | { ok: false; error: string; errorCode: "jobRunning" }
+  | { ok: true; run: JobRunner };
 
 const MAX_LOG_LINES = 200;
 const EMIT_INTERVAL_MS = 500;
@@ -107,7 +123,7 @@ function emitStatus() {
   emit({ kind: "status", status: statusOf() });
 }
 
-function appendLog(...lines: string[]) {
+function appendLog(...lines: JobLogEntry[]) {
   const visible = lines.filter(Boolean);
   if (visible.length === 0) return;
   job.state.log.push(...visible);
@@ -130,7 +146,11 @@ export function subscribeJob(listener: Listener): () => void {
   };
 }
 
-async function runBatchTagJob(force: boolean, signal: AbortSignal) {
+async function runBatchTagJob(
+  force: boolean,
+  signal: AbortSignal,
+  uiLocale?: string,
+) {
   signal.throwIfAborted();
   const already = force
     ? ""
@@ -154,9 +174,18 @@ async function runBatchTagJob(force: boolean, signal: AbortSignal) {
   const libraryTags = getAllManualTags(db);
   const llm = getLlmSettings();
   appendLog(
-    `待处理 ${rows.length} 个视频，模型 ${llm.model}，服务 ${llm.url}`,
-    `抽帧设置：${settings.strategy === "scene" ? "场景检测" : "固定时间点"}，` +
-      `${settings.frameCount ?? "自动"} 帧，${settings.frameWidth}px`,
+    {
+      key: "started",
+      values: { count: rows.length, model: llm.model, endpoint: llm.url },
+    },
+    {
+      key: "frames",
+      values: {
+        strategy: settings.strategy,
+        count: String(settings.frameCount ?? "automatic"),
+        width: settings.frameWidth,
+      },
+    },
   );
   signal.throwIfAborted();
 
@@ -202,9 +231,10 @@ async function runBatchTagJob(force: boolean, signal: AbortSignal) {
       );
       signal.throwIfAborted();
       if (frames.length === 0) {
-        appendLog(
-          `[${index + 1}/${rows.length}] id=${row.id} 抽帧失败，已跳过`,
-        );
+        appendLog({
+          key: "skipped",
+          values: { index: index + 1, total: rows.length, id: row.id },
+        });
         continue;
       }
 
@@ -214,32 +244,52 @@ async function runBatchTagJob(force: boolean, signal: AbortSignal) {
         getManualTags(db, row.id),
         getRejectedTags(db, row.id),
         libraryTags,
+        { language: settings.tagLanguage, title: row.title, uiLocale },
       );
       const tags = await describeFrames(frames, prompt, signal);
       signal.throwIfAborted();
       upsertVideoTags(db, row.id, tags, "vision");
       ok++;
-      appendLog(
-        `[${index + 1}/${rows.length}] id=${row.id} 标签：${tags.join("、")}`,
-      );
+      appendLog({
+        key: "tagged",
+        values: {
+          index: index + 1,
+          total: rows.length,
+          id: row.id,
+          tags: tags.join(", "),
+        },
+      });
     } catch (cause) {
       if (signal.aborted) throw cause;
       failed++;
-      appendLog(
-        `[${index + 1}/${rows.length}] id=${row.id} 失败：${cause instanceof Error ? cause.message : String(cause)}`,
-      );
+      appendLog({
+        key: "videoFailed",
+        error: errorDetails(cause),
+        values: {
+          index: index + 1,
+          total: rows.length,
+          id: row.id,
+        },
+      });
     } finally {
       clearInterval(ticker);
       processedSec += row.duration_sec;
     }
   }
 
-  appendLog(`任务结束。成功 ${ok} 个，失败 ${failed} 个。`);
+  appendLog({ key: "finished", values: { succeeded: ok, failed } });
 }
 
-export function startTagJob(force: boolean): StartTagJobResult {
+export function startTagJob(
+  force: boolean,
+  uiLocale?: string,
+): StartTagJobResult {
   if (job.state.running) {
-    return { ok: false, error: "任务正在运行中" };
+    return {
+      ok: false,
+      error: new AppError("jobRunning").message,
+      errorCode: "jobRunning",
+    };
   }
 
   const controller = new AbortController();
@@ -252,16 +302,17 @@ export function startTagJob(force: boolean): StartTagJobResult {
     run: async () => {
       let exitCode: number | null = 0;
       try {
-        await runBatchTagJob(force, controller.signal);
+        await runBatchTagJob(force, controller.signal, uiLocale);
       } catch (cause) {
         if (controller.signal.aborted) {
           exitCode = null;
-          appendLog("任务已停止。");
+          appendLog({ key: "stopped" });
         } else {
           exitCode = 1;
-          appendLog(
-            `任务失败：${cause instanceof Error ? cause.message : String(cause)}`,
-          );
+          appendLog({
+            key: "failed",
+            error: errorDetails(cause),
+          });
         }
       } finally {
         // Only this runner may finish the state associated with its controller.
@@ -278,9 +329,17 @@ export function startTagJob(force: boolean): StartTagJobResult {
   };
 }
 
-export function stopTagJob(): { ok: boolean; error?: string } {
+export function stopTagJob(): {
+  ok: boolean;
+  error?: string;
+  errorCode?: "noActiveJob";
+} {
   if (!job.state.running || !job.controller) {
-    return { ok: false, error: "当前无运行中的任务" };
+    return {
+      ok: false,
+      error: new AppError("noActiveJob").message,
+      errorCode: "noActiveJob",
+    };
   }
   job.controller.abort();
   return { ok: true };

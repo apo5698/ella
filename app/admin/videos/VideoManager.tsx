@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -84,6 +86,7 @@ function BatchTagDialog({
   videoIds: number[];
   onApplied: (message: React.ReactNode) => void;
 }) {
+  const t = useTranslations("VideoManager");
   const [tags, setTags] = useState<TagOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -115,12 +118,12 @@ function BatchTagDialog({
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "更新失败，请重试。");
+        setError(data.error ?? t("updateFailed"));
         return;
       }
       handleOpenChange(false);
       onApplied(
-        `已为 ${count} 个视频${adding ? "添加" : "移除"} ${data.names.length} 个标签。`,
+        t(adding ? "added" : "removed", { count, tags: data.names.length }),
       );
     } catch (cause) {
       setError((cause as Error).message);
@@ -133,19 +136,19 @@ function BatchTagDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{adding ? "批量添加标签" : "批量移除标签"}</DialogTitle>
-          <DialogDescription>
-            将对已选择的 {count} 个视频执行此操作。
-          </DialogDescription>
+          <DialogTitle>{adding ? t("addTitle") : t("removeTitle")}</DialogTitle>
+          <DialogDescription>{t("confirmCount", { count })}</DialogDescription>
         </DialogHeader>
 
         <FieldGroup>
           <Field>
-            <FieldLabel>标签</FieldLabel>
+            <FieldLabel>{t("tags")}</FieldLabel>
             <TagAutocomplete
               endpoint="/api/tags/suggest?assignable=1"
               mode="multi"
-              placeholder={adding ? "搜索或新建标签" : "搜索要移除的标签"}
+              placeholder={
+                adding ? t("searchCreateTags") : t("searchRemoveTags")
+              }
               disabledNames={tags.map((tag) => tag.name)}
               allowCreate={adding}
               onSelect={(_, option) =>
@@ -153,9 +156,7 @@ function BatchTagDialog({
               }
             />
             <FieldDescription>
-              {adding
-                ? "标签会作为已审核标签添加；已排除的同名标签会恢复。"
-                : "已审核标签会移除，自动标签会记为已排除。"}
+              {adding ? t("addHelp") : t("removeHelp")}
             </FieldDescription>
           </Field>
         </FieldGroup>
@@ -166,8 +167,8 @@ function BatchTagDialog({
               <RemovableTagBadge
                 key={tag.name}
                 state={adding ? "approved" : tag.reviewState}
-                removeLabel={`移除"${tag.name}"`}
-                title={adding ? "已审核" : "从选择中移除"}
+                removeLabel={t("removeNamed", { name: tag.name })}
+                title={adding ? t("approved") : t("removeSelection")}
                 onClick={() =>
                   setTags((current) =>
                     current.filter((item) => item.name !== tag.name),
@@ -184,11 +185,11 @@ function BatchTagDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            取消
+            {t("cancel")}
           </Button>
           <Button disabled={tags.length === 0 || submitting} onClick={apply}>
             {submitting && <Spinner data-icon="inline-start" />}
-            {submitting ? "更新中" : "应用"}
+            {submitting ? t("updating") : t("apply")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -209,6 +210,7 @@ function BatchSeriesDialog({
   videoIds: number[];
   onApplied: (message: React.ReactNode) => void;
 }) {
+  const t = useTranslations("VideoManager");
   const [name, setName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -235,19 +237,20 @@ function BatchSeriesDialog({
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "更新失败，请重试。");
+        setError(data.error ?? t("updateFailed"));
         return;
       }
       handleOpenChange(false);
       onApplied(
-        nextName ? (
-          <>
-            已将 {count} 个视频的系列设为
-            <InlineSeriesBadge>{data.series.name}</InlineSeriesBadge>
-          </>
-        ) : (
-          `已清除 ${count} 个视频的系列。`
-        ),
+        nextName
+          ? t.rich("seriesSet", {
+              count,
+              name: data.series.name,
+              series: (children) => (
+                <InlineSeriesBadge>{children}</InlineSeriesBadge>
+              ),
+            })
+          : t("seriesCleared", { count }),
       );
     } catch (cause) {
       setError((cause as Error).message);
@@ -260,19 +263,17 @@ function BatchSeriesDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>批量设置系列</DialogTitle>
-          <DialogDescription>
-            所选系列将替换 {count} 个视频各自现有的系列。
-          </DialogDescription>
+          <DialogTitle>{t("seriesTitle")}</DialogTitle>
+          <DialogDescription>{t("seriesCount", { count })}</DialogDescription>
         </DialogHeader>
 
         <FieldGroup>
           <Field>
-            <FieldLabel>系列</FieldLabel>
+            <FieldLabel>{t("series")}</FieldLabel>
             {name ? (
               <div className="flex flex-wrap gap-1">
                 <RemovableSeriesBadge
-                  removeLabel={`取消选择"${name}"`}
+                  removeLabel={t("deselectNamed", { name })}
                   onClick={() => setName(null)}
                 >
                   {name}
@@ -283,13 +284,11 @@ function BatchSeriesDialog({
                 endpoint="/api/series/suggest"
                 kind="series"
                 mode="single"
-                placeholder="搜索或新建系列"
+                placeholder={t("searchCreateSeries")}
                 onSelect={setName}
               />
             )}
-            <FieldDescription>
-              每个视频只能属于一个系列，也可以清除所选视频的系列。
-            </FieldDescription>
+            <FieldDescription>{t("seriesHelp")}</FieldDescription>
           </Field>
         </FieldGroup>
 
@@ -297,18 +296,18 @@ function BatchSeriesDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            取消
+            {t("cancel")}
           </Button>
           <Button
             variant="outline"
             disabled={submitting}
             onClick={() => apply(null)}
           >
-            清除系列
+            {t("clearSeries")}
           </Button>
           <Button disabled={!name || submitting} onClick={() => apply(name)}>
             {submitting && <Spinner data-icon="inline-start" />}
-            {submitting ? "更新中" : "应用"}
+            {submitting ? t("updating") : t("apply")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -319,7 +318,7 @@ function BatchSeriesDialog({
 function videoResolution(video: Video) {
   return video.width && video.height
     ? `${video.width} × ${video.height}`
-    : "未知分辨率";
+    : null;
 }
 
 const HEADER_SORTS = {
@@ -356,6 +355,7 @@ function SortableTableHead({
   className?: string;
   onSort: (sort: string) => void;
 }) {
+  const t = useTranslations("VideoManager");
   const active = values.includes(sort);
   const direction = active ? SORT_DIRECTIONS[sort] : undefined;
   const nextSort = sort === values[0] ? values[1] : values[0];
@@ -376,13 +376,13 @@ function SortableTableHead({
             ? "descending"
             : "none"
       }
-      className={cn("text-xs text-muted-foreground", className)}
+      className={cn("text-sm text-muted-foreground", className)}
     >
       <Button
         variant="ghost"
         size="sm"
         className="-ml-2 cursor-pointer"
-        title={`按${label}${nextDirection === "asc" ? "升序" : "降序"}排列`}
+        title={t(nextDirection === "asc" ? "sortAsc" : "sortDesc", { label })}
         onClick={() => onSort(nextSort)}
       >
         {label}
@@ -442,6 +442,8 @@ function VideoTable({
   onDeleted: (id: number) => void;
   onSort: (sort: string) => void;
 }) {
+  const t = useTranslations("VideoManager");
+  const locale = useLocale();
   const currentIds = useMemo(() => videos.map((video) => video.id), [videos]);
   const allSelected =
     currentIds.length > 0 && currentIds.every((id) => selected.has(id));
@@ -453,50 +455,50 @@ function VideoTable({
       <Table className="table-fixed">
         <TableHeader className="bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]">
           <TableRow>
-            <TableHead className="w-12 text-xs text-muted-foreground">
+            <TableHead className="w-12 text-sm text-muted-foreground">
               <Checkbox
                 checked={allSelected}
                 indeterminate={someSelected}
                 onCheckedChange={() => onTogglePage(currentIds, !allSelected)}
-                aria-label="全选当前页"
+                aria-label={t("selectPage")}
               />
             </TableHead>
             <SortableTableHead
-              label="名称"
+              label={t("name")}
               sort={sort}
               values={HEADER_SORTS.title}
               onSort={onSort}
             />
             <SortableTableHead
-              label="点击量"
+              label={t("clicks")}
               sort={sort}
               values={HEADER_SORTS.clicks}
               onSort={onSort}
               className="hidden w-[clamp(5rem,7vw,6rem)] lg:table-cell"
             />
             <SortableTableHead
-              label="播放量"
+              label={t("views")}
               sort={sort}
               values={HEADER_SORTS.views}
               onSort={onSort}
               className="hidden w-[clamp(5rem,7vw,6rem)] lg:table-cell"
             />
             <SortableTableHead
-              label="大小"
+              label={t("size")}
               sort={sort}
               values={HEADER_SORTS.size}
               onSort={onSort}
               className="hidden w-[clamp(5rem,8vw,7rem)] sm:table-cell"
             />
             <SortableTableHead
-              label="修改时间"
+              label={t("modified")}
               sort={sort}
               values={HEADER_SORTS.modified}
               onSort={onSort}
               className="hidden w-[clamp(6rem,10vw,8rem)] sm:table-cell"
             />
-            <TableHead className="sticky right-0 z-10 w-12 bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] text-xs text-muted-foreground">
-              <span className="sr-only">操作</span>
+            <TableHead className="sticky right-0 z-10 w-12 bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] text-sm text-muted-foreground">
+              <span className="sr-only">{t("actions")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -525,7 +527,7 @@ function VideoTable({
                       onCheckedChange={(value) =>
                         onToggleVideo(video.id, value === true)
                       }
-                      aria-label={`选择 ${video.title}`}
+                      aria-label={t("selectVideo", { title: video.title })}
                     />
                   </TableCell>
                   <TableCell className="whitespace-normal">
@@ -534,10 +536,10 @@ function VideoTable({
                         href={`/video/${video.id}`}
                         target="_blank"
                         rel="noreferrer"
-                        aria-label={`打开视频：${video.title}`}
-                        className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-xs text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                        aria-label={t("openVideo", { title: video.title })}
+                        className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-sm text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
                       >
-                        <span aria-hidden="true">无封面</span>
+                        <span aria-hidden="true">{t("noThumbnail")}</span>
                         {video.thumbnail && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -604,7 +606,7 @@ function VideoTable({
                               {tagCount > 3 && (
                                 <Badge
                                   variant="secondary"
-                                  title={`另有 ${tagCount - 3} 个标签`}
+                                  title={t("moreTags", { count: tagCount - 3 })}
                                   className="hidden shrink-0 xl:inline-flex"
                                 >
                                   +{tagCount - 3}
@@ -613,7 +615,7 @@ function VideoTable({
                               {tagCount > 2 && (
                                 <Badge
                                   variant="secondary"
-                                  title={`另有 ${tagCount - 2} 个标签`}
+                                  title={t("moreTags", { count: tagCount - 2 })}
                                   className="hidden shrink-0 lg:inline-flex xl:hidden"
                                 >
                                   +{tagCount - 2}
@@ -622,7 +624,7 @@ function VideoTable({
                               {tagCount > 1 && (
                                 <Badge
                                   variant="secondary"
-                                  title={`另有 ${tagCount - 1} 个标签`}
+                                  title={t("moreTags", { count: tagCount - 1 })}
                                   className="shrink-0 lg:hidden"
                                 >
                                   +{tagCount - 1}
@@ -631,22 +633,24 @@ function VideoTable({
                             </div>
                           )}
                         </div>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {videoResolution(video)}
+                        <span className="truncate text-sm text-muted-foreground">
+                          {videoResolution(video) ?? t("unknown")}
                         </span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
-                    {video.clicks.toLocaleString("zh-CN")}
+                  <TableCell className="hidden text-sm text-muted-foreground tabular-nums lg:table-cell">
+                    {video.clicks.toLocaleString(locale)}
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
-                    {video.views.toLocaleString("zh-CN")}
+                  <TableCell className="hidden text-sm text-muted-foreground tabular-nums lg:table-cell">
+                    {video.views.toLocaleString(locale)}
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums sm:table-cell">
-                    {formatSize(video.size_bytes)}
+                  <TableCell className="hidden text-sm text-muted-foreground tabular-nums sm:table-cell">
+                    {video.size_bytes
+                      ? formatSize(video.size_bytes)
+                      : t("unknown")}
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
+                  <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
                     <LocalTime value={video.mtime} />
                   </TableCell>
                   <TableCell className="sticky right-0 z-10 bg-background text-right transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-data-[state=selected]:bg-muted">
@@ -667,6 +671,7 @@ function VideoTable({
 }
 
 function VideoManagerContent() {
+  const t = useTranslations("VideoManager");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -720,7 +725,7 @@ function VideoManagerContent() {
     fetch("/api/tags", { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "无法加载标签筛选");
+        if (!response.ok) throw new Error(data.error ?? t("tagFilterFailed"));
         const selectedIds = new Set(filterTagIds);
         const resolved = (data.tags as TagOption[]).filter(
           (tag) => tag.id !== undefined && selectedIds.has(tag.id),
@@ -739,7 +744,7 @@ function VideoManagerContent() {
         if (!controller.signal.aborted) setFilterTagsHydrated(true);
       });
     return () => controller.abort();
-  }, [filterTagIds, filterTagsHydrated]);
+  }, [filterTagIds, filterTagsHydrated, t]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -763,7 +768,7 @@ function VideoManagerContent() {
     fetch(`/api/videos?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "加载失败");
+        if (!response.ok) throw new Error(data.error ?? t("loadFailed"));
         if (data.videos.length === 0 && data.total > 0 && page > 1) {
           setTotal(data.total);
           setPage(Math.max(1, Math.ceil(data.total / pageSize)));
@@ -790,6 +795,7 @@ function VideoManagerContent() {
     requestKey,
     sort,
     liveRefreshEpoch,
+    t,
   ]);
 
   useEffect(() => {
@@ -895,8 +901,8 @@ function VideoManagerContent() {
     try {
       const response = await fetch("/api/videos/scan", { method: "POST" });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "无法开始扫描");
-      toast.success("视频目录扫描已提交后台处理");
+      if (!response.ok) throw new Error(data.error ?? t("scanFailed"));
+      toast.success(t("scanQueued"));
     } catch (cause) {
       toast.error((cause as Error).message);
     } finally {
@@ -933,13 +939,13 @@ function VideoManagerContent() {
         <SearchInput
           value={query}
           onValueChange={setQuery}
-          placeholder="搜索标题、路径、系列、标签或拼音"
+          placeholder={t("search")}
           className="min-w-56 flex-1"
         />
         <TagAutocomplete
           endpoint="/api/tags/suggest?limit=30"
           mode="multi"
-          placeholder="按标签筛选"
+          placeholder={t("filterTags")}
           allowCreate={false}
           disabledNames={filterTags.map((tag) => tag.name)}
           onSelect={(_, option) => addFilterTag(option)}
@@ -957,7 +963,7 @@ function VideoManagerContent() {
           ) : (
             <RefreshCwIcon data-icon="inline-start" />
           )}
-          扫描目录
+          {t("scan")}
         </Button>
       </div>
 
@@ -967,7 +973,7 @@ function VideoManagerContent() {
             <RemovableTagBadge
               key={tag.id}
               state={tag.reviewState}
-              removeLabel={`移除标签筛选"${tag.name}"`}
+              removeLabel={t("removeFilter", { name: tag.name })}
               title={tag.name}
               className="max-w-40"
               onClick={() => removeFilterTag(tag.id!)}
@@ -985,33 +991,38 @@ function VideoManagerContent() {
               setSelected(new Set());
             }}
           >
-            清除筛选
+            {t("clearFilters")}
           </Button>
         </div>
       )}
 
-      <p className="text-xs text-foreground">共 {total} 个视频</p>
+      <p className="text-sm text-foreground">{t("total", { count: total })}</p>
 
       {selected.size > 0 && (
         <div className="sticky top-2 flex flex-wrap items-center gap-2 rounded-lg border bg-card/90 px-3 py-2 shadow-sm backdrop-blur-xl">
-          <span className="text-xs">
-            已选择 <span className="font-medium">{selected.size}</span> 个视频
+          <span className="text-sm">
+            {t.rich("selected", {
+              count: selected.size,
+              strong: (children) => (
+                <span className="font-medium">{children}</span>
+              ),
+            })}
           </span>
           <div className="ml-auto flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setBatchAction("add")}>
               <PlusIcon data-icon="inline-start" />
-              添加标签
+              {t("addTags")}
             </Button>
             <Button variant="outline" onClick={() => setBatchAction("remove")}>
               <TagsIcon data-icon="inline-start" />
-              移除标签
+              {t("removeTags")}
             </Button>
             <Button variant="outline" onClick={() => setSeriesDialogOpen(true)}>
               <LibraryIcon data-icon="inline-start" />
-              设置系列
+              {t("setSeries")}
             </Button>
             <Button variant="ghost" onClick={() => setSelected(new Set())}>
-              取消选择
+              {t("deselect")}
             </Button>
           </div>
         </div>
@@ -1020,8 +1031,8 @@ function VideoManagerContent() {
       {!loading && videos.length === 0 ? (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>未找到视频</EmptyTitle>
-            <EmptyDescription>请调整搜索条件</EmptyDescription>
+            <EmptyTitle>{t("empty")}</EmptyTitle>
+            <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -1052,7 +1063,7 @@ function VideoManagerContent() {
           pageSize={{
             value: pageSize,
             options: MANAGER_PAGE_SIZES,
-            label: "每页视频",
+            label: t("pageSize"),
             onChange: (nextPageSize) => {
               setPageSize(nextPageSize);
               setPage(1);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { TagsIcon } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -55,6 +56,8 @@ function parseTagIds(raw: string | null): number[] {
 }
 
 function HomeContent() {
+  const t = useTranslations("Home");
+  const sortText = useTranslations("VideoSort");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -205,25 +208,26 @@ function HomeContent() {
   return (
     <div className="flex min-h-[calc(100dvh-3rem-1px)] flex-1 bg-background p-6 text-foreground">
       <PageContainer className="flex flex-1 flex-col">
-        <h1 className="sr-only">视频库</h1>
+        <h1 className="sr-only">{t("title")}</h1>
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <SearchInput
             value={q}
             onValueChange={setQ}
-            placeholder="搜索标题、文件名、标签或拼音"
+            placeholder={t("search")}
             className="min-w-0 basis-full sm:basis-auto sm:flex-1"
           />
           <Popover>
             <PopoverTrigger render={<Button variant="outline" />}>
               <TagsIcon data-icon="inline-start" />
-              标签{activeTagIds.length > 0 && ` (${activeTagIds.length})`}
+              {t("tags")}
+              {activeTagIds.length > 0 && ` (${activeTagIds.length})`}
             </PopoverTrigger>
             <PopoverContent align="start" className="max-w-[calc(100vw-3rem)]">
-              <PopoverTitle>按标签筛选</PopoverTitle>
+              <PopoverTitle>{t("filterTags")}</PopoverTitle>
               <TagAutocomplete
                 endpoint="/api/tags/suggest?limit=30"
                 mode="multi"
-                placeholder="搜索标签或拼音"
+                placeholder={t("searchTags")}
                 allowCreate={false}
                 disabledNames={tags
                   .filter((tag) => activeTagIds.includes(tag.id))
@@ -237,16 +241,20 @@ function HomeContent() {
             </PopoverContent>
           </Popover>
           <Select value={sort} onValueChange={(v) => setSort(v as string)}>
-            <SelectTrigger aria-label="排序">
-              <SelectValue placeholder="排序">
-                {(v: string) => VIDEO_SORT_LABELS[v] ?? "排序"}
+            <SelectTrigger aria-label={t("sort")}>
+              <SelectValue placeholder={t("sort")}>
+                {(v: string) =>
+                  VIDEO_SORT_LABELS[v]
+                    ? sortText(VIDEO_SORT_LABELS[v])
+                    : t("sort")
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 {VIDEO_SORT_OPTIONS.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
-                    {s.label}
+                    {sortText(s.label)}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -261,7 +269,7 @@ function HomeContent() {
                 setActiveSeriesId(null);
               }}
             >
-              清除筛选
+              {t("clearFilters")}
             </Button>
           )}
         </div>
@@ -269,16 +277,16 @@ function HomeContent() {
         {activeTagIds.length > 0 && (
           <div
             className="mb-4 flex flex-wrap items-center gap-1"
-            aria-label="已选标签"
+            aria-label={t("selectedTags")}
           >
             {activeTagIds.map((id) => {
               const tag = tags.find((item) => item.id === id);
-              const name = tag?.name ?? `标签 #${id}`;
+              const name = tag?.name ?? t("tagId", { id });
               return (
                 <RemovableTagBadge
                   key={id}
                   state={tag?.reviewState}
-                  removeLabel={`取消标签筛选：${name}`}
+                  removeLabel={t("removeFilter", { name })}
                   className="min-h-6 max-w-full"
                   onClick={() =>
                     setActiveTagIds((prev) =>
@@ -297,8 +305,8 @@ function HomeContent() {
           <LoadingSpinner />
         ) : (
           <>
-            <div className="mb-3 text-xs text-foreground">
-              共 {total} 个视频
+            <div className="mb-3 text-sm text-foreground">
+              {t("total", { count: total })}
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -320,7 +328,7 @@ function HomeContent() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          无缩略图
+                          {t("noThumbnail")}
                         </div>
                       )}
                       <div className="absolute bottom-1 right-1 flex gap-1">
@@ -344,8 +352,8 @@ function HomeContent() {
                       <div className="text-sm truncate" title={v.title}>
                         {v.title}
                       </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        播放次数 {v.views}
+                      <div className="mt-0.5 text-sm text-muted-foreground">
+                        {t("views", { count: v.views })}
                       </div>
                     </div>
                   </VideoLink>
@@ -386,10 +394,8 @@ function HomeContent() {
             {videos.length === 0 && (
               <Empty>
                 <EmptyHeader>
-                  <EmptyTitle>未找到匹配的视频</EmptyTitle>
-                  <EmptyDescription>
-                    请调整搜索词或清除筛选条件。
-                  </EmptyDescription>
+                  <EmptyTitle>{t("empty")}</EmptyTitle>
+                  <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
             )}

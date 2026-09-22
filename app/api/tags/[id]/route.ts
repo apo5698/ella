@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import {
@@ -17,15 +18,16 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const tagId = Number(id);
   if (!Number.isInteger(tagId)) {
-    return NextResponse.json({ error: "标签不存在。" }, { status: 404 });
+    return NextResponse.json({ error: t("tagMissing") }, { status: 404 });
   }
 
   const tag = db.prepare("SELECT id FROM tags WHERE id = ?").get(tagId);
   if (!tag)
-    return NextResponse.json({ error: "标签不存在。" }, { status: 404 });
+    return NextResponse.json({ error: t("tagMissing") }, { status: 404 });
 
   const videos = db
     .prepare(
@@ -48,6 +50,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const tagId = Number(id);
   const tag = db
@@ -64,7 +67,7 @@ export async function PATCH(
       }
     | undefined;
   if (!tag)
-    return NextResponse.json({ error: "标签不存在。" }, { status: 404 });
+    return NextResponse.json({ error: t("tagMissing") }, { status: 404 });
 
   const body = (await req.json().catch(() => ({}))) as Body;
 
@@ -72,14 +75,17 @@ export async function PATCH(
   if (body.name !== undefined) {
     name = normalizeTagName(String(body.name));
     if (!name)
-      return NextResponse.json({ error: "请输入标签名称。" }, { status: 400 });
+      return NextResponse.json(
+        { error: t("tagNameRequired") },
+        { status: 400 },
+      );
     const clash = resolveTagName(db, name);
     if (clash.id !== null && clash.id !== tagId) {
       return NextResponse.json(
         {
           error: clash.alias
-            ? `"${clash.alias}"已是标签"${clash.name}"的别名。`
-            : `标签"${clash.name}"已存在。`,
+            ? t("aliasExists", { alias: clash.alias ?? "", name: clash.name })
+            : t("tagExists", { name: clash.name }),
         },
         { status: 409 },
       );
@@ -93,15 +99,12 @@ export async function PATCH(
       parentId !== null &&
       !db.prepare("SELECT 1 FROM tags WHERE id = ?").get(parentId)
     ) {
-      return NextResponse.json({ error: "父标签不存在。" }, { status: 400 });
+      return NextResponse.json({ error: t("parentMissing") }, { status: 400 });
     }
     // A tag cannot sit inside its own subtree: the result would be a ring with
     // no root, unreachable from the tree the page draws.
     if (wouldCycle(db, tagId, parentId)) {
-      return NextResponse.json(
-        { error: "不能移动到自身或其子标签下。" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: t("invalidParent") }, { status: 400 });
     }
   }
 
@@ -123,7 +126,7 @@ export async function PATCH(
     if (directVideoCount > 0) {
       return NextResponse.json(
         {
-          error: `${directVideoCount} 个视频仍直接使用该标签，请先移除或改用子标签`,
+          error: t("categoryAssigned", { count: directVideoCount }),
         },
         { status: 409 },
       );

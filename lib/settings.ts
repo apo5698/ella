@@ -1,3 +1,5 @@
+import { isAppLocale } from "@/i18n/config";
+import type { RecognitionLanguage } from "./recognitionPrompt";
 // Frame-extraction settings, editable from the settings page.
 //
 // Pure types, defaults and validation — no database import, so the settings
@@ -18,6 +20,7 @@
 export type FrameStrategy = "scene" | "fixed";
 
 export type TagSettings = {
+  tagLanguage: RecognitionLanguage;
   strategy: FrameStrategy;
   /** Frames per video, or null to scale with duration (2/4/6/8). */
   frameCount: number | null;
@@ -26,6 +29,7 @@ export type TagSettings = {
 };
 
 export const DEFAULT_SETTINGS: TagSettings = {
+  tagLanguage: "auto",
   strategy: "scene",
   frameCount: null,
   frameWidth: 512,
@@ -59,7 +63,12 @@ export function normalizeTagSettings(
     ? width
     : DEFAULT_SETTINGS.frameWidth;
 
-  return { strategy, frameCount, frameWidth };
+  return {
+    strategy,
+    frameCount,
+    frameWidth,
+    tagLanguage: isAppLocale(raw.tagLanguage) ? raw.tagLanguage : "auto",
+  };
 }
 
 /**

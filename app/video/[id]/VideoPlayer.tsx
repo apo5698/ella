@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useEffect, useRef, useState } from "react";
 import { MediaPlayer, MediaProvider } from "@vidstack/react";
 import { DefaultVideoLayout } from "@vidstack/react/player/layouts/default";
@@ -48,6 +50,7 @@ export default function VideoPlayer({
   initialViews: number;
   meta: { duration: string; resolution: string | null; size: string };
 }) {
+  const t = useTranslations("Player");
   const counted = useRef(false);
   const [views, setViews] = useState(initialViews);
   const [seekFeedback, setSeekFeedback] = useState<SeekFeedback | null>(null);
@@ -128,13 +131,12 @@ export default function VideoPlayer({
       {unavailable ? (
         <Alert variant="destructive">
           <VideoOffIcon />
-          <AlertTitle>无法读取文件</AlertTitle>
-          <AlertDescription>
-            请确认存储设备已连接，且文件仍位于下方路径。
-          </AlertDescription>
+          <AlertTitle>{t("unavailable")}</AlertTitle>
+          <AlertDescription>{t("unavailableHelp")}</AlertDescription>
         </Alert>
       ) : (
         <MediaPlayer
+          aria-label={t("label")}
           src={src}
           poster={poster}
           playsInline
@@ -147,7 +149,10 @@ export default function VideoPlayer({
           onDoubleClick={handleDoubleClick}
         >
           <MediaProvider />
-          <DefaultVideoLayout icons={videoIcons} />
+          <DefaultVideoLayout
+            icons={videoIcons}
+            translations={t.raw("controls")}
+          />
           {seekFeedback && (
             <div
               key={seekFeedback.sequence}
@@ -180,7 +185,7 @@ export default function VideoPlayer({
           )}
         </MediaPlayer>
       )}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <TvMinimalPlayIcon className="size-3" /> {views}
         </span>

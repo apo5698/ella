@@ -1,3 +1,5 @@
+import { errorMessage, type AppError } from "@/lib/appError";
+import { getTranslations } from "next-intl/server";
 import type { VideoRef } from "@/lib/duplicates";
 import type { ImportedDownloadResult } from "@/lib/utilities/downloadTypes";
 
@@ -11,7 +13,7 @@ type Schema<TInput> = {
 };
 
 type Conflict = {
-  message: string;
+  error: AppError;
   reason: "name" | "file" | "similar";
   video: (VideoRef & { score?: number }) | null;
 };
@@ -33,10 +35,12 @@ export function createDownloadHandler<TInput, TProgress>({
   const encoder = new TextEncoder();
 
   return async function POST(request: Request) {
+    const t = await getTranslations("DownloadValidation");
+    const errors = await getTranslations("Api");
     const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       return Response.json(
-        { error: parsed.error.issues[0]?.message ?? "下载参数无效" },
+        { error: parsed.error.issues[0]?.message ?? t("invalidParameters") },
         { status: 400 },
       );
     }
@@ -45,7 +49,7 @@ export function createDownloadHandler<TInput, TProgress>({
     if (conflict) {
       return Response.json(
         {
-          error: conflict.message,
+          error: errorMessage(conflict.error, errors),
           reason: conflict.reason,
           video: conflict.video,
         },
@@ -73,7 +77,7 @@ export function createDownloadHandler<TInput, TProgress>({
         } catch (error) {
           send({
             kind: "error",
-            error: error instanceof Error ? error.message : "下载失败",
+            error: errorMessage(error, errors),
             video: getErrorVideo?.(error) ?? null,
           });
         } finally {

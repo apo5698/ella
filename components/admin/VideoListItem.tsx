@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import VideoLink from "@/components/VideoLink";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
@@ -17,6 +21,7 @@ export default function VideoListItem({
 }) {
   const resolution = resolutionLabel(video.width, video.height);
 
+  const t = useTranslations("Common");
   return (
     <Item
       role="listitem"
@@ -27,7 +32,7 @@ export default function VideoListItem({
         <Checkbox
           checked={checked}
           onCheckedChange={(value) => onCheckedChange(value === true)}
-          aria-label={`选择 ${video.title}`}
+          aria-label={t("selectVideo", { title: video.title })}
         />
       )}
       <ItemMedia className="aspect-video w-28 overflow-hidden rounded-md bg-muted">
@@ -40,7 +45,7 @@ export default function VideoListItem({
             loading="lazy"
           />
         ) : (
-          <span className="text-muted-foreground">无封面</span>
+          <span className="text-muted-foreground">{t("noThumbnail")}</span>
         )}
       </ItemMedia>
       <ItemContent className="min-w-0">
@@ -52,25 +57,28 @@ export default function VideoListItem({
             {video.title}
           </VideoLink>
         </ItemTitle>
-        <p className="flex flex-wrap items-center gap-y-0.5 text-xs text-muted-foreground">
-          <span>时长 {formatDuration(video.duration_sec)}</span>
-          <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="ml-1.5">
-              ·
-            </span>
-            大小 {formatSize(video.size_bytes)}
+        <p className="flex flex-wrap items-center gap-y-0.5 text-sm text-muted-foreground">
+          <span>
+            {t("duration")} {formatDuration(video.duration_sec)}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="ml-1.5">
               ·
             </span>
-            分辨率 {resolution ?? "未知"}
+            {t("size")}{" "}
+            {video.size_bytes ? formatSize(video.size_bytes) : t("unknown")}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="ml-1.5">
               ·
             </span>
-            播放 {video.views}
+            {t("resolution")} {resolution ?? t("unknown")}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="ml-1.5">
+              ·
+            </span>
+            {t("views")} {video.views}
           </span>
         </p>
         <div className="flex flex-wrap gap-1">
@@ -80,7 +88,7 @@ export default function VideoListItem({
             </TagBadge>
           ))}
           {video.tags.length === 0 && (
-            <span className="text-muted-foreground">暂无标签</span>
+            <span className="text-muted-foreground">{t("noTags")}</span>
           )}
         </div>
       </ItemContent>

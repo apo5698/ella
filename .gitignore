@@ -49,3 +49,6 @@ next-env.d.ts
 
 # local tool-generated skill links
 /data/skills/
+
+# temporary verification workspaces
+/tmp/

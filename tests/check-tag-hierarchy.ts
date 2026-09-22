@@ -376,8 +376,8 @@ async function main() {
     "and warns about the children and aliases that go with it",
     impactMessages(deleteImpact(db, [tagId("测试条目乙")])).slice(1, 3),
     [
-      "1 个子标签将移至上一层，不会被删除。",
-      "2 个别名将失效，按别名搜索不再匹配。",
+      "Move 1 child tag up one level. They will not be deleted.",
+      "Invalidate 2 aliases. Searches using these aliases will no longer match.",
     ],
   );
 
@@ -387,12 +387,12 @@ async function main() {
   check(
     "moving leaves every video's tags alone",
     movedMessages[0],
-    "视频的标签不变。",
+    "Video tags remain unchanged.",
   );
   check(
     "and reports what the old parent stops returning",
     movedMessages[1],
-    "筛选测试分类乙将不再返回 1 个视频。",
+    "Filtering by 测试分类乙 will no longer return 1 video.",
   );
   // videoA carries 测试分类乙 in its own right, so 测试分类乙 keeps it either way. Only
   // videoC, which is reachable through 测试条目乙 alone, is lost.
@@ -403,9 +403,9 @@ async function main() {
       moveImpact(db, [tagId("测试条目乙")], null, "测试分类丙"),
     ).slice(1),
     [
-      "筛选测试分类丙将额外返回 2 个视频。",
-      "将新建测试分类丙",
-      "筛选测试分类乙将不再返回 1 个视频。",
+      "Filtering by 测试分类丙 will also return 2 videos.",
+      "Create 测试分类丙.",
+      "Filtering by 测试分类乙 will no longer return 1 video.",
     ],
   );
 
@@ -420,8 +420,8 @@ async function main() {
     "merging counts the videos that already hold the target",
     impactMessages(mergePreview).slice(0, 2),
     [
-      "2 个视频将改用测试分类乙",
-      "其中 1 个视频已同时拥有测试分类乙，合并后标签数减少。",
+      "Replace the source tags with 测试分类乙 on 2 videos.",
+      "测试分类乙 is already assigned to 1 video. Merging will reduce their tag counts.",
     ],
   );
   check(
@@ -433,7 +433,7 @@ async function main() {
   check(
     "renaming warns that the old spelling stops matching",
     impactMessages(renameImpact(db, tagId("测试条目乙"), "测试条目乙旧名"))[1],
-    "搜索测试条目乙将不再匹配该标签。如需保留，可将其添加为别名。",
+    "Searching for 测试条目乙 will no longer match this tag. Add the old name as an alias to retain it.",
   );
 
   const exclusion = excludeImpact(db, [tagId("测试分类乙")]);

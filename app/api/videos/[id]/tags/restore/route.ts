@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { resolveTagName, tagPath } from "@/lib/tagHierarchy";
@@ -8,13 +9,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const name = String(body.name ?? "")
     .trim()
     .toLowerCase();
   if (!name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
+    return NextResponse.json({ error: t("tagNameRequired") }, { status: 400 });
   }
 
   db.prepare(

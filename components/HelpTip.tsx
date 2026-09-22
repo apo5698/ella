@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { CircleQuestionMarkIcon } from "lucide-react";
 import {
   Tooltip,
@@ -21,13 +23,14 @@ export default function HelpTip({
   side?: "top" | "bottom" | "left" | "right";
   className?: string;
 }) {
+  const t = useTranslations("Common");
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <button
             type="button"
-            aria-label="说明"
+            aria-label={t("help")}
             className={cn(
               "inline-flex shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground",
               className,

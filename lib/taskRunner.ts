@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import db from "./db";
 import {
@@ -64,7 +65,7 @@ const promoteTagSource: TaskHandler = async ({
   const tagId = Number(payload.tagId);
   const tag = db.prepare("SELECT name FROM tags WHERE id = ?").get(tagId) as
     { name: string } | undefined;
-  if (!tag) throw new Error("标签不存在");
+  if (!tag) throw new AppError("tagMissing");
 
   const remaining = db.prepare(
     `SELECT COUNT(*) AS c FROM video_tags
@@ -106,7 +107,7 @@ const retagVideo: TaskHandler = async ({
   const video = db
     .prepare("SELECT title, duration_sec FROM videos WHERE id = ?")
     .get(videoId) as { title: string; duration_sec: number | null } | undefined;
-  if (!video) throw new Error("视频不存在");
+  if (!video) throw new AppError("videoMissing");
 
   const tracker = createTracker(video.duration_sec, getTagSettings().strategy);
   setTotal(100);
@@ -115,10 +116,12 @@ const retagVideo: TaskHandler = async ({
   }, PROGRESS_MS);
 
   try {
-    const result = await suggestVideoTagsById(videoId, (update) =>
-      tracker.update(update),
+    const result = await suggestVideoTagsById(
+      videoId,
+      (update) => tracker.update(update),
+      typeof payload.uiLocale === "string" ? payload.uiLocale : undefined,
     );
-    if (!result.ok) throw new Error(result.error);
+    if (!result.ok) throw result.error;
     if (canceled()) return {};
 
     upsertVideoTags(db, videoId, result.tags, "vision");
@@ -243,9 +246,9 @@ async function runOne(job: Job) {
         payload: { jobKind: job.kind, ...job.payload },
       });
       notifyNotificationsChanged();
-      console.error("[tasks] 任务处理失败", cause);
+      console.error("[tasks] Task failed", cause);
     } catch (writeFailure) {
-      console.error("[tasks] 无法写入任务结果", writeFailure);
+      console.error("[tasks] Unable to save task result", writeFailure);
     }
   } finally {
     runner.canceling.delete(job.id);
@@ -269,7 +272,7 @@ export function kickTaskRunner() {
         await runOne(job);
       }
     } catch (cause) {
-      console.error("[tasks] 队列已停止", cause);
+      console.error("[tasks] Queue stopped", cause);
     } finally {
       runner.looping = false;
     }
@@ -296,7 +299,7 @@ try {
   recoverInterrupted();
   kickTaskRunner();
 } catch (cause) {
-  console.error("[tasks] 启动时无法读取队列", cause);
+  console.error("[tasks] Unable to load queue at startup", cause);
 }
 
 /**
@@ -341,17 +344,22 @@ export function enqueueTagPromotion(
 export function enqueueVideoRetag(
   database: Database.Database,
   videoId: number,
+  uiLocale?: string,
 ): number | null {
   const video = database
     .prepare("SELECT title FROM videos WHERE id = ?")
     .get(videoId) as { title: string } | undefined;
-  if (!video) throw new Error("视频不存在");
+  if (!video) throw new AppError("videoMissing");
 
   const id = createJob(
     database,
     {
       kind: "VIDEO_RETAG",
-      payload: { videoId, videoTitle: video.title },
+      payload: {
+        videoId,
+        videoTitle: video.title,
+        ...(uiLocale ? { uiLocale } : {}),
+      },
     },
     "videoId",
   );

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { ensureSeries, normalizeSeriesName } from "@/lib/series";
@@ -5,6 +6,7 @@ import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /** Sets or clears the series shared by a selection of videos. */
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const ids: number[] = Array.isArray(body.ids)
     ? [
@@ -18,10 +20,13 @@ export async function POST(req: NextRequest) {
   const rawName = body.name;
 
   if (ids.length === 0) {
-    return NextResponse.json({ error: "请选择视频。" }, { status: 400 });
+    return NextResponse.json({ error: t("selectVideos") }, { status: 400 });
   }
   if (rawName !== null && typeof rawName !== "string") {
-    return NextResponse.json({ error: "系列名称无效。" }, { status: 400 });
+    return NextResponse.json(
+      { error: t("invalidSeriesName") },
+      { status: 400 },
+    );
   }
 
   const name = typeof rawName === "string" ? normalizeSeriesName(rawName) : "";

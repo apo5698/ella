@@ -20,9 +20,9 @@ test("failed or empty directory scans preserve the catalog and thumbnails", asyn
     const thumbnail = path.join(process.env.THUMB_DIR, "1.jpg");
     fs.writeFileSync(thumbnail, "placeholder");
 
-    await assert.rejects(scanVideoCatalog(), /无法读取视频目录/);
+    await assert.rejects(scanVideoCatalog(), { code: "catalogUnreadable" });
     fs.mkdirSync(process.env.VIDEO_ROOT);
-    await assert.rejects(scanVideoCatalog(), /未发现视频文件/);
+    await assert.rejects(scanVideoCatalog(), { code: "catalogEmpty" });
     const count = db.prepare("SELECT COUNT(*) AS n FROM videos").get() as {
       n: number;
     };

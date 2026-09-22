@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { TagBadge } from "@/components/tags/TagBadge";
@@ -44,6 +46,8 @@ export default function TagStatePopover({
   directVideoCount: number;
   onChanged: () => Promise<void>;
 }) {
+  const t = useTranslations("TagState");
+  const labels = useTranslations("TagLabels");
   const states = state === "automatic" ? ALL_STATES : HUMAN_STATES;
   const [open, setOpen] = useState(false);
   const [pendingState, setPendingState] = useState<TagReviewState | null>(null);
@@ -76,7 +80,7 @@ export default function TagStatePopover({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        toast.error(data.error ?? "无法更改标签状态");
+        toast.error(data.error ?? t("failed"));
         return;
       }
 
@@ -84,7 +88,7 @@ export default function TagStatePopover({
       setPendingState(null);
       setOpen(false);
     } catch {
-      toast.error("无法更改标签状态");
+      toast.error(t("failed"));
     } finally {
       setBusy(false);
     }
@@ -97,7 +101,10 @@ export default function TagStatePopover({
           <button
             data-row-control=""
             type="button"
-            aria-label={`${name}：${TAG_STATE_LABEL[state]}`}
+            aria-label={labels("tagState", {
+              name,
+              state: labels(TAG_STATE_LABEL[state]),
+            })}
             className="flex min-h-5 pointer-coarse:py-3 shrink-0 cursor-pointer items-center gap-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
@@ -122,11 +129,11 @@ export default function TagStatePopover({
         onClick={(event) => event.stopPropagation()}
       >
         <PopoverHeader>
-          <PopoverTitle>标签状态</PopoverTitle>
-          <PopoverDescription>选择后预览，点击应用生效</PopoverDescription>
+          <PopoverTitle>{t("title")}</PopoverTitle>
+          <PopoverDescription>{t("description")}</PopoverDescription>
         </PopoverHeader>
         <RadioGroup
-          aria-label={`${name}的状态`}
+          aria-label={t("statusFor", { name })}
           value={selectedState}
           onValueChange={(value) => setPendingState(value as TagReviewState)}
           disabled={busy}
@@ -146,14 +153,14 @@ export default function TagStatePopover({
                   aria-hidden="true"
                   className={TAG_STATE_DOT_STYLE[option]}
                 />
-                {TAG_STATE_LABEL[option]}
+                {labels(TAG_STATE_LABEL[option])}
               </FieldLabel>
             </Field>
           ))}
         </RadioGroup>
         {categoryBlocked && (
-          <p className="text-xs text-muted-foreground">
-            仍有关联视频，暂不能设为分类。
+          <p className="text-sm text-muted-foreground">
+            {t("categoryBlocked")}
           </p>
         )}
 
@@ -174,7 +181,7 @@ export default function TagStatePopover({
             disabled={busy}
             onClick={() => handleOpenChange(false)}
           >
-            取消
+            {t("cancel")}
           </Button>
           <Button
             type="button"
@@ -186,7 +193,7 @@ export default function TagStatePopover({
             }
             onClick={() => changeState()}
           >
-            应用
+            {t("apply")}
           </Button>
         </div>
       </PopoverContent>

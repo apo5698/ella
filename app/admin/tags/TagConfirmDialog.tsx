@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   Dialog,
   DialogClose,
@@ -21,7 +23,7 @@ export default function TagConfirmDialog({
   title,
   subject,
   request,
-  confirmLabel = "删除",
+  confirmLabel,
   confirmVariant = "destructive",
   onOpenChange,
   onConfirm,
@@ -35,6 +37,7 @@ export default function TagConfirmDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations("TagManager");
   return (
     <Dialog open onOpenChange={onOpenChange}>
       {/* A column rather than the default grid, so the impact panel can be
@@ -48,9 +51,11 @@ export default function TagConfirmDialog({
         <TagImpactAnalysis request={request} />
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>取消</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>
+            {t("cancel")}
+          </DialogClose>
           <Button variant={confirmVariant} onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

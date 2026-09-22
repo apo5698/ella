@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { ensureTag, isAssignableTag, resolveTagName } from "@/lib/tagHierarchy";
@@ -7,6 +8,7 @@ type BatchAction = "add" | "remove";
 
 /** Applies the same tag change to a selection of videos in one transaction. */
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const ids: number[] = Array.isArray(body.ids)
     ? [
@@ -29,13 +31,13 @@ export async function POST(req: NextRequest) {
   const action = body.action as BatchAction;
 
   if (ids.length === 0) {
-    return NextResponse.json({ error: "请选择视频。" }, { status: 400 });
+    return NextResponse.json({ error: t("selectVideos") }, { status: 400 });
   }
   if (names.length === 0) {
-    return NextResponse.json({ error: "请选择标签。" }, { status: 400 });
+    return NextResponse.json({ error: t("selectTags") }, { status: 400 });
   }
   if (action !== "add" && action !== "remove") {
-    return NextResponse.json({ error: "批量操作无效。" }, { status: 400 });
+    return NextResponse.json({ error: t("invalidBatch") }, { status: 400 });
   }
 
   // Refused whole rather than half applied: a selection that names a grouping
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
       const tag = resolveTagName(db, name);
       if (tag.id !== null && !isAssignableTag(db, tag.id)) {
         return NextResponse.json(
-          { error: `"${tag.name}"是分类标签，请改用其下的子标签` },
+          { error: t("categoryTag", { name: tag.name }) },
           { status: 400 },
         );
       }

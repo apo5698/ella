@@ -4,12 +4,7 @@
 //
 // The series is not part of this: it is rendered separately and always leads.
 
-/**
- * Pinyin rather than code points. SQLite orders Chinese text by code point,
- * which puts 人 before 床 and reads as unsorted. `numeric` covers the digits a
- * hand-typed tag may contain, so 第2集 precedes 第10集. Resolution and duration
- * are not tags: see lib/tagger.ts.
- */
+/** Stable pinyin ordering with numeric comparison for names containing digits. */
 const collator = new Intl.Collator("zh-Hans-u-co-pinyin", { numeric: true });
 
 export const compareNames = (a: string, b: string) => collator.compare(a, b);

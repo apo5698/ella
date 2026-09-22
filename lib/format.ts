@@ -7,32 +7,34 @@ export function formatDuration(sec?: number | null): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-/**
- * A duration written out in words, for estimates and elapsed times.
- *
- * Distinct from `formatDuration`, which renders a video's length as a
- * timecode. Kept in one place so the wording cannot drift between the pages
- * that show durations.
- */
-export function formatDurationText(sec: number): string {
+/** Human-readable duration using the selected display locale. */
+export function formatDurationText(sec: number, locale = "en"): string {
   const total = Math.max(0, Math.round(sec));
-  if (total < 60) return `${total} 秒`;
-
+  const unit = (value: number, name: string) =>
+    new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: name,
+      unitDisplay: "short",
+    }).format(value);
+  if (total < 60) return unit(total, "second");
   const minutes = Math.floor(total / 60);
-  if (minutes < 60) {
-    const rest = total % 60;
-    // Standalone minutes read as 分钟; alongside seconds, 分 is the idiomatic
-    // form. Both refer to the same unit.
-    return rest === 0 ? `${minutes} 分钟` : `${minutes} 分 ${rest} 秒`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest === 0 ? `${hours} 小时` : `${hours} 小时 ${rest} 分`;
+  const values =
+    minutes < 60
+      ? [
+          unit(minutes, "minute"),
+          ...(total % 60 ? [unit(total % 60, "second")] : []),
+        ]
+      : [
+          unit(Math.floor(minutes / 60), "hour"),
+          ...(minutes % 60 ? [unit(minutes % 60, "minute")] : []),
+        ];
+  return new Intl.ListFormat(locale, { style: "narrow", type: "unit" }).format(
+    values,
+  );
 }
 
 export function formatSize(bytes?: number | null): string {
-  if (!bytes) return "未知";
+  if (!bytes) return "—";
   const units = ["B", "KB", "MB", "GB", "TB"];
   let i = 0;
   let v = bytes;

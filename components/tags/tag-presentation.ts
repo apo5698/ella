@@ -20,15 +20,15 @@ export const TAG_STATE_STYLE: Record<TagCategory, string> = {
 };
 
 export const SOURCE_LABEL: Record<string, string> = {
-  manual: "已审核",
-  vision: "自动",
+  manual: "approved",
+  vision: "automatic",
 };
 
 export const TAG_STATE_LABEL: Record<TagCategory, string> = {
-  excluded: "排除",
-  automatic: "自动",
-  approved: "已审核",
-  category: "分类",
+  excluded: "excluded",
+  automatic: "automatic",
+  approved: "approved",
+  category: "category",
 };
 
 export const TAG_STATE_DOT_STYLE: Record<TagCategory, string> = {

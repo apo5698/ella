@@ -1,3 +1,5 @@
+import { errorMessage } from "@/lib/appError";
+import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { aliasesOf, mergeTags } from "@/lib/tagHierarchy";
@@ -8,6 +10,7 @@ import { notifyVideosChanged } from "@/lib/videoEvents";
  * so the spellings stay searchable and stay out of the tag list.
  */
 export async function POST(req: NextRequest) {
+  const t = await getTranslations("Api");
   const body = await req.json().catch(() => ({}));
   const sourceIds = Array.isArray(body.sourceIds)
     ? body.sourceIds.map(Number).filter(Number.isFinite)
@@ -15,13 +18,10 @@ export async function POST(req: NextRequest) {
   const targetId = Number(body.targetId);
 
   if (!Number.isFinite(targetId)) {
-    return NextResponse.json({ error: "请选择目标标签。" }, { status: 400 });
+    return NextResponse.json({ error: t("selectTarget") }, { status: 400 });
   }
   if (sourceIds.length === 0) {
-    return NextResponse.json(
-      { error: "请选择要合并的标签。" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: t("selectMergeTags") }, { status: 400 });
   }
 
   try {
@@ -35,9 +35,6 @@ export async function POST(req: NextRequest) {
       targetAliases: aliasesOf(db, targetId),
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: (err as Error).message },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: errorMessage(err, t) }, { status: 400 });
   }
 }

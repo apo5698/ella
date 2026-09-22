@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
+
 import { useEffect, useState } from "react";
 import { ScanSearchIcon, TimerIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { isAppLocale } from "@/i18n/config";
 import HelpTip from "@/components/HelpTip";
 import { formatDurationText } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -19,16 +31,11 @@ import {
 } from "@/lib/settings";
 import type { SettingsResponse } from "@/app/api/settings/route";
 
-/**
- * Seconds to seek to one timestamp and write one JPEG. Measured over the SMB
- * share at 512px: five grabs from a 17-minute file took 584ms in total.
- * ffmpeg seeks to the nearest keyframe before opening the stream, so the cost
- * barely moves with how far into the file the timestamp sits.
- */
+/** Estimated seek and frame extraction cost in seconds. */
 const SEEK_SEC = 0.117;
 
 const [FRAME_COUNT_MIN, FRAME_COUNT_MAX] = FRAME_COUNT_RANGE;
-/** Where the slider starts when the user first turns 自动 off. */
+/** Where the slider starts when the user first turns automatic off. */
 const DEFAULT_MANUAL_FRAMES = 6;
 
 const STRATEGIES: {
@@ -39,29 +46,19 @@ const STRATEGIES: {
 }[] = [
   {
     value: "scene",
-    label: "场景检测",
+    label: "scene",
     icon: ScanSearchIcon,
-    blurb:
-      "解码完整文件并评估画面变化，分段选取变化最显著的帧。选帧质量高，耗时较长。",
+    blurb: "sceneHelp",
   },
   {
     value: "fixed",
-    label: "固定时间点",
+    label: "fixed",
     icon: TimerIcon,
-    blurb:
-      "按等分比例定位时间点直接抽帧，不解码完整文件。速度显著提升，所选画面不保证具有代表性。",
+    blurb: "fixedHelp",
   },
 ];
 
-/**
- * What extraction alone would cost for everything still untagged, as a range.
- *
- * Inference is deliberately excluded: it dwarfs these numbers and does not
- * depend on the strategy, so including it would bury the very difference being
- * chosen. Scene detection gets a range rather than a figure because decode
- * throughput swings about threefold across this library — quoting one number
- * would be precise and wrong.
- */
+/** Estimate extraction time without model inference. */
 function extractionCost(
   strategy: FrameStrategy,
   settings: TagSettings,
@@ -81,27 +78,33 @@ function extractionCost(
   };
 }
 
-/**
- * These are projections over hundreds of files. Quoting them to the second
- * would claim an accuracy they do not have, so anything above a minute is
- * rounded to the minute. The live countdowns elsewhere keep their seconds.
- */
+/** Round estimates above one minute to avoid false precision. */
 function coarsen(sec: number): number {
   return sec < 60 ? sec : Math.round(sec / 60) * 60;
 }
 
-function formatRange(cost: { min: number; max: number }): string {
-  const min = coarsen(cost.min);
-  const max = coarsen(cost.max);
-  // Within a few percent the range is noise; show it as one figure.
-  if (max - min < min * 0.1) return `约 ${formatDurationText(min)}`;
-  return `约 ${formatDurationText(min)} 至 ${formatDurationText(max)}`;
-}
-
 export default function FrameSettingsCard() {
+  const t = useTranslations("Frames");
+  const locale = useLocale();
+  const languageItems = [
+    { value: "auto", label: t("languageAutomatic") },
+    { value: "en", label: t("languageEnglish") },
+    { value: "zh-CN", label: t("languageChinese") },
+  ];
+  function formatRange(cost: { min: number; max: number }): string {
+    const min = coarsen(cost.min);
+    const max = coarsen(cost.max);
+    return max - min < min * 0.1
+      ? t("approximate", { duration: formatDurationText(min, locale) })
+      : t("range", {
+          min: formatDurationText(min, locale),
+          max: formatDurationText(max, locale),
+        });
+  }
+
   const [data, setData] = useState<SettingsResponse | null>(null);
   const [saving, setSaving] = useState(false);
-  // Survives a switch to 自动 so unchecking restores the number the user set,
+  // Survives a switch to automatic so unchecking restores the number the user set,
   // rather than dropping them back on an arbitrary default.
   const [manualFrames, setManualFrames] = useState(DEFAULT_MANUAL_FRAMES);
 
@@ -173,14 +176,10 @@ export default function FrameSettingsCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5">
-          抽帧设置
-          <HelpTip side="right">
-            {
-              '控制送入模型的帧选取方式、数量与尺寸。设置对"重新识别"与批量任务同时生效。批量任务于启动时读取设置。'
-            }
-          </HelpTip>
+          {t("title")}
+          <HelpTip side="right">{t("help")}</HelpTip>
           {saving && (
-            <span className="ml-auto text-muted-foreground">保存中…</span>
+            <span className="ml-auto text-muted-foreground">{t("saving")}</span>
           )}
         </CardTitle>
       </CardHeader>
@@ -192,8 +191,41 @@ export default function FrameSettingsCard() {
           </>
         ) : (
           <>
+            <Field>
+              <FieldLabel id="tag-language-label">
+                {t("tagLanguage")}
+              </FieldLabel>
+              <Select
+                items={languageItems}
+                value={data.settings.tagLanguage}
+                disabled={saving}
+                onValueChange={(value) => {
+                  if (value === "auto" || isAppLocale(value))
+                    patch({ tagLanguage: value });
+                }}
+              >
+                <SelectTrigger
+                  aria-labelledby="tag-language-label"
+                  aria-describedby="tag-language-help"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {languageItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <FieldDescription id="tag-language-help">
+                {t("tagLanguageHelp")}
+              </FieldDescription>
+            </Field>
             <div className="flex flex-col gap-2">
-              <div className="text-xs font-medium">抽帧方式</div>
+              <div className="text-sm font-medium">{t("strategy")}</div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {STRATEGIES.map((s) => {
                   const active = data.settings.strategy === s.value;
@@ -212,8 +244,10 @@ export default function FrameSettingsCard() {
                     >
                       <span className="flex items-center gap-1.5 text-sm font-medium">
                         <Icon className="size-4" />
-                        {s.label}
-                        {active && <Badge variant="secondary">当前</Badge>}
+                        {t(s.label)}
+                        {active && (
+                          <Badge variant="secondary">{t("current")}</Badge>
+                        )}
                       </span>
                       <span
                         className={cn(
@@ -223,7 +257,7 @@ export default function FrameSettingsCard() {
                             : "text-muted-foreground",
                         )}
                       >
-                        {s.blurb}
+                        {t(s.blurb)}
                       </span>
                     </button>
                   );
@@ -236,14 +270,10 @@ export default function FrameSettingsCard() {
                 <div className="flex items-center gap-2">
                   <span
                     id="frame-count-label"
-                    className="flex items-center gap-1 text-xs font-medium"
+                    className="flex items-center gap-1 text-sm font-medium"
                   >
-                    每视频帧数
-                    <HelpTip>
-                      {
-                        '"自动"按时长分档：30 秒以内 2 帧，5 分钟以内 4 帧，30 分钟以内 6 帧，超过 30 分钟 8 帧。帧数同时影响推理耗时。'
-                      }
-                    </HelpTip>
+                    {t("countLabel")}
+                    <HelpTip>{t("autoHelp")}</HelpTip>
                   </span>
                   <label className="ml-auto flex items-center gap-1.5">
                     <Checkbox
@@ -252,7 +282,7 @@ export default function FrameSettingsCard() {
                         patch({ frameCount: checked ? null : manualFrames })
                       }
                     />
-                    自动
+                    {t("automatic")}
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
@@ -270,7 +300,7 @@ export default function FrameSettingsCard() {
                     }}
                     // Guarded because the slider also reports its value on
                     // mount. Without this, opening the page would overwrite
-                    // 自动 with whatever number the disabled track happened to
+                    // automatic with whatever number the disabled track happened to
                     // be resting on.
                     onValueCommitted={(values) => {
                       const next = Array.isArray(values) ? values[0] : values;
@@ -285,10 +315,12 @@ export default function FrameSettingsCard() {
                     aria-labelledby="frame-count-label"
                     className="flex-1"
                   />
-                  {/* Under 自动 the checkbox already says so; the useful thing
+                  {/* Under automatic the checkbox already says so; the useful thing
                       to report is what the tiers actually work out to. */}
                   <span className="w-20 shrink-0 text-right text-sm tabular-nums">
-                    {auto ? `平均 ${autoAverage} 帧` : `${sliderValue} 帧`}
+                    {auto
+                      ? t("average", { count: autoAverage })
+                      : t("frames", { count: sliderValue })}
                   </span>
                 </div>
               </div>
@@ -296,12 +328,10 @@ export default function FrameSettingsCard() {
               <div className="flex flex-col gap-1.5">
                 <span
                   id="frame-width-label"
-                  className="flex items-center gap-1 text-xs font-medium"
+                  className="flex items-center gap-1 text-sm font-medium"
                 >
-                  画面宽度
-                  <HelpTip>
-                    送入模型的图像宽度，直接影响推理耗时。数值越大细节越清晰，耗时越长。
-                  </HelpTip>
+                  {t("width")}
+                  <HelpTip>{t("widthHelp")}</HelpTip>
                 </span>
                 <div className="flex items-center gap-3">
                   {/* The widths are a fixed set rather than a continuous range,
@@ -335,9 +365,11 @@ export default function FrameSettingsCard() {
 
             {/* The whole point of the choice, stated in the unit that hurts. */}
             <div className="flex flex-col gap-2">
-              <div className="text-xs font-medium">
-                待识别 {data.pending.count} 个视频（共{" "}
-                {formatDurationText(data.pending.seconds)}）的抽帧耗时
+              <div className="text-sm font-medium">
+                {t("estimate", {
+                  count: data.pending.count,
+                  duration: formatDurationText(data.pending.seconds, locale),
+                })}
               </div>
               <div className="flex flex-col gap-1">
                 {STRATEGIES.map((s) => {
@@ -355,20 +387,21 @@ export default function FrameSettingsCard() {
                         !active && "text-muted-foreground",
                       )}
                     >
-                      <span className="w-20 shrink-0">{s.label}</span>
+                      <span className="w-20 shrink-0">{t(s.label)}</span>
                       <span
                         className={cn("tabular-nums", active && "font-medium")}
                       >
                         {formatRange(cost)}
                       </span>
-                      {active && <Badge variant="secondary">当前</Badge>}
+                      {active && (
+                        <Badge variant="secondary">{t("current")}</Badge>
+                      )}
                     </div>
                   );
                 })}
               </div>
               <div className="leading-relaxed text-muted-foreground">
-                不含模型推理耗时。场景检测的区间对应解码速度 28 至 135
-                倍实时，随编码格式与磁盘缓存变化。
+                {t("estimateHelp")}
               </div>
             </div>
           </>

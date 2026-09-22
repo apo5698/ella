@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { CheckIcon, XIcon } from "lucide-react";
 import { TagBadge } from "@/components/tags/TagBadge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ export default function TagChip({
   onAccept: (name: string) => void;
   onReject: (name: string) => void;
 }) {
+  const t = useTranslations("TagActions");
   const accepted = source === "manual";
 
   return (
@@ -48,7 +51,7 @@ export default function TagChip({
             variant="ghost"
             size="icon"
             onClick={() => onAccept(name)}
-            title="标记为已审核"
+            title={t("approve")}
             className="text-muted-foreground hover:text-success"
           >
             <CheckIcon />
@@ -59,7 +62,7 @@ export default function TagChip({
           variant="ghost"
           size="icon"
           onClick={() => onReject(name)}
-          title={accepted ? "移除标签" : "排除标签"}
+          title={accepted ? t("remove") : t("exclude")}
           className="text-muted-foreground hover:text-destructive"
         >
           <XIcon />

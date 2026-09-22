@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
@@ -8,13 +9,11 @@ import {
 } from "@/components/ui/card";
 import { UTILITY_MODULES } from "@/lib/utilities/registry";
 
-export default function UtilitiesPage() {
+export default async function UtilitiesPage() {
+  const t = await getTranslations("Utilities");
   return (
     <>
-      <AdminPageHeader
-        title="实用工具"
-        description="按需添加和使用媒体库工具"
-      />
+      <AdminPageHeader title={t("title")} description={t("description")} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {UTILITY_MODULES.map((module) => {
           const Icon = module.icon;
@@ -23,8 +22,8 @@ export default function UtilitiesPage() {
               <Card className="h-full transition-colors group-hover:border-foreground/20">
                 <CardHeader>
                   <Icon className="size-4 text-muted-foreground" />
-                  <CardTitle>{module.name}</CardTitle>
-                  <CardDescription>{module.description}</CardDescription>
+                  <CardTitle>{t(module.name)}</CardTitle>
+                  <CardDescription>{t(module.description)}</CardDescription>
                 </CardHeader>
               </Card>
             </Link>

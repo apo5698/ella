@@ -1,3 +1,5 @@
+import { errorMessage } from "@/lib/appError";
+import { getTranslations } from "next-intl/server";
 import fs from "node:fs";
 import nodePath from "node:path";
 import { NextResponse } from "next/server";
@@ -37,10 +39,11 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const video = db.prepare("SELECT * FROM videos WHERE id = ?").get(id);
   if (!video) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ error: t("videoMissing") }, { status: 404 });
   }
   const tags = db
     .prepare(
@@ -60,12 +63,13 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const row = db
     .prepare("SELECT id, path, duration_sec, title FROM videos WHERE id = ?")
     .get(id) as Row | undefined;
   if (!row)
-    return NextResponse.json({ error: "视频记录不存在" }, { status: 404 });
+    return NextResponse.json({ error: t("videoMissing") }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
 
@@ -82,7 +86,7 @@ export async function PATCH(
       .get(nextPath, row.id) as { id: number; title: string } | undefined;
     if (owner) {
       return NextResponse.json(
-        { error: `该路径已被视频"${owner.title}"占用` },
+        { error: t("pathTaken", { title: owner.title }) },
         { status: 409 },
       );
     }
@@ -102,10 +106,7 @@ export async function PATCH(
     thumbnailSec = clampThumbSec(body.thumbnailSec, row.duration_sec);
     const jpeg = await grabFrame(nextPath, thumbnailSec);
     if (!jpeg) {
-      return NextResponse.json(
-        { error: "无法读取该位置的画面，请调整封面位置后重试" },
-        { status: 422 },
-      );
+      return NextResponse.json({ error: t("frameFailed") }, { status: 422 });
     }
     thumbnail = writeThumbnail(row.id, jpeg);
   }
@@ -131,7 +132,7 @@ export async function PATCH(
     })();
   } catch (error) {
     return NextResponse.json(
-      { error: (error as Error).message || "标签保存失败" },
+      { error: errorMessage(error, t) || t("saveTagsFailed") },
       { status: 400 },
     );
   }
@@ -153,17 +154,21 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const t = await getTranslations("Api");
   const { id } = await params;
   const row = db
     .prepare("SELECT id, path, duration_sec, title FROM videos WHERE id = ?")
     .get(id) as Row | undefined;
   if (!row)
-    return NextResponse.json({ error: "视频记录不存在" }, { status: 404 });
+    return NextResponse.json({ error: t("videoMissing") }, { status: 404 });
 
   const mode = (new URL(req.url).searchParams.get("mode") ??
     "record") as DeleteMode;
   if (mode !== "record" && mode !== "file" && mode !== "trash") {
-    return NextResponse.json({ error: "删除方式无效" }, { status: 400 });
+    return NextResponse.json(
+      { error: t("invalidDeleteMode") },
+      { status: 400 },
+    );
   }
 
   let fileNote: string | null = null;
@@ -196,11 +201,13 @@ export async function DELETE(
       // file behind with no record pointing at it.
       if (code !== "ENOENT") {
         return NextResponse.json(
-          { error: `文件操作失败：${(err as Error).message}` },
+          {
+            error: t("fileOperationFailed", { error: errorMessage(err, t) }),
+          },
           { status: 500 },
         );
       }
-      fileNote = "文件本就不存在";
+      fileNote = t("fileMissing");
     }
   }
 

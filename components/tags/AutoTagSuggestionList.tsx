@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { CheckIcon, XIcon } from "lucide-react";
 import AcceptButton from "@/components/AcceptButton";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,7 @@ export function AutoTagSuggestionList({
   onAccept: (suggestion: AutoTagSuggestion) => void;
   onSkip: (suggestion: AutoTagSuggestion) => void;
 }) {
+  const t = useTranslations("SuggestionActions");
   return (
     <div className="flex flex-wrap gap-1">
       {suggestions.map((suggestion) => {
@@ -29,7 +32,7 @@ export function AutoTagSuggestionList({
         const busy = disabled || busyKeys?.has(key);
         // A series suggestion carries the same badge as the one on the video
         // page, so the two kinds stay apart in one list.
-        const label = `${suggestion.kind === "series" ? "系列" : "标签"}"${suggestion.name}"`;
+        const label = t(suggestion.kind, { name: suggestion.name });
         return (
           <div key={key} className="inline-flex items-center gap-0.5">
             {suggestion.kind === "series" ? (
@@ -41,8 +44,8 @@ export function AutoTagSuggestionList({
               type="button"
               size="icon-xs"
               disabled={busy}
-              title={`接受${label}`}
-              aria-label={`接受${label}`}
+              title={t("accept", { label })}
+              aria-label={t("accept", { label })}
               onClick={() => onAccept(suggestion)}
             >
               <CheckIcon />
@@ -52,8 +55,8 @@ export function AutoTagSuggestionList({
               variant="destructive"
               size="icon-xs"
               disabled={busy}
-              title={`跳过${label}`}
-              aria-label={`跳过${label}`}
+              title={t("skip", { label })}
+              aria-label={t("skip", { label })}
               onClick={() => onSkip(suggestion)}
             >
               <XIcon />

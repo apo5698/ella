@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import VideoLink from "@/components/VideoLink";
 import AcceptButton from "@/components/AcceptButton";
 import { useRef, useState, type ComponentType } from "react";
@@ -131,13 +133,14 @@ function SimilarNameConflict({
   requestedName: string;
   match: VideoRef & { score: number };
 }) {
+  const t = useTranslations("Downloads");
   const diff = diffChars(match.title, requestedName);
   return (
     <Alert variant="destructive">
       <AlertTitle className="flex items-center gap-2">
-        发现相似视频
+        {t("similar")}
         <Badge variant="destructive" className="tabular-nums">
-          相似度 {Math.round(match.score * 100)}%
+          {t("score", { percent: Math.round(match.score * 100) })}
         </Badge>
       </AlertTitle>
       <AlertDescription>
@@ -147,7 +150,7 @@ function SimilarNameConflict({
               <FilmIcon />
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>已有视频</ItemTitle>
+              <ItemTitle>{t("existing")}</ItemTitle>
               <ItemDescription className="line-clamp-none break-all">
                 <VideoLink href={`/video/${match.id}`} target="_blank">
                   {match.title}
@@ -160,7 +163,7 @@ function SimilarNameConflict({
               <FileDownIcon />
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>待下载视频</ItemTitle>
+              <ItemTitle>{t("requested")}</ItemTitle>
               <ItemDescription className="line-clamp-none break-all">
                 <DiffName parts={diff} />
               </ItemDescription>
@@ -190,9 +193,10 @@ export function DownloadQueue<TFields extends object, TProgress>({
   getRequestedName,
   presentProgress,
   toRequest = (fields) => fields,
-  title = "下载视频",
-  description = "所有下载会并行处理，完成后自动录入媒体库",
+  title,
+  description,
 }: DownloadQueueProps<TFields, TProgress>) {
+  const t = useTranslations("Downloads");
   const nextId = useRef(2);
   const [entryStates, setEntryStates] = useState<
     Record<number, EntryState<TProgress>>
@@ -282,11 +286,11 @@ export function DownloadQueue<TFields extends object, TProgress>({
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "审核失败");
+      if (!response.ok) throw new Error(data.error ?? t("reviewFailed"));
       dropAutoTagSuggestions(entryId, suggestions);
-      toast.success(`已接受 ${data.names.length} 项建议`);
+      toast.success(t("accepted", { count: data.names.length }));
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "审核失败");
+      toast.error(cause instanceof Error ? cause.message : t("reviewFailed"));
     } finally {
       updateEntryState(entryId, { reviewingAutoTags: false });
     }
@@ -294,7 +298,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
 
   function skipAutoTags(entryId: number, suggestions: AutoTagSuggestion[]) {
     dropAutoTagSuggestions(entryId, suggestions);
-    toast.success(`已跳过 ${suggestions.length} 项建议`);
+    toast.success(t("skipped", { count: suggestions.length }));
   }
 
   async function downloadEntry(entry: QueueEntry<TFields>) {
@@ -310,7 +314,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
           .catch(() => ({}))) as Partial<DownloadFailure>;
         updateEntryState(entry.id, {
           status: "error",
-          error: failure.error || "下载失败",
+          error: failure.error || t("failed"),
           errorVideo: failure.video ?? undefined,
           errorReason: failure.reason,
           result: undefined,
@@ -318,7 +322,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
         });
         return;
       }
-      if (!response.body) throw new Error("浏览器无法读取下载进度");
+      if (!response.body) throw new Error(t("streamFailed"));
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -348,7 +352,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
         }
         if (done) break;
       }
-      if (!result) throw new Error("下载中断，请重试");
+      if (!result) throw new Error(t("interrupted"));
       updateEntryState(entry.id, {
         status: "success",
         result,
@@ -360,7 +364,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
     } catch (cause) {
       updateEntryState(entry.id, {
         status: "error",
-        error: cause instanceof Error ? cause.message : "下载失败",
+        error: cause instanceof Error ? cause.message : t("failed"),
         errorVideo: undefined,
         errorReason: undefined,
         result: undefined,
@@ -407,8 +411,8 @@ export function DownloadQueue<TFields extends object, TProgress>({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardTitle>{title ?? t("title")}</CardTitle>
+        <CardDescription>{description ?? t("description")}</CardDescription>
       </CardHeader>
       <form
         noValidate
@@ -433,17 +437,19 @@ export function DownloadQueue<TFields extends object, TProgress>({
                   const pending = state.status === "pending";
                   const progress = state.progress
                     ? presentProgress(state.progress)
-                    : { label: "准备下载", percent: null };
+                    : { label: t("preparing"), percent: null };
                   return (
                     <Item key={entry.id} role="listitem" variant="outline">
                       <ItemHeader>
-                        <ItemTitle>下载 {index + 1}</ItemTitle>
+                        <ItemTitle>
+                          {t("entry", { number: index + 1 })}
+                        </ItemTitle>
                         <ItemActions>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            aria-label={`移除下载 ${index + 1}`}
+                            aria-label={t("removeEntry", { number: index + 1 })}
                             disabled={entries.length <= 1 || running}
                             onClick={() => removeEntry(index, entry.id)}
                           >
@@ -495,7 +501,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                               className="w-full"
                             >
                               <ProgressLabel>{progress.label}</ProgressLabel>
-                              <span className="ml-auto text-xs/relaxed tabular-nums text-muted-foreground">
+                              <span className="ml-auto text-sm/relaxed tabular-nums text-muted-foreground">
                                 {progress.detail ?? `${progress.percent}%`}
                               </span>
                             </Progress>
@@ -514,7 +520,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                             />
                           ) : (
                             <Alert variant="destructive">
-                              <AlertTitle>下载失败</AlertTitle>
+                              <AlertTitle>{t("failed")}</AlertTitle>
                               <AlertDescription>
                                 {state.error}
                                 {state.errorVideo && (
@@ -523,7 +529,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                                     <VideoLink
                                       href={`/video/${state.errorVideo.id}`}
                                     >
-                                      查看
+                                      {t("view")}
                                     </VideoLink>
                                   </>
                                 )}
@@ -536,7 +542,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                         <ItemFooter className="flex-col items-stretch">
                           <Alert>
                             <CheckCircle2Icon />
-                            <AlertTitle>视频已录入</AlertTitle>
+                            <AlertTitle>{t("added")}</AlertTitle>
                             <AlertDescription>
                               <VideoLink
                                 href={`/video/${state.result.videoId}`}
@@ -544,11 +550,11 @@ export function DownloadQueue<TFields extends object, TProgress>({
                                 {state.result.title}
                               </VideoLink>
                               {state.result.truncated && (
-                                <span>（磁盘文件名已截断）</span>
+                                <span>{t("truncated")}</span>
                               )}
                               {state.result.duplicates.length > 0 && (
                                 <span>
-                                  时长与文件大小接近的视频：
+                                  {t("duplicates")}
                                   {state.result.duplicates.map((match) => (
                                     <VideoLink
                                       key={match.id}
@@ -559,7 +565,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                               )}
                               {state.result.similar.length > 0 && (
                                 <span>
-                                  名称与以下视频相近：
+                                  {t("similarNames")}
                                   {state.result.similar.map((match) => (
                                     <VideoLink
                                       key={match.id}
@@ -573,7 +579,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                           {state.result.autoTagSuggestions.length > 0 && (
                             <Alert>
                               <SparklesIcon />
-                              <AlertTitle>自动标记建议</AlertTitle>
+                              <AlertTitle>{t("suggestions")}</AlertTitle>
                               <AlertDescription className="flex flex-col gap-2">
                                 <AutoTagSuggestionList
                                   suggestions={state.result.autoTagSuggestions}
@@ -598,7 +604,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                                     }
                                   >
                                     <CheckIcon data-icon="inline-start" />
-                                    全部接受
+                                    {t("acceptAll")}
                                   </AcceptButton>
                                   <Button
                                     type="button"
@@ -613,7 +619,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
                                     }
                                   >
                                     <XIcon data-icon="inline-start" />
-                                    全部跳过
+                                    {t("skipAll")}
                                   </Button>
                                 </div>
                               </AlertDescription>
@@ -645,7 +651,7 @@ export function DownloadQueue<TFields extends object, TProgress>({
             }}
           >
             <PlusIcon data-icon="inline-start" />
-            增加
+            {t("add")}
           </Button>
           <form.Subscribe selector={(state) => state.values.entries}>
             {(entries) => {
@@ -656,8 +662,10 @@ export function DownloadQueue<TFields extends object, TProgress>({
                 <Button type="submit" disabled={running || remaining === 0}>
                   {running && <Spinner data-icon="inline-start" />}
                   {running
-                    ? "下载中"
-                    : `开始下载${remaining > 1 ? ` (${remaining})` : ""}`}
+                    ? t("downloading")
+                    : remaining > 1
+                      ? t("startMany", { count: remaining })
+                      : t("start")}
                 </Button>
               );
             }}
