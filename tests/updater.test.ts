@@ -4,9 +4,19 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mock, test } from "node:test";
-import { GET, POST } from "../app/api/system/update/route";
+import english from "../messages/en.json";
+
+// Route handlers read translations from the Next request, which a plain Node
+// test does not have. The messages themselves are the real English ones.
+mock.module("next-intl/server", {
+  namedExports: {
+    getTranslations: async (namespace: keyof typeof english) => (key: string) =>
+      (english[namespace] as Record<string, string>)[key],
+  },
+});
 
 test("the update API uses the local service and only installs a newer release", async () => {
+  const { GET, POST } = await import("../app/api/system/update/route");
   const directory = mkdtempSync(join(tmpdir(), "ella-updater-test-"));
   const socket = join(directory, "control.sock");
   const oldSocket = process.env.ELLA_UPDATER_SOCKET;
