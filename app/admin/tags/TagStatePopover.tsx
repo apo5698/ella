@@ -47,6 +47,7 @@ export default function TagStatePopover({
   onChanged: () => Promise<void>;
 }) {
   const t = useTranslations("TagState");
+  const common = useTranslations("Common");
   const labels = useTranslations("TagLabels");
   const states = state === "automatic" ? ALL_STATES : HUMAN_STATES;
   const [open, setOpen] = useState(false);
@@ -159,7 +160,7 @@ export default function TagStatePopover({
           ))}
         </RadioGroup>
         {categoryBlocked && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t("categoryBlocked")}
           </p>
         )}
@@ -181,7 +182,7 @@ export default function TagStatePopover({
             disabled={busy}
             onClick={() => handleOpenChange(false)}
           >
-            {t("cancel")}
+            {common("cancel")}
           </Button>
           <Button
             type="button"
@@ -193,7 +194,7 @@ export default function TagStatePopover({
             }
             onClick={() => changeState()}
           >
-            {t("apply")}
+            {common("apply")}
           </Button>
         </div>
       </PopoverContent>

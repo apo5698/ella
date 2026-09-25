@@ -24,6 +24,7 @@ const LOG_LIMIT = 200;
 
 export default function RecognitionSettings() {
   const t = useTranslations("Recognition");
+  const navigation = useTranslations("Navigation");
   const logText = useTranslations("JobLog");
   const errorText = useTranslations("Api");
   const locale = useLocale();
@@ -137,7 +138,7 @@ export default function RecognitionSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            {t("title")}
+            {navigation("recognition")}
             <HelpTip side="right">{t("description")}</HelpTip>
           </CardTitle>
         </CardHeader>
@@ -222,7 +223,7 @@ export default function RecognitionSettings() {
               </Button>
             )}
             {job && !job.running && job.finishedAt && (
-              <span className="text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {t("exit", { code: job.exitCode ?? 0 })}
               </span>
             )}
@@ -232,8 +233,10 @@ export default function RecognitionSettings() {
 
           {job && job.log.length > 0 && (
             <div>
-              <div className="mb-1.5 text-muted-foreground">{t("logs")}</div>
-              <pre className="h-72 overflow-auto rounded-lg bg-muted p-3 leading-relaxed whitespace-pre-wrap">
+              <div className="mb-1.5 text-xs text-muted-foreground">
+                {t("logs")}
+              </div>
+              <pre className="h-72 overflow-auto rounded-lg bg-muted p-3 text-xs leading-relaxed whitespace-pre-wrap">
                 {job.log
                   .slice(-60)
                   .map((entry) =>

@@ -7,8 +7,13 @@ import { ChevronDownIcon, ChevronUpIcon, ListChecksIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
+import { presentDownloadProgress } from "@/components/admin/downloadProgress";
 import { taskRatio, useTaskQueue } from "@/hooks/useTaskQueue";
 import type { Job } from "@/lib/jobs";
+import type {
+  DownloadJobPayload,
+  DownloadProgress,
+} from "@/lib/utilities/downloadTypes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,15 +27,15 @@ import { cn } from "@/lib/utils";
 
 export default function TaskDock() {
   const t = useTranslations("TaskDock");
-  const { jobs, active, running } = useTaskQueue();
+  const { jobs, active } = useTaskQueue();
   const [collapsed, setCollapsed] = useState(false);
 
   const failed = jobs.filter((job) => job.status === "failed");
   if (active.length === 0 && failed.length === 0) return null;
 
-  const queued = active.length - (running ? 1 : 0);
-  const ratio = running ? taskRatio(running) : null;
-  const runningMessage = running ? formatJob(t, running) : null;
+  // Downloads run alongside library work, so several can be running at once.
+  const running = active.filter((job) => job.status === "running");
+  const queued = active.length - running.length;
 
   return (
     <div
@@ -40,7 +45,11 @@ export default function TaskDock() {
       )}
     >
       <div className="flex items-center gap-2 px-3 py-2">
-        {running ? <Spinner /> : <ListChecksIcon className="size-4" />}
+        {running.length > 0 ? (
+          <Spinner />
+        ) : (
+          <ListChecksIcon className="size-4" />
+        )}
         <span className="text-sm font-medium">
           {active.length > 0
             ? t("active", { count: active.length })
@@ -58,30 +67,10 @@ export default function TaskDock() {
       </div>
 
       {!collapsed && (
-        <div className="flex flex-col gap-2 border-t px-3 py-2 text-sm text-muted-foreground">
-          {running && (
-            <div className="flex flex-col gap-1">
-              <span
-                className="truncate text-foreground"
-                title={runningMessage?.body}
-              >
-                {runningMessage?.body}
-              </span>
-              <Progress
-                value={ratio === null ? null : Math.round(ratio * 100)}
-                aria-label={t("progress", {
-                  title: runningMessage?.title ?? "",
-                })}
-                className="gap-1"
-              >
-                {running.total > 0 && (
-                  <span className="ml-auto tabular-nums">
-                    {running.processed} / {running.total}
-                  </span>
-                )}
-              </Progress>
-            </div>
-          )}
+        <div className="flex flex-col gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+          {running.map((job) => (
+            <RunningTask key={job.id} job={job} />
+          ))}
 
           {queued > 0 && <span>{t("queued", { count: queued })}</span>}
           {failed.length > 0 && (
@@ -102,20 +91,65 @@ export default function TaskDock() {
   );
 }
 
+function RunningTask({ job }: { job: Job }) {
+  const t = useTranslations("TaskDock");
+  const fields = useTranslations("DownloadFields");
+  const downloads = useTranslations("Downloads");
+  const notifications = useTranslations("Notifications");
+  const body = describeJob(t, job);
+  // The notification a task ends in already names its kind.
+  const title = notifications(`types.${job.kind}.label`);
+  const download =
+    job.kind === "VIDEO_DOWNLOAD"
+      ? presentDownloadProgress(
+          job.progress as DownloadProgress | null,
+          fields,
+          downloads("preparing"),
+        )
+      : null;
+  const ratio = download
+    ? download.percent === null
+      ? null
+      : download.percent / 100
+    : taskRatio(job);
+  const detail = download
+    ? download.detail
+    : job.total > 0
+      ? `${job.processed} / ${job.total}`
+      : null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="truncate text-foreground" title={body}>
+        {body}
+      </span>
+      <Progress
+        value={ratio === null ? null : Math.round(ratio * 100)}
+        aria-label={t("progress", { title })}
+        className="gap-1"
+      >
+        {download && <span>{download.label}</span>}
+        {detail && <span className="ml-auto tabular-nums">{detail}</span>}
+      </Progress>
+    </div>
+  );
+}
+
 function stringValue(job: Job, key: string, fallback: string) {
   return typeof job.payload[key] === "string" ? job.payload[key] : fallback;
 }
 
-function formatJob(
+/** What the task is doing, with the values its payload carries. */
+function describeJob(
   t: ReturnType<typeof useTranslations<"TaskDock">>,
   job: Job,
 ) {
-  const values = {
+  return t(`kinds.${job.kind}`, {
     tagName: stringValue(job, "tagName", ""),
     videoTitle: stringValue(job, "videoTitle", ""),
-  };
-  return {
-    title: t(`kinds.${job.kind}.title`),
-    body: t(`kinds.${job.kind}.body`, values),
-  };
+    name:
+      job.kind === "VIDEO_DOWNLOAD"
+        ? (job.payload as DownloadJobPayload).name
+        : "",
+  });
 }

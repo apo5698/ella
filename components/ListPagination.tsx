@@ -39,7 +39,7 @@ export default function ListPagination({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 text-sm text-foreground",
+        "flex flex-wrap items-center gap-2 text-xs text-muted-foreground",
         className,
       )}
     >
@@ -68,7 +68,7 @@ export default function ListPagination({
 
       <span
         className={cn(
-          "text-sm font-medium tabular-nums text-foreground",
+          "text-xs tabular-nums text-muted-foreground",
           pageSize && "ml-auto",
         )}
       >

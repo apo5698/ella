@@ -24,7 +24,7 @@ services:
 
     volumes:
       # Change this to the absolute video directory on the Docker host.
-      - /absolute/path/to/videos:/videos:ro
+      - /absolute/path/to/videos:/videos:rw
       - ./data:/app/data
       - ./thumbs:/app/public/thumbs
 

@@ -70,6 +70,7 @@ export default function TagAutocomplete({
   inputId?: string;
 }) {
   const t = useTranslations("Autocomplete");
+  const common = useTranslations("Common");
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -152,7 +153,7 @@ export default function TagAutocomplete({
       setQuery("");
       return;
     }
-    // Held to the same rule the server applies, so t("create")x"" shows the
+    // Held to the same rule the server applies, so common("create")x"" shows the
     // name that will actually be stored.
     setQuery(normalizeNameInput(next));
   }
@@ -212,7 +213,7 @@ export default function TagAutocomplete({
                   </span>
                 ) : (
                   <span className="flex min-w-0 flex-1 items-center gap-1">
-                    {item.isNew && <span>{t("create")}</span>}
+                    {item.isNew && <span>{common("create")}</span>}
                     {optionBadge(item)}
                   </span>
                 )}

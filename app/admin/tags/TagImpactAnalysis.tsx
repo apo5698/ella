@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { useEffect, useState } from "react";
+import { ListTreeIcon } from "lucide-react";
 import Link from "next/link";
 import VideoLink from "@/components/VideoLink";
 import { InlineTagBadge, TagBadge } from "@/components/tags/TagBadge";
@@ -89,6 +90,7 @@ function AffectedVideosDialog({
   videos: TagImpact["videos"];
 }) {
   const t = useTranslations("Impact");
+  const common = useTranslations("Common");
   if (videos.length === 0) return <span>{label}</span>;
 
   return (
@@ -107,7 +109,7 @@ function AffectedVideosDialog({
         <DialogHeader>
           <DialogTitle>{t("videoTitle")}</DialogTitle>
           <DialogDescription>
-            {t("total", { count: videos.length })}
+            {common("totalVideos", { count: videos.length })}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden pr-3 [&_[data-slot=scroll-area-viewport]]:overflow-x-hidden">
@@ -251,16 +253,27 @@ export default function TagImpactAnalysis({
   }, [JSON.stringify(request)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <FieldGroup className={cn("min-h-0 min-w-0 flex-1", className)}>
+    <FieldGroup
+      role="region"
+      aria-label={t("title")}
+      className={cn(
+        "min-h-0 min-w-0 flex-1 rounded-lg border border-border/70 bg-muted/40 p-3",
+        className,
+      )}
+    >
       <Field className="min-h-0 min-w-0 flex-1">
-        <FieldLabel>
+        <FieldLabel className="gap-2">
+          <ListTreeIcon
+            className="size-3.5 text-muted-foreground"
+            aria-hidden="true"
+          />
           {t("title")}
           {loading && <Spinner />}
         </FieldLabel>
 
         {impact && (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-            <ul className="flex shrink-0 list-disc flex-col gap-1 pl-4 text-sm/relaxed text-foreground">
+            <ul className="flex shrink-0 list-disc flex-col gap-1 pl-4 text-xs/relaxed text-muted-foreground">
               {impact.facts.map((fact, index) => (
                 <ImpactFactMessage
                   key={`${fact.kind}-${index}`}

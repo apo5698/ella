@@ -6,6 +6,7 @@ export const DOWNLOADER_SOURCES = [
     name: "source",
     description: "sourceDescription",
   },
+  { slug: "sykb", name: "sykb", description: "sykbDescription" },
 ] as const;
 
 export type DownloaderSource = (typeof DOWNLOADER_SOURCES)[number]["slug"];
@@ -15,7 +16,7 @@ export const UTILITY_MODULES = [
     slug: "downloader",
     name: "downloader",
     description: "downloadDescription",
-    href: `/admin/utilities/downloader?source=${DOWNLOADER_SOURCES[0].slug}`,
+    href: "/admin/utilities/downloader",
     icon: DownloadIcon,
   },
 ] as const;

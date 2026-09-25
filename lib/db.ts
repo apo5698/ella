@@ -67,11 +67,12 @@ CREATE TABLE background_jobs (
   kind TEXT NOT NULL CHECK (kind = upper(kind)),
   payload TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(payload)),
   status TEXT NOT NULL DEFAULT 'queued' CHECK (
-    status IN ('queued', 'running', 'succeeded', 'failed', 'canceled')
+    status IN ('pending', 'queued', 'running', 'succeeded', 'failed', 'canceled')
   ),
   processed INTEGER NOT NULL DEFAULT 0,
   total INTEGER NOT NULL DEFAULT 0,
   outcome TEXT CHECK (outcome IS NULL OR json_valid(outcome)),
+  progress TEXT CHECK (progress IS NULL OR json_valid(progress)),
   created_at INTEGER NOT NULL,
   started_at INTEGER,
   finished_at INTEGER
@@ -227,6 +228,48 @@ if (!videoColumns.some((c) => c.name === "thumbnail_sec")) {
 if (videoColumns.some((c) => c.name === "source_url")) {
   db.exec("DROP INDEX IF EXISTS idx_videos_source");
   db.exec("ALTER TABLE videos DROP COLUMN source_url");
+}
+
+// Structured progress for tasks whose state is richer than a count, such as
+// a download moving from transfer to extraction.
+const jobColumns = db.prepare("PRAGMA table_info(background_jobs)").all() as {
+  name: string;
+}[];
+if (!jobColumns.some((c) => c.name === "progress")) {
+  db.exec(
+    "ALTER TABLE background_jobs ADD COLUMN progress TEXT CHECK (progress IS NULL OR json_valid(progress))",
+  );
+}
+
+// 'pending' is a task parked until someone starts it. SQLite cannot alter a
+// CHECK constraint, so a table from before it existed is rebuilt.
+const jobsTableSql = (
+  db
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'background_jobs'",
+    )
+    .get() as { sql: string }
+).sql;
+if (!jobsTableSql.includes("'pending'")) {
+  db.transaction(() => {
+    db.exec(
+      BACKGROUND_JOBS_TABLE_SQL.replace(
+        "background_jobs",
+        "background_jobs_next",
+      ),
+    );
+    db.exec(`
+      INSERT INTO background_jobs_next (
+        id, kind, payload, status, processed, total, outcome, progress,
+        created_at, started_at, finished_at
+      )
+      SELECT id, kind, payload, status, processed, total, outcome, progress,
+        created_at, started_at, finished_at
+      FROM background_jobs;
+      DROP TABLE background_jobs;
+      ALTER TABLE background_jobs_next RENAME TO background_jobs;
+    `);
+  })();
 }
 
 const videoTagColumns = db.prepare("PRAGMA table_info(video_tags)").all() as {

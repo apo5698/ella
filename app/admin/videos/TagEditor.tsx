@@ -30,6 +30,7 @@ export default function TagEditor({
   onChange?: (state: VideoTagState) => void;
 }) {
   const t = useTranslations("TagEditor");
+  const common = useTranslations("Common");
   const labels = useTranslations("TagLabels");
   const [tags, setTags] = useState<VideoDetailTag[]>(initialTags);
   const [rejected, setRejected] = useState<string[]>(initialRejected);
@@ -102,7 +103,7 @@ export default function TagEditor({
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
-        <FieldLabel htmlFor="video-series">{t("series")}</FieldLabel>
+        <FieldLabel htmlFor="video-series">{common("series")}</FieldLabel>
         {/* One series per video, so the input gives way once one is set. */}
         {series ? (
           <div className="flex flex-wrap gap-1">
@@ -119,7 +120,7 @@ export default function TagEditor({
             endpoint="/api/series/suggest"
             kind="series"
             mode="single"
-            placeholder={t("setSeries")}
+            placeholder={common("setSeries")}
             onSelect={(name) => setSeriesName(name)}
             className="w-56"
             inputId="video-series"
@@ -171,7 +172,7 @@ export default function TagEditor({
             </div>
           ))}
           {tags.length === 0 && (
-            <span className="text-muted-foreground">{t("empty")}</span>
+            <span className="text-muted-foreground">{common("noTags")}</span>
           )}
         </div>
       </section>

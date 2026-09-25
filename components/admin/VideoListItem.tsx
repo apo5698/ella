@@ -57,7 +57,7 @@ export default function VideoListItem({
             {video.title}
           </VideoLink>
         </ItemTitle>
-        <p className="flex flex-wrap items-center gap-y-0.5 text-sm text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-y-0.5 text-xs text-muted-foreground">
           <span>
             {t("duration")} {formatDuration(video.duration_sec)}
           </span>

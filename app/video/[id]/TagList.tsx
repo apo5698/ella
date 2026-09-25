@@ -18,7 +18,7 @@ export default function TagList({
 }) {
   const t = useTranslations("Common");
   if (!series && tags.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("noTags")}</p>;
+    return <p className="text-xs text-muted-foreground">{t("noTags")}</p>;
   }
 
   // Tags of one family sit closer together than the space between families,

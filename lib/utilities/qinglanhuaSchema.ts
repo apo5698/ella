@@ -4,33 +4,33 @@ import english from "@/messages/en.json";
 
 export const QINGLANHUA_DEFAULT_PASSWORD = "qinglanhua.net";
 
-type Translate = (key: keyof typeof english.DownloadValidation) => string;
+type Translate = (key: keyof typeof english.Api) => string;
 const defaultTranslate = createTranslator({
   locale: "en",
   messages: english,
-  namespace: "DownloadValidation",
+  namespace: "Api",
 });
 
 export function createQinglanhuaDownloadSchema(
   t: Translate = defaultTranslate,
 ) {
   return z.object({
-    name: z.string().trim().min(1, t("nameRequired")),
+    name: z.string().trim().min(1, t("downloadNameRequired")),
     url: z
       .string()
       .trim()
       .superRefine((value, ctx) => {
         if (!value) {
-          ctx.addIssue({ code: "custom", message: t("urlRequired") });
+          ctx.addIssue({ code: "custom", message: t("downloadUrlRequired") });
           return;
         }
         if (!URL.canParse(value)) {
-          ctx.addIssue({ code: "custom", message: t("urlInvalid") });
+          ctx.addIssue({ code: "custom", message: t("downloadUrlInvalid") });
           return;
         }
         const protocol = new URL(value).protocol;
         if (protocol !== "http:" && protocol !== "https:") {
-          ctx.addIssue({ code: "custom", message: t("urlProtocol") });
+          ctx.addIssue({ code: "custom", message: t("downloadProtocol") });
         }
       }),
     password: z.string().default(QINGLANHUA_DEFAULT_PASSWORD),

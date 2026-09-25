@@ -30,6 +30,7 @@ export default function VideoDeleteDialog({
   onDeleted: () => void;
 }) {
   const t = useTranslations("VideoDelete");
+  const common = useTranslations("Common");
   const DELETE_OPTIONS: {
     mode: DeleteMode;
     label: string;
@@ -121,11 +122,11 @@ export default function VideoDeleteDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("cancel")}
+            {common("cancel")}
           </Button>
           <Button variant="destructive" onClick={remove} disabled={deleting}>
             <Trash2Icon />
-            {deleting ? t("deleting") : t("delete")}
+            {deleting ? t("deleting") : common("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

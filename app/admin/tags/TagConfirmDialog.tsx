@@ -37,7 +37,7 @@ export default function TagConfirmDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {
-  const t = useTranslations("TagManager");
+  const common = useTranslations("Common");
   return (
     <Dialog open onOpenChange={onOpenChange}>
       {/* A column rather than the default grid, so the impact panel can be
@@ -52,10 +52,10 @@ export default function TagConfirmDialog({
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>
-            {t("cancel")}
+            {common("cancel")}
           </DialogClose>
           <Button variant={confirmVariant} onClick={onConfirm}>
-            {confirmLabel ?? t("delete")}
+            {confirmLabel ?? common("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

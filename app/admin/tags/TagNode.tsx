@@ -64,6 +64,7 @@ export default function TagNode({
   onStateChanged: () => Promise<void>;
 }) {
   const t = useTranslations("TagNode");
+  const tagActions = useTranslations("TagActions");
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
   const isBlocked = drag.active && drag.blocked.has(node.id);
@@ -125,7 +126,7 @@ export default function TagNode({
 
               {/* The parent's number covers its whole subtree, which is what
                   selecting it on the home page returns. */}
-              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                 {!node.assignable
                   ? node.totalCount
                   : hasChildren && node.totalCount !== node.count
@@ -164,7 +165,7 @@ export default function TagNode({
             variant="ghost"
             size="icon-sm"
             onClick={() => onDelete(node)}
-            title={t("delete")}
+            title={tagActions("delete")}
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2Icon />

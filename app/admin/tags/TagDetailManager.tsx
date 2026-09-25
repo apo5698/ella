@@ -82,6 +82,8 @@ export default function TagDetailManager({
   tagListHref: string;
 }) {
   const t = useTranslations("TagDetail");
+  const common = useTranslations("Common");
+  const tagActions = useTranslations("TagActions");
   const router = useRouter();
   const [name, setName] = useState(node.name);
   const [parentId, setParentId] = useState<number | null>(node.parentId);
@@ -134,7 +136,7 @@ export default function TagDetailManager({
     const response = await fetch(url, init);
     if (response.ok) return true;
     const data = await response.json().catch(() => ({}));
-    setError(data.error ?? t("failed"));
+    setError(data.error ?? common("operationFailed"));
     return false;
   }
 
@@ -226,7 +228,7 @@ export default function TagDetailManager({
     const ok = await call(`/api/tags/${node.id}`, { method: "DELETE" });
     if (!ok) return;
     toast.success(
-      t.rich("deleted", {
+      tagActions.rich("deleted", {
         name: node.name,
         tag: (children) => (
           <InlineTagBadge state={node.reviewState}>{children}</InlineTagBadge>
@@ -250,14 +252,14 @@ export default function TagDetailManager({
               disabled={saving || !trimmedName || classificationBlocked}
             >
               {saving && <Spinner data-icon="inline-start" />}
-              {saving ? t("saving") : t("save")}
+              {saving ? common("saving") : common("save")}
             </Button>
           </CardAction>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="tag-name">{t("name")}</FieldLabel>
+              <FieldLabel htmlFor="tag-name">{common("name")}</FieldLabel>
               <Input
                 id="tag-name"
                 value={name}
@@ -267,7 +269,7 @@ export default function TagDetailManager({
             </Field>
 
             <Field>
-              <FieldLabel>{t("parent")}</FieldLabel>
+              <FieldLabel>{tagActions("parent")}</FieldLabel>
               <div className="flex items-center gap-2">
                 {parentName ? (
                   <RemovableTagBadge
@@ -277,7 +279,7 @@ export default function TagDetailManager({
                     }
                     removeLabel={t("removeParent", { name: parentName })}
                     onClick={() => setParentId(null)}
-                    title={t("moveRoot")}
+                    title={tagActions("moveRoot")}
                   >
                     {parentName}
                   </RemovableTagBadge>
@@ -348,7 +350,7 @@ export default function TagDetailManager({
                   />
                   <FieldContent>
                     <FieldLabel htmlFor="tag-excluded">
-                      {t("exclude")}
+                      {tagActions("exclude")}
                     </FieldLabel>
                     <FieldDescription>{t("excludeHelp")}</FieldDescription>
                   </FieldContent>
@@ -393,7 +395,7 @@ export default function TagDetailManager({
             onClick={() => setConfirmingDelete(true)}
           >
             <Trash2Icon data-icon="inline-start" />
-            {t("delete")}
+            {tagActions("delete")}
           </Button>
         </CardFooter>
       </Card>
@@ -459,7 +461,7 @@ export default function TagDetailManager({
 
       {confirmingDelete && (
         <TagConfirmDialog
-          title={t.rich("deleteNamed", {
+          title={tagActions.rich("deleteNamed", {
             name: node.name,
             tag: (children) => (
               <InlineTagBadge state={node.reviewState}>
@@ -523,10 +525,10 @@ export default function TagDetailManager({
           )}
           <DialogFooter className="shrink-0">
             <DialogClose render={<Button variant="outline" />}>
-              {t("cancel")}
+              {common("cancel")}
             </DialogClose>
             <Button variant="destructive" onClick={mergeIn}>
-              {t("merge")}
+              {tagActions("merge")}
             </Button>
           </DialogFooter>
         </DialogContent>
