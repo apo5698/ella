@@ -87,7 +87,7 @@ export default function FrameSettingsCard() {
   const t = useTranslations("Frames");
   const locale = useLocale();
   const languageItems = [
-    { value: "auto", label: t("languageAutomatic") },
+    { value: "auto", label: t("automatic") },
     { value: "en", label: t("languageEnglish") },
     { value: "zh-CN", label: t("languageChinese") },
   ];
@@ -179,7 +179,9 @@ export default function FrameSettingsCard() {
           {t("title")}
           <HelpTip side="right">{t("help")}</HelpTip>
           {saving && (
-            <span className="ml-auto text-muted-foreground">{t("saving")}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {t("saving")}
+            </span>
           )}
         </CardTitle>
       </CardHeader>
@@ -205,12 +207,13 @@ export default function FrameSettingsCard() {
                 }}
               >
                 <SelectTrigger
+                  className="w-40"
                   aria-labelledby="tag-language-label"
                   aria-describedby="tag-language-help"
                 >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-40" alignItemWithTrigger={false}>
                   <SelectGroup>
                     {languageItems.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
@@ -400,7 +403,7 @@ export default function FrameSettingsCard() {
                   );
                 })}
               </div>
-              <div className="leading-relaxed text-muted-foreground">
+              <div className="text-xs leading-relaxed text-muted-foreground">
                 {t("estimateHelp")}
               </div>
             </div>

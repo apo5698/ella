@@ -185,7 +185,7 @@ export default function VideoPlayer({
           )}
         </MediaPlayer>
       )}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <TvMinimalPlayIcon className="size-3" /> {views}
         </span>

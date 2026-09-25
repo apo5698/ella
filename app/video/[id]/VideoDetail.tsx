@@ -80,7 +80,7 @@ export default function VideoDetail({
     <div className="flex flex-col gap-2">
       <div className="mt-2 mb-4 min-w-0">
         <h1 className="break-all text-2xl font-semibold">{video.title}</h1>
-        <p className="text-sm text-muted-foreground">id={video.id}</p>
+        <p className="text-xs text-muted-foreground">id={video.id}</p>
       </div>
 
       <VideoPlayer

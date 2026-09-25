@@ -83,6 +83,7 @@ export default function VideoEditDialog({
   onTagStateChange: (state: VideoTagState) => void;
 }) {
   const t = useTranslations("VideoEdit");
+  const common = useTranslations("Common");
   const pathSchema = z.string().trim().min(1, t("pathRequired"));
   // Whether a file sits at the typed path, which drives the mark inside the
   // input. Seeded from the server so it is right before anything is typed.
@@ -175,7 +176,9 @@ export default function VideoEditDialog({
                 <form.Field name="title" validators={{ onChange: titleSchema }}>
                   {(field) => (
                     <Field>
-                      <FieldLabel htmlFor="video-title">{t("name")}</FieldLabel>
+                      <FieldLabel htmlFor="video-title">
+                        {common("name")}
+                      </FieldLabel>
                       <Input
                         id="video-title"
                         value={field.state.value}
@@ -338,7 +341,7 @@ export default function VideoEditDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            {t("cancel")}
+            {common("cancel")}
           </Button>
           <form.Subscribe
             selector={(s) => [s.canSubmit, s.isSubmitting] as const}
@@ -349,7 +352,7 @@ export default function VideoEditDialog({
                 form={FORM_ID}
                 disabled={!canSubmit || isSubmitting}
               >
-                {isSubmitting ? t("saving") : t("save")}
+                {isSubmitting ? common("saving") : common("save")}
               </Button>
             )}
           </form.Subscribe>

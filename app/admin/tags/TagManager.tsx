@@ -130,6 +130,8 @@ export default function TagManager({
   initialSort: TagSort;
 }) {
   const t = useTranslations("TagManager");
+  const common = useTranslations("Common");
+  const tagActions = useTranslations("TagActions");
   const sortText = useTranslations("TagSort");
   const labels = useTranslations("TagLabels");
   const router = useRouter();
@@ -478,7 +480,7 @@ export default function TagManager({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      const message = data.error ?? t("failed");
+      const message = data.error ?? common("operationFailed");
       // Shown in the dialog when one is open, and as a toast when the failure
       // came from a drop.
       setError(message);
@@ -501,7 +503,7 @@ export default function TagManager({
       return;
     }
     toast.success(
-      t.rich("deletedTag", {
+      tagActions.rich("deleted", {
         name: node.name,
         tag: (children) => (
           <InlineTagBadge state={node.reviewState}>{children}</InlineTagBadge>
@@ -677,7 +679,7 @@ export default function TagManager({
             updatePaginationUrl(1, pageSize, "replace", { sort: value });
           }}
         >
-          <SelectTrigger aria-label={t("sort")}>
+          <SelectTrigger aria-label={common("sort")}>
             <SelectValue>
               {(value: TagSort) => sortText(TAG_SORT_LABELS[value])}
             </SelectValue>
@@ -768,14 +770,14 @@ export default function TagManager({
               size="sm"
               onClick={() => openBatch("delete")}
             >
-              {t("delete")}
+              {common("delete")}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelected(new Set())}
             >
-              {t("deselect")}
+              {common("deselectAll")}
             </Button>
           </div>
         </div>
@@ -885,7 +887,7 @@ export default function TagManager({
             </DialogTitle>
           </DialogHeader>
           <Field>
-            <FieldLabel htmlFor="new-tag-name">{t("name")}</FieldLabel>
+            <FieldLabel htmlFor="new-tag-name">{common("name")}</FieldLabel>
             <Input
               id="new-tag-name"
               value={newName}
@@ -918,10 +920,10 @@ export default function TagManager({
           </Field>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setCreating(false)}>
-              {t("cancel")}
+              {common("cancel")}
             </Button>
             <Button onClick={create} disabled={!newName.trim()}>
-              {t("create")}
+              {common("create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -943,7 +945,7 @@ export default function TagManager({
 
           {batch === "parent" && (
             <Field className="mt-4">
-              <FieldLabel>{t("parent")}</FieldLabel>
+              <FieldLabel>{tagActions("parent")}</FieldLabel>
               <TagAutocomplete
                 endpoint="/api/tags/suggest"
                 mode="single"
@@ -961,7 +963,7 @@ export default function TagManager({
                 className="mt-2 self-start"
                 onClick={() => setPicked({ name: null })}
               >
-                {t("moveRoot")}
+                {tagActions("moveRoot")}
               </Button>
             </Field>
           )}
@@ -990,10 +992,10 @@ export default function TagManager({
 
           <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setBatch(null)}>
-              {t("cancel")}
+              {common("cancel")}
             </Button>
             <Button disabled={busy || picked === null} onClick={applyBatch}>
-              {batch === "merge" ? t("merge") : t("move")}
+              {batch === "merge" ? tagActions("merge") : t("move")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1004,7 +1006,7 @@ export default function TagManager({
       {deleting && (
         <TagConfirmDialog
           key={deleting.id}
-          title={t.rich("deleteTag", {
+          title={tagActions.rich("deleteNamed", {
             name: deleting.name,
             tag: (children) => (
               <InlineTagBadge state={deleting.reviewState}>

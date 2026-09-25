@@ -44,6 +44,7 @@ export default function VideoRowActions({
   onDeleted: (videoId: number) => void;
 }) {
   const t = useTranslations("VideoActions");
+  const common = useTranslations("Common");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -137,7 +138,7 @@ export default function VideoRowActions({
               onClick={() => setDeleteOpen(true)}
             >
               <Trash2Icon />
-              {t("delete")}
+              {common("delete")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>

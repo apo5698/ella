@@ -43,6 +43,7 @@ export default function TagVideoList({
   initialTotal: number;
 }) {
   const t = useTranslations("TagVideos");
+  const common = useTranslations("Common");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -91,7 +92,8 @@ export default function TagVideoList({
     fetch(`/api/videos?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? t("loadFailed"));
+        if (!response.ok)
+          throw new Error(data.error ?? common("loadVideosFailed"));
         setVideos(data.videos);
         setTotal(data.total);
       })
@@ -104,7 +106,7 @@ export default function TagVideoList({
       });
 
     return () => controller.abort();
-  }, [debouncedQuery, page, pageSize, refreshEpoch, requestKey, tagId, t]);
+  }, [debouncedQuery, page, pageSize, refreshEpoch, requestKey, tagId, common]);
 
   function updateUrl(
     nextQuery: string,
@@ -194,7 +196,7 @@ export default function TagVideoList({
       pageSize={{
         value: pageSize,
         options: MANAGER_PAGE_SIZES,
-        label: t("pageSize"),
+        label: common("videosPerPage"),
         onChange: changePageSize,
       }}
     />
@@ -223,15 +225,15 @@ export default function TagVideoList({
           placeholder={t("search")}
         />
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Checkbox
             checked={allSelected}
             indeterminate={someSelected}
             onCheckedChange={togglePage}
-            aria-label={t("selectPage")}
+            aria-label={common("selectPage")}
           />
           <button type="button" className="cursor-pointer" onClick={togglePage}>
-            {t("selectPage")}
+            {common("selectPage")}
           </button>
           <div className="ml-auto">{pagination}</div>
         </div>
@@ -243,7 +245,7 @@ export default function TagVideoList({
             <EmptyHeader>
               <EmptyTitle>{t("empty")}</EmptyTitle>
               <EmptyDescription>
-                {query ? t("noMatches") : t("noAssignments")}
+                {query ? common("noMatchingVideos") : t("noAssignments")}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

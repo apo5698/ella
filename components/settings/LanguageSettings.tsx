@@ -57,13 +57,14 @@ export default function LanguageSettings() {
           }}
         >
           <SelectTrigger
+            className="w-40"
             aria-labelledby="language-title"
             aria-describedby="language-description"
             aria-busy={pending}
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="w-40" alignItemWithTrigger={false}>
             <SelectGroup>
               {items.map((item) => (
                 <SelectItem key={item.value} value={item.value}>

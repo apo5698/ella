@@ -86,6 +86,9 @@ export default function AutoTagDialog({
   onCommitted: () => void;
 }) {
   const t = useTranslations("AutoTags");
+  const common = useTranslations("Common");
+  const suggestionText = useTranslations("SuggestionActions");
+  const errors = useTranslations("Api");
   const [open, setOpen] = useState(false);
   const [filenamePrefix, setFilenamePrefix] = useState(true);
   const [filenameManualTag, setFilenameManualTag] = useState(true);
@@ -112,7 +115,7 @@ export default function AutoTagDialog({
     if (!filenameRegex) return { error: "", valid: false };
     if (!regexPattern.trim()) {
       return {
-        error: regexHadValue ? t("regexRequired") : "",
+        error: regexHadValue ? errors("regexRequired") : "",
         valid: false,
       };
     }
@@ -120,9 +123,9 @@ export default function AutoTagDialog({
       new RegExp(regexPattern.trim(), "u");
       return { error: "", valid: true };
     } catch {
-      return { error: t("regexInvalid"), valid: false };
+      return { error: errors("invalidRegex"), valid: false };
     }
-  }, [filenameRegex, regexHadValue, regexPattern, t]);
+  }, [filenameRegex, regexHadValue, regexPattern, errors]);
 
   useEffect(
     () => () => {
@@ -252,7 +255,7 @@ export default function AutoTagDialog({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error ?? t("scanFailed"));
+        throw new Error(data.error ?? errors("scanFailed"));
       }
       if (!response.body) throw new Error(t("streamUnavailable"));
 
@@ -318,7 +321,8 @@ export default function AutoTagDialog({
       }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? t("reviewFailed"));
+    if (!response.ok)
+      throw new Error(data.error ?? suggestionText("reviewFailed"));
     return data.names as string[];
   }
 
@@ -329,7 +333,7 @@ export default function AutoTagDialog({
     try {
       const names = await postAccept(group, selected);
       drop(selected);
-      toast.success(t("accepted", { count: names.length }));
+      toast.success(suggestionText("accepted", { count: names.length }));
       onCommitted();
     } catch (cause) {
       toast.error((cause as Error).message);
@@ -370,7 +374,7 @@ export default function AutoTagDialog({
     setAcceptingAll(false);
 
     if (accepted > 0) {
-      toast.success(t("accepted", { count: accepted }));
+      toast.success(suggestionText("accepted", { count: accepted }));
       onCommitted();
     }
     if (failures > 0) {
@@ -381,7 +385,7 @@ export default function AutoTagDialog({
   /** Nothing is written: a later scan is free to suggest it again. */
   function skip(selected: AutoTagSuggestion[]) {
     drop(selected);
-    toast.success(t("skipped", { count: selected.length }));
+    toast.success(suggestionText("skipped", { count: selected.length }));
   }
 
   return (
@@ -555,7 +559,7 @@ export default function AutoTagDialog({
               <ProgressLabel>
                 {running ? t("scanning") : t("progress")}
               </ProgressLabel>
-              <span className="ml-auto text-sm/relaxed tabular-nums text-muted-foreground">
+              <span className="ml-auto text-xs/relaxed tabular-nums text-muted-foreground">
                 {processed} / {total}
               </span>
             </Progress>
@@ -630,7 +634,7 @@ export default function AutoTagDialog({
                             onClick={() => accept(group, group.suggestions)}
                           >
                             <CheckIcon data-icon="inline-start" />
-                            {t("acceptAll")}
+                            {suggestionText("acceptAll")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -640,7 +644,7 @@ export default function AutoTagDialog({
                             onClick={() => skip(group.suggestions)}
                           >
                             <XIcon data-icon="inline-start" />
-                            {t("skipAll")}
+                            {suggestionText("skipAll")}
                           </Button>
                         </ItemActions>
                       </Item>
@@ -666,7 +670,7 @@ export default function AutoTagDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => changeOpen(false)}>
-              {t("close")}
+              {common("close")}
             </Button>
             {suggestions.length > 0 && (
               <AcceptButton
@@ -697,7 +701,7 @@ export default function AutoTagDialog({
               ) : (
                 <SparklesIcon data-icon="inline-start" />
               )}
-              {running ? t("running") : started ? t("rescan") : t("start")}
+              {running ? t("scanning") : started ? t("rescan") : t("start")}
             </Button>
           </DialogFooter>
         </DialogContent>

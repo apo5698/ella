@@ -52,3 +52,7 @@ next-env.d.ts
 
 # temporary verification workspaces
 /tmp/
+
+# Baidu account credentials
+pcs_config.json
+/data/baidupcs/

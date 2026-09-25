@@ -87,6 +87,8 @@ function BatchTagDialog({
   onApplied: (message: React.ReactNode) => void;
 }) {
   const t = useTranslations("VideoManager");
+  const common = useTranslations("Common");
+  const tagLabels = useTranslations("TagLabels");
   const [tags, setTags] = useState<TagOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -142,7 +144,7 @@ function BatchTagDialog({
 
         <FieldGroup>
           <Field>
-            <FieldLabel>{t("tags")}</FieldLabel>
+            <FieldLabel>{common("tags")}</FieldLabel>
             <TagAutocomplete
               endpoint="/api/tags/suggest?assignable=1"
               mode="multi"
@@ -168,7 +170,7 @@ function BatchTagDialog({
                 key={tag.name}
                 state={adding ? "approved" : tag.reviewState}
                 removeLabel={t("removeNamed", { name: tag.name })}
-                title={adding ? t("approved") : t("removeSelection")}
+                title={adding ? tagLabels("approved") : t("removeSelection")}
                 onClick={() =>
                   setTags((current) =>
                     current.filter((item) => item.name !== tag.name),
@@ -185,11 +187,11 @@ function BatchTagDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            {t("cancel")}
+            {common("cancel")}
           </Button>
           <Button disabled={tags.length === 0 || submitting} onClick={apply}>
             {submitting && <Spinner data-icon="inline-start" />}
-            {submitting ? t("updating") : t("apply")}
+            {submitting ? t("updating") : common("apply")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -211,6 +213,7 @@ function BatchSeriesDialog({
   onApplied: (message: React.ReactNode) => void;
 }) {
   const t = useTranslations("VideoManager");
+  const common = useTranslations("Common");
   const [name, setName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -269,7 +272,7 @@ function BatchSeriesDialog({
 
         <FieldGroup>
           <Field>
-            <FieldLabel>{t("series")}</FieldLabel>
+            <FieldLabel>{common("series")}</FieldLabel>
             {name ? (
               <div className="flex flex-wrap gap-1">
                 <RemovableSeriesBadge
@@ -296,7 +299,7 @@ function BatchSeriesDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            {t("cancel")}
+            {common("cancel")}
           </Button>
           <Button
             variant="outline"
@@ -307,7 +310,7 @@ function BatchSeriesDialog({
           </Button>
           <Button disabled={!name || submitting} onClick={() => apply(name)}>
             {submitting && <Spinner data-icon="inline-start" />}
-            {submitting ? t("updating") : t("apply")}
+            {submitting ? t("updating") : common("apply")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -376,7 +379,7 @@ function SortableTableHead({
             ? "descending"
             : "none"
       }
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-xs text-muted-foreground", className)}
     >
       <Button
         variant="ghost"
@@ -443,6 +446,7 @@ function VideoTable({
   onSort: (sort: string) => void;
 }) {
   const t = useTranslations("VideoManager");
+  const common = useTranslations("Common");
   const locale = useLocale();
   const currentIds = useMemo(() => videos.map((video) => video.id), [videos]);
   const allSelected =
@@ -455,16 +459,16 @@ function VideoTable({
       <Table className="table-fixed">
         <TableHeader className="bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]">
           <TableRow>
-            <TableHead className="w-12 text-sm text-muted-foreground">
+            <TableHead className="w-12 text-xs text-muted-foreground">
               <Checkbox
                 checked={allSelected}
                 indeterminate={someSelected}
                 onCheckedChange={() => onTogglePage(currentIds, !allSelected)}
-                aria-label={t("selectPage")}
+                aria-label={common("selectPage")}
               />
             </TableHead>
             <SortableTableHead
-              label={t("name")}
+              label={common("name")}
               sort={sort}
               values={HEADER_SORTS.title}
               onSort={onSort}
@@ -477,14 +481,14 @@ function VideoTable({
               className="hidden w-[clamp(5rem,7vw,6rem)] lg:table-cell"
             />
             <SortableTableHead
-              label={t("views")}
+              label={common("views")}
               sort={sort}
               values={HEADER_SORTS.views}
               onSort={onSort}
               className="hidden w-[clamp(5rem,7vw,6rem)] lg:table-cell"
             />
             <SortableTableHead
-              label={t("size")}
+              label={common("size")}
               sort={sort}
               values={HEADER_SORTS.size}
               onSort={onSort}
@@ -497,7 +501,7 @@ function VideoTable({
               onSort={onSort}
               className="hidden w-[clamp(6rem,10vw,8rem)] sm:table-cell"
             />
-            <TableHead className="sticky right-0 z-10 w-12 bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] text-sm text-muted-foreground">
+            <TableHead className="sticky right-0 z-10 w-12 bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] text-xs text-muted-foreground">
               <span className="sr-only">{t("actions")}</span>
             </TableHead>
           </TableRow>
@@ -527,7 +531,9 @@ function VideoTable({
                       onCheckedChange={(value) =>
                         onToggleVideo(video.id, value === true)
                       }
-                      aria-label={t("selectVideo", { title: video.title })}
+                      aria-label={common("selectVideo", {
+                        title: video.title,
+                      })}
                     />
                   </TableCell>
                   <TableCell className="whitespace-normal">
@@ -537,9 +543,9 @@ function VideoTable({
                         target="_blank"
                         rel="noreferrer"
                         aria-label={t("openVideo", { title: video.title })}
-                        className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-sm text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                        className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-xs text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
                       >
-                        <span aria-hidden="true">{t("noThumbnail")}</span>
+                        <span aria-hidden="true">{common("noThumbnail")}</span>
                         {video.thumbnail && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -633,24 +639,24 @@ function VideoTable({
                             </div>
                           )}
                         </div>
-                        <span className="truncate text-sm text-muted-foreground">
-                          {videoResolution(video) ?? t("unknown")}
+                        <span className="truncate text-xs text-muted-foreground">
+                          {videoResolution(video) ?? common("unknown")}
                         </span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground tabular-nums lg:table-cell">
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
                     {video.clicks.toLocaleString(locale)}
                   </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground tabular-nums lg:table-cell">
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
                     {video.views.toLocaleString(locale)}
                   </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground tabular-nums sm:table-cell">
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums sm:table-cell">
                     {video.size_bytes
                       ? formatSize(video.size_bytes)
-                      : t("unknown")}
+                      : common("unknown")}
                   </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
+                  <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
                     <LocalTime value={video.mtime} />
                   </TableCell>
                   <TableCell className="sticky right-0 z-10 bg-background text-right transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-data-[state=selected]:bg-muted">
@@ -672,6 +678,7 @@ function VideoTable({
 
 function VideoManagerContent() {
   const t = useTranslations("VideoManager");
+  const common = useTranslations("Common");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -768,7 +775,8 @@ function VideoManagerContent() {
     fetch(`/api/videos?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? t("loadFailed"));
+        if (!response.ok)
+          throw new Error(data.error ?? common("loadVideosFailed"));
         if (data.videos.length === 0 && data.total > 0 && page > 1) {
           setTotal(data.total);
           setPage(Math.max(1, Math.ceil(data.total / pageSize)));
@@ -795,7 +803,7 @@ function VideoManagerContent() {
     requestKey,
     sort,
     liveRefreshEpoch,
-    t,
+    common,
   ]);
 
   useEffect(() => {
@@ -945,7 +953,7 @@ function VideoManagerContent() {
         <TagAutocomplete
           endpoint="/api/tags/suggest?limit=30"
           mode="multi"
-          placeholder={t("filterTags")}
+          placeholder={common("filterTags")}
           allowCreate={false}
           disabledNames={filterTags.map((tag) => tag.name)}
           onSelect={(_, option) => addFilterTag(option)}
@@ -991,12 +999,14 @@ function VideoManagerContent() {
               setSelected(new Set());
             }}
           >
-            {t("clearFilters")}
+            {common("clearFilters")}
           </Button>
         </div>
       )}
 
-      <p className="text-sm text-foreground">{t("total", { count: total })}</p>
+      <p className="text-xs text-muted-foreground">
+        {common("totalVideos", { count: total })}
+      </p>
 
       {selected.size > 0 && (
         <div className="sticky top-2 flex flex-wrap items-center gap-2 rounded-lg border bg-card/90 px-3 py-2 shadow-sm backdrop-blur-xl">
@@ -1019,10 +1029,10 @@ function VideoManagerContent() {
             </Button>
             <Button variant="outline" onClick={() => setSeriesDialogOpen(true)}>
               <LibraryIcon data-icon="inline-start" />
-              {t("setSeries")}
+              {common("setSeries")}
             </Button>
             <Button variant="ghost" onClick={() => setSelected(new Set())}>
-              {t("deselect")}
+              {common("deselectAll")}
             </Button>
           </div>
         </div>
@@ -1063,7 +1073,7 @@ function VideoManagerContent() {
           pageSize={{
             value: pageSize,
             options: MANAGER_PAGE_SIZES,
-            label: t("pageSize"),
+            label: common("videosPerPage"),
             onChange: (nextPageSize) => {
               setPageSize(nextPageSize);
               setPage(1);

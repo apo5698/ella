@@ -11,9 +11,13 @@ import { UTILITY_MODULES } from "@/lib/utilities/registry";
 
 export default async function UtilitiesPage() {
   const t = await getTranslations("Utilities");
+  const navigation = await getTranslations("Navigation");
   return (
     <>
-      <AdminPageHeader title={t("title")} description={t("description")} />
+      <AdminPageHeader
+        title={navigation("utilities")}
+        description={t("description")}
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {UTILITY_MODULES.map((module) => {
           const Icon = module.icon;

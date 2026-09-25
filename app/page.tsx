@@ -57,6 +57,7 @@ function parseTagIds(raw: string | null): number[] {
 
 function HomeContent() {
   const t = useTranslations("Home");
+  const common = useTranslations("Common");
   const sortText = useTranslations("VideoSort");
   const router = useRouter();
   const pathname = usePathname();
@@ -219,11 +220,11 @@ function HomeContent() {
           <Popover>
             <PopoverTrigger render={<Button variant="outline" />}>
               <TagsIcon data-icon="inline-start" />
-              {t("tags")}
+              {common("tags")}
               {activeTagIds.length > 0 && ` (${activeTagIds.length})`}
             </PopoverTrigger>
             <PopoverContent align="start" className="max-w-[calc(100vw-3rem)]">
-              <PopoverTitle>{t("filterTags")}</PopoverTitle>
+              <PopoverTitle>{common("filterTags")}</PopoverTitle>
               <TagAutocomplete
                 endpoint="/api/tags/suggest?limit=30"
                 mode="multi"
@@ -241,12 +242,12 @@ function HomeContent() {
             </PopoverContent>
           </Popover>
           <Select value={sort} onValueChange={(v) => setSort(v as string)}>
-            <SelectTrigger aria-label={t("sort")}>
-              <SelectValue placeholder={t("sort")}>
+            <SelectTrigger aria-label={common("sort")}>
+              <SelectValue placeholder={common("sort")}>
                 {(v: string) =>
                   VIDEO_SORT_LABELS[v]
                     ? sortText(VIDEO_SORT_LABELS[v])
-                    : t("sort")
+                    : common("sort")
                 }
               </SelectValue>
             </SelectTrigger>
@@ -269,7 +270,7 @@ function HomeContent() {
                 setActiveSeriesId(null);
               }}
             >
-              {t("clearFilters")}
+              {common("clearFilters")}
             </Button>
           )}
         </div>
@@ -305,11 +306,11 @@ function HomeContent() {
           <LoadingSpinner />
         ) : (
           <>
-            <div className="mb-3 text-sm text-foreground">
-              {t("total", { count: total })}
+            <div className="mb-3 text-xs text-muted-foreground">
+              {common("totalVideos", { count: total })}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
               {videos.map((v) => (
                 <Card key={v.id} className="p-0 gap-0 overflow-hidden">
                   <VideoLink
@@ -328,7 +329,7 @@ function HomeContent() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          {t("noThumbnail")}
+                          {common("noThumbnail")}
                         </div>
                       )}
                       <div className="absolute bottom-1 right-1 flex gap-1">
@@ -349,10 +350,13 @@ function HomeContent() {
                       </div>
                     </div>
                     <div className="px-2.5 pt-2">
-                      <div className="text-sm truncate" title={v.title}>
+                      <div
+                        className="text-sm font-medium truncate"
+                        title={v.title}
+                      >
                         {v.title}
                       </div>
-                      <div className="mt-0.5 text-sm text-muted-foreground">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         {t("views", { count: v.views })}
                       </div>
                     </div>
@@ -394,7 +398,7 @@ function HomeContent() {
             {videos.length === 0 && (
               <Empty>
                 <EmptyHeader>
-                  <EmptyTitle>{t("empty")}</EmptyTitle>
+                  <EmptyTitle>{common("noMatchingVideos")}</EmptyTitle>
                   <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
                 </EmptyHeader>
               </Empty>

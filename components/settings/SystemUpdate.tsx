@@ -103,7 +103,7 @@ export default function SystemUpdate({
         latest.status === "available"
           ? ""
           : latest.status === "empty"
-            ? t("noUpdatesMessage")
+            ? t("noUpdates")
             : t("checkUnavailableMessage"),
       );
     } catch {
@@ -172,7 +172,7 @@ export default function SystemUpdate({
           <h2 className="text-sm font-medium">
             {APP_NAME} {displayedVersion}
           </h2>
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="status" className="text-xs text-muted-foreground">
             {description}
           </p>
         </div>
@@ -202,13 +202,13 @@ export default function SystemUpdate({
             href={release.url || RELEASES_URL}
             target="_blank"
             rel="noreferrer"
-            className="col-start-2 w-fit text-sm text-primary underline-offset-4 hover:underline"
+            className="col-start-2 w-fit text-xs text-primary underline-offset-4 hover:underline"
           >
             {t("releaseNotes")}
           </a>
         )}
         {newer && available === false && !pending && (
-          <p className="col-span-full text-sm text-muted-foreground">
+          <p className="col-span-full text-xs text-muted-foreground">
             {t("unsupported")}
           </p>
         )}

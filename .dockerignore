@@ -19,3 +19,7 @@ public/thumbs
 videos
 
 *.log
+
+# Never include Baidu account credentials in the build context.
+**/pcs_config.json
+data/baidupcs

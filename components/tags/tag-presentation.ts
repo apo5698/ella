@@ -6,7 +6,7 @@ export const SOURCE_STYLE: Record<string, string> = {
   vision: "bg-tag-vision text-tag-vision-foreground",
 };
 
-export const GLOBAL_STYLE = "rounded-sm";
+export const GLOBAL_STYLE = "rounded-sm text-xs/none";
 export const INLINE_STYLE = "align-baseline mx-1 px-1.5 h-4";
 export const ALIAS_STYLE = "border-dashed text-muted-foreground";
 export const SERIES_STYLE = "bg-series text-series-foreground";

@@ -8,6 +8,7 @@ import {
   AtSignIcon,
   CheckCheckIcon,
   CircleAlertIcon,
+  DownloadIcon,
   KeyRoundIcon,
   LibraryIcon,
   ShieldAlertIcon,
@@ -59,6 +60,10 @@ const TYPE_PRESENTATION: Record<
   },
   VIDEO_CATALOG_SCAN: {
     icon: LibraryIcon,
+    className: "bg-success/10 text-success",
+  },
+  VIDEO_DOWNLOAD: {
+    icon: DownloadIcon,
     className: "bg-success/10 text-success",
   },
   WARNING: {
@@ -130,7 +135,7 @@ function NotificationMeta({
       ? notification.payload.actor
       : t("system");
   return (
-    <span className="flex items-center gap-2 text-sm text-muted-foreground">
+    <span className="flex items-center gap-2 text-xs text-muted-foreground">
       <span>{actor}</span>
       <span aria-hidden="true">·</span>
       <LocalTime value={notification.createdAt} interactive={interactiveTime} />
@@ -209,7 +214,7 @@ function NotificationItem({
         <span
           ref={previewRef}
           className={cn(
-            "line-clamp-1 text-sm/relaxed font-normal text-muted-foreground group-data-open/notification:hidden",
+            "line-clamp-1 text-xs/relaxed font-normal text-muted-foreground group-data-open/notification:hidden",
             notification.type === "ERROR" && "text-destructive",
           )}
         >
@@ -326,6 +331,7 @@ export default function NotificationList({
   initialTotal: number;
 }) {
   const t = useTranslations("Notifications");
+  const navigation = useTranslations("Navigation");
   const common = useTranslations("Common");
   const queue = useTaskQueue();
   const notifications = queue.connected
@@ -365,7 +371,7 @@ export default function NotificationList({
     <>
       <div className="flex items-start justify-between gap-4">
         <AdminPageHeader
-          title={t("pageTitle")}
+          title={navigation("notificationCenter")}
           description={t("total", { count: total })}
         />
         <div className="pt-1">
@@ -393,7 +399,7 @@ export default function NotificationList({
             )}
           </TabsTrigger>
           <TabsTrigger value="system">
-            {t("system")}
+            {common("system")}
             <Badge variant="secondary">{total}</Badge>
           </TabsTrigger>
         </TabsList>
