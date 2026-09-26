@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, RotateCwIcon, SparklesIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import VideoLink from "@/components/VideoLink";
+import Link from "next/link";
 import AcceptButton from "@/components/AcceptButton";
 import { Code } from "@/components/Code";
 import { Badge } from "@/components/ui/badge";
@@ -603,7 +603,7 @@ export default function AutoTagDialog({
                         </ItemMedia>
                         <ItemContent className="min-w-0 basis-0 overflow-hidden">
                           <ItemTitle className="max-w-full">
-                            <VideoLink
+                            <Link
                               href={`/video/${group.videoId}`}
                               target="_blank"
                               rel="noreferrer"
@@ -611,7 +611,7 @@ export default function AutoTagDialog({
                               className="min-w-0 truncate pb-px underline-offset-2 hover:underline"
                             >
                               {group.videoTitle}
-                            </VideoLink>
+                            </Link>
                           </ItemTitle>
                           <ItemDescription className="max-w-full truncate">
                             {group.filename}

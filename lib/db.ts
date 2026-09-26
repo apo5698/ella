@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { DB_PATH } from "./config";
+import { backupBeforeUpgrade, recordAppVersion } from "./dbBackup";
 import { normalizeName } from "./names";
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -9,6 +10,10 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
+
+const backup = backupBeforeUpgrade(db, DB_PATH, process.env.APP_VERSION);
+if (backup)
+  console.log(`[db] Backed up the catalog before upgrading: ${backup}`);
 
 const tableExists = db.prepare(
   "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
@@ -600,5 +605,7 @@ BEGIN
      OR NEW.name LIKE '% %';
 END;
 `);
+
+recordAppVersion(db, process.env.APP_VERSION);
 
 export default db;

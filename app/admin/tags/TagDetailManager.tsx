@@ -74,12 +74,10 @@ export default function TagDetailManager({
   node,
   tagOptions,
   descendantIds,
-  tagListHref,
 }: {
   node: TagTreeNode;
   tagOptions: TagOption[];
   descendantIds: number[];
-  tagListHref: string;
 }) {
   const t = useTranslations("TagDetail");
   const common = useTranslations("Common");
@@ -421,11 +419,7 @@ export default function TagDetailManager({
                 <div key={child.id} role="listitem">
                   <Item
                     variant="outline"
-                    render={
-                      <Link
-                        href={`/admin/tags/${child.id}?from=${encodeURIComponent(tagListHref)}`}
-                      />
-                    }
+                    render={<Link href={`/admin/tags/${child.id}`} />}
                   >
                     <ItemContent>
                       <ItemTitle>

@@ -44,6 +44,14 @@ remain subject to Baidu account limits.
 Some upstream failures still return exit code 0. Ella also checks output,
 completion and both extraction results before importing.
 
+## Working files
+
+Downloads unpack in `work/` beside the catalog database, not in the system
+temporary directory, so kept files survive a container being recreated. Set
+`DOWNLOAD_WORK_DIR` to use another location, such as a larger disk. At startup
+Ella removes working files that no download refers to, which are those of
+downloads cut off by a restart.
+
 ## Advanced overrides
 
 Existing deployments may retain `BAIDUPCS_GO_PATH` and

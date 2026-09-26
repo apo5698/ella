@@ -814,12 +814,7 @@ export default function TagManager({
               drag={drag}
               onToggle={toggle}
               onSelect={select}
-              onEdit={(tag) => {
-                const from = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-                router.push(
-                  `/admin/tags/${tag.id}?from=${encodeURIComponent(from)}`,
-                );
-              }}
+              onEdit={(tag) => router.push(`/admin/tags/${tag.id}`)}
               onDelete={setDeleting}
               onStateChanged={refresh}
             />

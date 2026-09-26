@@ -193,6 +193,17 @@ export function deleteFinishedJobsOfKind(
     .run(kind).changes;
 }
 
+export function setJobPayload(
+  db: Database.Database,
+  id: number,
+  payload: JobPayload,
+) {
+  db.prepare("UPDATE background_jobs SET payload = ? WHERE id = ?").run(
+    JSON.stringify(payload),
+    id,
+  );
+}
+
 export function setJobOutcome(
   db: Database.Database,
   id: number,

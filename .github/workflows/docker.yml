@@ -47,6 +47,9 @@ jobs:
           bun run check:releases
           bun run check:updates
 
+      - name: Check formatting
+        run: bun run format:check
+
       - name: Check types
         run: |
           bunx next typegen

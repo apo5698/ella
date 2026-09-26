@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { DownloadIcon, SearchXIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import SearchInput from "@/components/SearchInput";
-import DownloadList, { downloadRequest } from "@/components/admin/DownloadList";
+import DownloadList from "@/components/admin/DownloadList";
+import { downloadRequest } from "@/components/admin/downloadRequest";
 import NewDownloadDialog from "@/components/admin/NewDownloadDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,23 +80,26 @@ export default function Downloader() {
           onValueChange={setQuery}
           placeholder={t("search")}
           aria-label={t("search")}
-          className="min-w-56 flex-1"
+          className="w-full sm:w-auto sm:flex-1"
         />
-        {!searching && hasFinished && (
-          <Button
-            variant="outline"
-            disabled={clearing}
-            onClick={() => void clearFinished()}
-          >
-            {clearing ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <Trash2Icon data-icon="inline-start" />
-            )}
-            {t("clearFinished")}
-          </Button>
-        )}
-        <NewDownloadDialog />
+        {/* On a phone the search takes the first line and these the next. */}
+        <div className="ml-auto flex items-center gap-2">
+          {!searching && hasFinished && (
+            <Button
+              variant="outline"
+              disabled={clearing}
+              onClick={() => void clearFinished()}
+            >
+              {clearing ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <Trash2Icon data-icon="inline-start" />
+              )}
+              {common("clear")}
+            </Button>
+          )}
+          <NewDownloadDialog />
+        </div>
       </div>
 
       {!data ? (

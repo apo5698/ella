@@ -11,10 +11,16 @@ export type LlmStatusResponse = {
   probe: LlmProbe;
 };
 
-/** Current settings, probed at the saved address. */
-export async function GET() {
-  const t = await getTranslations("Api");
+/**
+ * Current settings, probed at the saved address. `?probe=0` skips the probe:
+ * an address nothing listens on can take the whole timeout to answer, and
+ * the saved values are known at once.
+ */
+export async function GET(req: NextRequest) {
   const settings = getLlmSettings();
+  if (req.nextUrl.searchParams.get("probe") === "0")
+    return NextResponse.json({ settings });
+  const t = await getTranslations("Api");
   return NextResponse.json({
     settings,
     probe: localizeProbe(await probeLlm(settings.url), t),

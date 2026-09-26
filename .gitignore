@@ -56,3 +56,5 @@ next-env.d.ts
 # Baidu account credentials
 pcs_config.json
 /data/baidupcs/
+/data/work/
+/data/backups/

@@ -16,8 +16,12 @@ mock.module("next-intl/server", {
 });
 
 test("the update API uses the local service and only installs a newer release", async () => {
-  const { GET, POST } = await import("../app/api/system/update/route");
   const directory = mkdtempSync(join(tmpdir(), "ella-updater-test-"));
+  // The route reads the task queue, which must not be the library's own.
+  const oldDbPath = process.env.DB_PATH;
+  process.env.DB_PATH = join(directory, "catalog.db");
+  const { GET, POST } = await import("../app/api/system/update/route");
+  const db = (await import("../lib/db")).default;
   const socket = join(directory, "control.sock");
   const oldSocket = process.env.ELLA_UPDATER_SOCKET;
   const oldVersion = process.env.APP_VERSION;
@@ -70,6 +74,15 @@ test("the update API uses the local service and only installs a newer release", 
     );
     assert.equal((await POST(makeRequest("invalid"))).status, 403);
     assert.equal(requests.length, 0);
+    // A running task blocks the restart; nothing reaches the updater.
+    const running = db
+      .prepare(
+        "INSERT INTO background_jobs (kind, status, created_at) VALUES ('VIDEO_RETAG', 'running', ?)",
+      )
+      .run(Date.now()).lastInsertRowid;
+    assert.equal((await POST(makeRequest())).status, 409);
+    assert.equal(requests.length, 0);
+    db.prepare("DELETE FROM background_jobs WHERE id = ?").run(running);
     assert.equal((await POST(makeRequest())).status, 202);
     assert.deepEqual(requests, [{ version: "0.2.0" }]);
     process.env.APP_VERSION = "0.2.0";
@@ -78,7 +91,9 @@ test("the update API uses the local service and only installs a newer release", 
     assert.equal((await POST(makeRequest())).status, 409);
     assert.equal(requests.length, 1);
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    assert.equal((await (await GET()).json()).available, false);
+    const unavailable = await (await GET()).json();
+    assert.equal(unavailable.available, false);
+    assert.equal(unavailable.reason, "notRunning");
     process.env.APP_VERSION = "0.1.0";
     assert.equal((await POST(makeRequest())).status, 503);
   } finally {
@@ -88,6 +103,8 @@ test("the update API uses the local service and only installs a newer release", 
     else process.env.ELLA_UPDATER_SOCKET = oldSocket;
     if (oldVersion === undefined) delete process.env.APP_VERSION;
     else process.env.APP_VERSION = oldVersion;
+    if (oldDbPath === undefined) delete process.env.DB_PATH;
+    else process.env.DB_PATH = oldDbPath;
     rmSync(directory, { recursive: true, force: true });
   }
 });

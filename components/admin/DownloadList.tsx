@@ -9,6 +9,8 @@ import {
   CircleCheckIcon,
   CircleXIcon,
   ClockIcon,
+  EllipsisVerticalIcon,
+  FolderSearchIcon,
   PlayIcon,
   RotateCcwIcon,
   Trash2Icon,
@@ -17,21 +19,30 @@ import {
 import { toast } from "sonner";
 import AcceptButton from "@/components/AcceptButton";
 import LocalTime from "@/components/LocalTime";
-import VideoLink from "@/components/VideoLink";
+import Link from "next/link";
 import { presentDownloadProgress } from "@/components/admin/downloadProgress";
+import { downloadRequest } from "@/components/admin/downloadRequest";
+import DownloadInspectDialog from "@/components/admin/DownloadInspectDialog";
 import { AutoTagSuggestionList } from "@/components/tags/AutoTagSuggestionList";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
-  ItemFooter,
   ItemGroup,
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Progress, ProgressLabel } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import {
   autoTagSuggestionKey,
@@ -44,25 +55,6 @@ import type {
   ImportedDownloadResult,
 } from "@/lib/utilities/downloadTypes";
 import { DOWNLOADER_SOURCES } from "@/lib/utilities/registry";
-
-export async function downloadRequest(
-  url: string,
-  method: "POST" | "DELETE",
-  body?: unknown,
-) {
-  const response = await fetch(url, {
-    method,
-    ...(body === undefined
-      ? {}
-      : {
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error);
-  return data;
-}
 
 function StatusIcon({ job }: { job: DownloadListItem }) {
   switch (job.status) {
@@ -89,17 +81,29 @@ function RunningProgress({ job }: { job: DownloadListItem }) {
     t("preparing"),
   );
   return (
-    <Progress value={progress.percent} max={100} className="w-full">
-      <ProgressLabel>{progress.label}</ProgressLabel>
-      <span className="ml-auto text-xs/relaxed tabular-nums text-muted-foreground">
-        {[
-          progress.percent === null ? null : `${progress.percent}%`,
-          progress.detail,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </span>
-    </Progress>
+    <div className="flex w-full flex-col gap-1.5 text-xs/relaxed">
+      <div className="flex items-baseline gap-3">
+        <span className="font-medium">{progress.label}</span>
+        {progress.detail && (
+          <span className="ml-auto text-muted-foreground tabular-nums">
+            {progress.detail}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-3">
+        <Progress
+          value={progress.percent}
+          max={100}
+          aria-label={progress.label}
+          className="flex-1"
+        />
+        {progress.percent !== null && (
+          <span className="w-9 text-right text-muted-foreground tabular-nums">
+            {progress.percent}%
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -111,7 +115,7 @@ function StatusLine({ job }: { job: DownloadListItem }) {
     case "running":
       return null;
     case "queued":
-      return <span>{t("starting")}</span>;
+      return <span>{t("preparing")}</span>;
     case "pending":
       return (
         <span>
@@ -119,11 +123,7 @@ function StatusLine({ job }: { job: DownloadListItem }) {
         </span>
       );
     case "succeeded":
-      return (
-        <span>
-          {t("added")} · <LocalTime value={at} />
-        </span>
-      );
+      return <LocalTime value={at} />;
     case "canceled":
       return (
         <span>
@@ -140,9 +140,7 @@ function StatusLine({ job }: { job: DownloadListItem }) {
           {failure?.video && (
             <>
               {" "}
-              <VideoLink href={`/video/${failure.video.id}`}>
-                {t("view")}
-              </VideoLink>
+              <Link href={`/video/${failure.video.id}`}>{t("view")}</Link>
             </>
           )}
           {" · "}
@@ -166,10 +164,10 @@ function ImportNotes({ result }: { result: ImportedDownloadResult }) {
       <span key={key} className="flex flex-wrap gap-x-1">
         {label}
         {matches.map((match) => (
-          <VideoLink
+          <Link
             key={match.id}
             href={`/video/${match.id}`}
-          >{`"${match.title}"`}</VideoLink>
+          >{`"${match.title}"`}</Link>
         ))}
       </span>,
     );
@@ -259,28 +257,90 @@ function Suggestions({
   );
 }
 
-function RowAction({
-  label,
-  icon,
-  disabled,
-  onClick,
-}: {
+type RowActionItem = {
+  key: string;
   label: string;
   icon: ReactNode;
+  destructive?: boolean;
+  onSelect: () => void;
+};
+
+/**
+ * Icon buttons on a wide screen. On a phone they would take the width the
+ * name needs, so more than one folds into a menu.
+ */
+function RowActions({
+  actions,
+  disabled,
+}: {
+  actions: RowActionItem[];
   disabled: boolean;
-  onClick: () => void;
 }) {
-  return (
+  const t = useTranslations("Downloads");
+  const buttons = actions.map((action) => (
     <Button
+      key={action.key}
       variant="ghost"
       size="icon"
-      aria-label={label}
-      title={label}
+      aria-label={action.label}
+      title={action.label}
       disabled={disabled}
-      onClick={onClick}
+      onClick={action.onSelect}
     >
-      {icon}
+      {action.icon}
     </Button>
+  ));
+  if (actions.length <= 1) return buttons;
+  const regular = actions.filter((action) => !action.destructive);
+  const destructive = actions.filter((action) => action.destructive);
+  return (
+    <>
+      <div className="flex max-sm:hidden">{buttons}</div>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t("actions")}
+              disabled={disabled}
+              className="sm:hidden"
+            />
+          }
+        >
+          <EllipsisVerticalIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          {regular.length > 0 && (
+            <DropdownMenuGroup>
+              {regular.map((action) => (
+                <DropdownMenuItem key={action.key} onClick={action.onSelect}>
+                  {action.icon}
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          )}
+          {regular.length > 0 && destructive.length > 0 && (
+            <DropdownMenuSeparator />
+          )}
+          {destructive.length > 0 && (
+            <DropdownMenuGroup>
+              {destructive.map((action) => (
+                <DropdownMenuItem
+                  key={action.key}
+                  variant="destructive"
+                  onClick={action.onSelect}
+                >
+                  {action.icon}
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
 
@@ -289,6 +349,8 @@ function DownloadRow({ job }: { job: DownloadListItem }) {
   const common = useTranslations("Common");
   const utilities = useTranslations("Utilities");
   const [busy, setBusy] = useState(false);
+  const [inspecting, setInspecting] = useState(false);
+  const [inspectKey, setInspectKey] = useState(0);
   const { source, name, url } = job.payload;
   const sourceItem = DOWNLOADER_SOURCES.find((item) => item.slug === source);
   const result =
@@ -312,76 +374,98 @@ function DownloadRow({ job }: { job: DownloadListItem }) {
   }
 
   const start = `/api/admin/utilities/downloads/${job.id}/start`;
-  const remove = (
-    <RowAction
-      label={t("remove", { name })}
-      icon={<Trash2Icon />}
-      disabled={busy}
-      onClick={() => void act(`/api/tasks/${job.id}`, "DELETE")}
-    />
-  );
+  const inspectable =
+    job.status === "failed" &&
+    Boolean((job.outcome as { inspectable?: boolean } | null)?.inspectable);
+
+  // What can be done depends on where the download is. The same list feeds
+  // the row's icons on a wide screen and its menu on a phone.
+  const actions: RowActionItem[] = [];
+  if (job.status === "pending")
+    actions.push({
+      key: "start",
+      label: t("start"),
+      icon: <PlayIcon />,
+      onSelect: () => void act(start, "POST"),
+    });
+  if (inspectable)
+    actions.push({
+      key: "inspect",
+      label: t("inspect"),
+      icon: <FolderSearchIcon />,
+      onSelect: () => {
+        setInspectKey((key) => key + 1);
+        setInspecting(true);
+      },
+    });
+  if (job.status === "failed" || job.status === "canceled")
+    actions.push({
+      key: "retry",
+      label: t("retry"),
+      icon: <RotateCcwIcon />,
+      onSelect: () => void act(start, "POST"),
+    });
+  if (job.status === "running" || job.status === "queued")
+    actions.push({
+      key: "cancel",
+      label: common("cancel"),
+      icon: <XIcon />,
+      onSelect: () => void act(`/api/tasks/${job.id}/cancel`, "POST"),
+    });
+  else
+    actions.push({
+      key: "remove",
+      label: t("remove"),
+      icon: <Trash2Icon />,
+      destructive: true,
+      onSelect: () => void act(`/api/tasks/${job.id}`, "DELETE"),
+    });
+
+  const title = result?.videoId ? result.title : name;
 
   return (
-    <Item role="listitem" variant="outline">
-      <ItemMedia variant="icon">
+    <Item role="listitem" variant="outline" className="flex-nowrap items-start">
+      <ItemMedia variant="icon" className="mt-0.5">
         <StatusIcon job={job} />
       </ItemMedia>
       <ItemContent className="min-w-0">
-        <ItemTitle className="break-all">
+        <ItemTitle className="line-clamp-2 w-auto break-all" title={title}>
           {result?.videoId ? (
-            <VideoLink href={`/video/${result.videoId}`}>
-              {result.title}
-            </VideoLink>
+            <Link href={`/video/${result.videoId}`}>{title}</Link>
           ) : (
-            name
+            title
           )}
         </ItemTitle>
         <ItemDescription className="truncate text-xs">
           {sourceItem ? utilities(sourceItem.name) : source}
-          {url && ` · ${url}`}
+          {/* A share link says little on a phone once it is cut short. */}
+          {url && <span className="max-sm:hidden">{` · ${url}`}</span>}
         </ItemDescription>
         <div className="text-xs text-muted-foreground">
           <StatusLine job={job} />
         </div>
+        {job.status === "running" && (
+          <div className="pt-1">
+            <RunningProgress job={job} />
+          </div>
+        )}
+        {result?.videoId && (
+          <div className="flex flex-col gap-2 pt-1 empty:hidden">
+            <ImportNotes result={result} />
+            <Suggestions job={job} result={result} />
+          </div>
+        )}
       </ItemContent>
-      <ItemActions>
-        {job.status === "pending" && (
-          <RowAction
-            label={t("start", { name })}
-            icon={<PlayIcon />}
-            disabled={busy}
-            onClick={() => void act(start, "POST")}
-          />
-        )}
-        {(job.status === "failed" || job.status === "canceled") && (
-          <RowAction
-            label={t("retry", { name })}
-            icon={<RotateCcwIcon />}
-            disabled={busy}
-            onClick={() => void act(start, "POST")}
-          />
-        )}
-        {job.status === "running" || job.status === "queued" ? (
-          <RowAction
-            label={t("cancel", { name })}
-            icon={<XIcon />}
-            disabled={busy}
-            onClick={() => void act(`/api/tasks/${job.id}/cancel`, "POST")}
-          />
-        ) : (
-          remove
-        )}
+      <ItemActions className="-my-1 shrink-0 gap-0">
+        <RowActions actions={actions} disabled={busy} />
       </ItemActions>
-      {job.status === "running" && (
-        <ItemFooter>
-          <RunningProgress job={job} />
-        </ItemFooter>
-      )}
-      {result?.videoId && (
-        <ItemFooter className="flex-col items-stretch empty:hidden">
-          <ImportNotes result={result} />
-          <Suggestions job={job} result={result} />
-        </ItemFooter>
+      {inspectable && (
+        <DownloadInspectDialog
+          key={inspectKey}
+          jobId={job.id}
+          open={inspecting}
+          onOpenChange={setInspecting}
+        />
       )}
     </Item>
   );

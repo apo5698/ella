@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { deleteFinishedJob, getJob, notifyJobsChanged } from "@/lib/jobs";
+import { discardDownloadFiles } from "@/lib/utilities/downloadJobs";
 
 export const runtime = "nodejs";
 
@@ -20,5 +21,6 @@ export async function DELETE(
     return NextResponse.json({ error: t("taskActive") }, { status: 409 });
   }
   notifyJobsChanged();
+  if (job.kind === "VIDEO_DOWNLOAD") await discardDownloadFiles(job);
   return NextResponse.json({ ok: true });
 }

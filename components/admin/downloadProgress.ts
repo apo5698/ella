@@ -13,7 +13,13 @@ export function presentDownloadProgress(
   t: Translate,
   preparing: string,
 ): DownloadProgressPresentation {
-  if (!progress) return { label: preparing, percent: null };
+  // Until a byte arrives the transfer is still being set up: a share being
+  // saved to the account, a connection being opened.
+  if (
+    !progress ||
+    (progress.phase === "downloading" && progress.received === 0)
+  )
+    return { label: preparing, percent: null };
   if (progress.phase === "downloading") {
     const { received, total } = progress;
     return {
@@ -22,11 +28,8 @@ export function presentDownloadProgress(
         ? Math.min(100, Math.round((received / total) * 100))
         : null,
       detail: total
-        ? // formatSize renders zero as a placeholder, not as a size.
-          `${received > 0 ? formatSize(received) : "0 B"} / ${formatSize(total)}`
-        : received > 0
-          ? formatSize(received)
-          : null,
+        ? `${formatSize(received)} / ${formatSize(total)}`
+        : formatSize(received),
     };
   }
   if (progress.phase === "extracting") {

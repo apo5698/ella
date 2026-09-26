@@ -7,13 +7,22 @@ import { Loader2Icon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import HelpTip from "@/components/HelpTip";
 import { formatDurationText } from "@/lib/format";
 import LlmStatusCard from "@/components/LlmStatusCard";
 import FrameSettingsCard from "@/components/FrameSettingsCard";
 import type { JobEvent, JobState } from "@/lib/tagJob";
 import type { TagProgress } from "@/lib/types";
+import type { SettingsResponse } from "@/app/api/settings/route";
 
 /**
  * Mirrors the server's cap. Written out rather than imported because
@@ -21,6 +30,63 @@ import type { TagProgress } from "@/lib/types";
  * into the browser bundle.
  */
 const LOG_LIMIT = 200;
+
+/** The default of the new-download option that recognizes the import. */
+function RecognizeDownloadsField() {
+  const t = useTranslations("Recognition");
+  const [value, setValue] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/settings", { signal: controller.signal, cache: "no-store" })
+      .then((response) => response.json() as Promise<SettingsResponse>)
+      .then((data) => setValue(data.settings.recognizeDownloads))
+      .catch(() => {
+        // Leaves the switch disabled; the rest of the page still works.
+      });
+    return () => controller.abort();
+  }, []);
+
+  async function save(next: boolean) {
+    const previous = value;
+    setValue(next);
+    setSaving(true);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recognizeDownloads: next }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      const data: SettingsResponse = await response.json();
+      setValue(data.settings.recognizeDownloads);
+    } catch {
+      setValue(previous);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldLabel htmlFor="recognize-downloads">
+          {t("recognizeDownloads")}
+        </FieldLabel>
+        <FieldDescription>
+          {t("recognizeDownloadsDescription")}
+        </FieldDescription>
+      </FieldContent>
+      <Switch
+        id="recognize-downloads"
+        checked={value ?? false}
+        disabled={value === null || saving}
+        onCheckedChange={(next) => void save(next)}
+      />
+    </Field>
+  );
+}
 
 export default function RecognitionSettings() {
   const t = useTranslations("Recognition");
@@ -230,6 +296,9 @@ export default function RecognitionSettings() {
           </div>
 
           {error && <div className="text-sm text-destructive">{error}</div>}
+
+          <FieldSeparator />
+          <RecognizeDownloadsField />
 
           {job && job.log.length > 0 && (
             <div>

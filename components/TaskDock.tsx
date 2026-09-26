@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon, ListChecksIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -29,6 +29,26 @@ export default function TaskDock() {
   const t = useTranslations("TaskDock");
   const { jobs, active } = useTaskQueue();
   const [collapsed, setCollapsed] = useState(false);
+  const [dock, setDock] = useState<HTMLDivElement | null>(null);
+
+  // The dock floats over the page. While it shows, the page reserves its
+  // height at the bottom, so whatever it covers can still be scrolled clear
+  // of it; on a phone that is often the action a row ends in.
+  useEffect(() => {
+    if (!dock) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(([entry]) => {
+      root.style.setProperty(
+        "--task-dock-space",
+        `calc(${entry.borderBoxSize[0].blockSize}px + 2rem)`,
+      );
+    });
+    observer.observe(dock);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--task-dock-space");
+    };
+  }, [dock]);
 
   const failed = jobs.filter((job) => job.status === "failed");
   if (active.length === 0 && failed.length === 0) return null;
@@ -39,6 +59,7 @@ export default function TaskDock() {
 
   return (
     <div
+      ref={setDock}
       className={cn(
         "fixed right-4 bottom-4 z-40 w-72 max-w-11/12",
         "rounded-lg border bg-card/90 shadow-lg backdrop-blur-md",
@@ -73,7 +94,8 @@ export default function TaskDock() {
           ))}
 
           {queued > 0 && <span>{t("queued", { count: queued })}</span>}
-          {failed.length > 0 && (
+          {/* With nothing running, the header already gives this count. */}
+          {failed.length > 0 && active.length > 0 && (
             <span className="text-destructive">
               {t("failed", { count: failed.length })}
             </span>
