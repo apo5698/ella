@@ -1,10 +1,17 @@
 import { errorMessage } from "@/lib/appError";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import db from "@/lib/db";
-import { deleteFinishedJobsOfKind, notifyJobsChanged } from "@/lib/jobs";
+import {
+  deleteFinishedJobsOfKind,
+  listJobsOfKind,
+  notifyJobsChanged,
+} from "@/lib/jobs";
 import { enqueueDownload } from "@/lib/taskRunner";
 import { findDownloadConflict } from "@/lib/utilities/downloadImport";
-import { listDownloads } from "@/lib/utilities/downloadJobs";
+import {
+  discardDownloadFiles,
+  listDownloads,
+} from "@/lib/utilities/downloadJobs";
 import {
   DOWNLOAD_SCHEMAS,
   isDownloaderSource,
@@ -20,8 +27,12 @@ export async function GET(request: Request) {
 
 /** Clears settled downloads from the history. Videos are not touched. */
 export async function DELETE() {
+  const finished = listJobsOfKind(db, "VIDEO_DOWNLOAD").filter((job) =>
+    ["succeeded", "failed", "canceled"].includes(job.status),
+  );
   const count = deleteFinishedJobsOfKind(db, "VIDEO_DOWNLOAD");
   if (count > 0) notifyJobsChanged();
+  await Promise.all(finished.map(discardDownloadFiles));
   return Response.json({ ok: true, count });
 }
 
@@ -37,6 +48,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     source?: unknown;
     start?: unknown;
+    recognize?: unknown;
     fields?: unknown;
   } | null;
   if (!isDownloaderSource(body?.source)) {
@@ -67,6 +79,8 @@ export async function POST(request: Request) {
 
   const id = enqueueDownload(db, body.source, parsed.data, {
     start: body.start !== false,
+    recognize:
+      body.recognize === true ? { locale: await getLocale() } : undefined,
   });
   if (id === null) {
     return Response.json(

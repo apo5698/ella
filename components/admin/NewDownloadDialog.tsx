@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 
-import VideoLink from "@/components/VideoLink";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { diffChars, type Change } from "diff";
@@ -38,7 +37,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field";
 import {
   Item,
   ItemContent,
@@ -56,6 +60,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import type { SettingsResponse } from "@/app/api/settings/route";
 import type { VideoRef } from "@/lib/duplicates";
 import { DOWNLOAD_SCHEMAS } from "@/lib/utilities/downloadSchemas";
 import type { DownloadFailure } from "@/lib/utilities/downloadTypes";
@@ -116,9 +122,9 @@ function SimilarNameConflict({
             <ItemContent>
               <ItemTitle>{t("existing")}</ItemTitle>
               <ItemDescription className="line-clamp-none break-all">
-                <VideoLink href={`/video/${match.id}`} target="_blank">
+                <Link href={`/video/${match.id}`} target="_blank">
                   {match.title}
-                </VideoLink>
+                </Link>
               </ItemDescription>
             </ItemContent>
           </Item>
@@ -186,6 +192,25 @@ function useServiceSetup(
   return state.key === key ? state.value : "checking";
 }
 
+/** The Smartag page's default for recognizing downloads, read on each open. */
+function useRecognizeDefault(open: boolean) {
+  const [value, setValue] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    fetch("/api/settings", { signal: controller.signal, cache: "no-store" })
+      .then((response) => response.json() as Promise<SettingsResponse>)
+      .then((data) => setValue(data.settings.recognizeDownloads))
+      .catch(() => {
+        // Stays off, as the form would be without the option.
+      });
+    return () => controller.abort();
+  }, [open]);
+
+  return value;
+}
+
 /**
  * Creates one download. The source decides the rest of the form. The
  * request returns as soon as the task exists, and the transfer runs in the
@@ -211,10 +236,19 @@ export default function NewDownloadDialog() {
   const [submitting, setSubmitting] = useState<"now" | "pending" | null>(null);
   const service = DOWNLOAD_SOURCE_FORMS[source].service;
   const setup = useServiceSetup(service, open);
+  const recognizeDefault = useRecognizeDefault(open);
+  // Null until the user touches the switch, so the default shows through.
+  const [recognizeChoice, setRecognizeChoice] = useState<boolean | null>(null);
+  const recognize = recognizeChoice ?? recognizeDefault;
 
   const SourceFields = DOWNLOAD_SOURCE_FORMS[source].fields;
   const sourceItem = DOWNLOADER_SOURCES.find((item) => item.slug === source)!;
   const ready = setup === "ready";
+
+  function changeOpen(next: boolean) {
+    if (next) setRecognizeChoice(null);
+    setOpen(next);
+  }
 
   function reset(next: DownloaderSource) {
     setValues(DOWNLOAD_SOURCE_FORMS[next].createFields());
@@ -237,7 +271,7 @@ export default function NewDownloadDialog() {
       const response = await fetch("/api/admin/utilities/downloads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source, start, fields: values }),
+        body: JSON.stringify({ source, start, recognize, fields: values }),
       });
       if (!response.ok) {
         const data = (await response
@@ -266,8 +300,8 @@ export default function NewDownloadDialog() {
       : null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)}>
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <Button onClick={() => changeOpen(true)}>
         <PlusIcon data-icon="inline-start" />
         {t("new")}
       </Button>
@@ -366,6 +400,22 @@ export default function NewDownloadDialog() {
                   if (errors) validate(next);
                 }}
               />
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel htmlFor="download-recognize">
+                    {t("recognize")}
+                  </FieldLabel>
+                  <FieldDescription>
+                    {t("recognizeDescription")}
+                  </FieldDescription>
+                </FieldContent>
+                <Switch
+                  id="download-recognize"
+                  checked={recognize}
+                  disabled={submitting !== null}
+                  onCheckedChange={setRecognizeChoice}
+                />
+              </Field>
               {similar ? (
                 <SimilarNameConflict
                   requestedName={values.name}
@@ -380,9 +430,9 @@ export default function NewDownloadDialog() {
                       {failure.video && (
                         <>
                           {" "}
-                          <VideoLink href={`/video/${failure.video.id}`}>
+                          <Link href={`/video/${failure.video.id}`}>
                             {t("view")}
-                          </VideoLink>
+                          </Link>
                         </>
                       )}
                     </AlertDescription>

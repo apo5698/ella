@@ -7,8 +7,8 @@
     "system": "系统",
     "operationFailed": "操作失败，请重试。",
     "loading": "加载中",
-    "back": "返回",
     "help": "说明",
+    "clear": "清除",
     "clearSearch": "清空搜索",
     "previousPage": "上一页",
     "nextPage": "下一页",
@@ -40,7 +40,9 @@
     "selectPage": "全选当前页",
     "videosPerPage": "每页视频",
     "loadVideosFailed": "无法加载视频",
-    "deselectAll": "取消选择"
+    "deselectAll": "取消选择",
+    "expand": "展开",
+    "collapse": "收起"
   },
   "Navigation": {
     "home": "首页",
@@ -170,9 +172,19 @@
     "updateNow": "现在更新",
     "check": "检查更新",
     "releaseNotes": "关于此版本",
-    "unsupported": "此设备暂不支持直接更新。",
     "title": "软件更新",
-    "idle": ""
+    "idle": "",
+    "tasksRunning": "{count} 个后台任务正在运行",
+    "tasksRunningDescription": "更新会重启服务并中断正在运行的任务。排队中的任务会在更新后继续。",
+    "viewTasks": "查看任务",
+    "unavailable": {
+      "development": "开发环境不支持直接更新，请使用 git pull 获取新版本。",
+      "notInstalled": "未安装更新服务。直接更新需要以 Docker Compose 部署，并在宿主机运行 deploy/updater/install.sh。",
+      "notRunning": "更新服务未运行。请在宿主机执行 sudo systemctl start ella-updater。",
+      "permission": "Ella 无权访问更新服务。请在宿主机重新运行 deploy/updater/install.sh。",
+      "unreachable": "更新服务无响应。请在宿主机执行 sudo journalctl -u ella-updater 查看日志。"
+    },
+    "updateGuide": "更新说明"
   },
   "Home": {
     "title": "视频库",
@@ -519,7 +531,9 @@
     "description": "依据抽帧设置选取画面并生成标签。任务启动后修改设置不影响本次运行。",
     "tagged": "已识别 {count} / {total}",
     "remaining": "预计剩余 {duration}",
-    "exit": "上次任务已结束（退出码 {code}）"
+    "exit": "上次任务已结束（退出码 {code}）",
+    "recognizeDownloads": "下载入库后自动识别",
+    "recognizeDownloadsDescription": "新建下载时的默认选项。"
   },
   "ModelService": {
     "countdown": "距离下次测速",
@@ -690,9 +704,8 @@
     "existing": "已有视频",
     "requested": "待下载视频",
     "failed": "下载失败",
-    "preparing": "准备下载",
+    "preparing": "正在准备下载",
     "view": "查看",
-    "added": "视频已录入",
     "truncated": "（磁盘文件名已截断）",
     "duplicates": "时长与文件大小接近的视频：",
     "similarNames": "名称与以下视频相近：",
@@ -700,10 +713,8 @@
     "submitFailed": "无法创建下载任务",
     "empty": "暂无下载任务",
     "canceled": "已取消",
-    "cancel": "取消 {name}",
-    "retry": "重试 {name}",
-    "remove": "移除 {name}",
-    "clearFinished": "清除已结束",
+    "retry": "重试",
+    "remove": "移除",
     "new": "新建",
     "newDownload": "新建下载",
     "formDescription": "下载于后台运行，完成后录入媒体库。",
@@ -719,13 +730,22 @@
     "search": "搜索下载记录",
     "sectionPending": "待下载",
     "sectionFinished": "已结束",
-    "starting": "即将开始",
     "addedAt": "添加于",
-    "start": "开始下载 {name}",
+    "start": "开始",
     "startAll": "全部开始",
     "emptyDescription": "新建的下载显示于此",
     "emptySearch": "没有匹配的下载记录",
-    "limited": "显示 {total} 条中的前 {shown} 条，请缩小搜索范围。"
+    "limited": "显示 {total} 条中的前 {shown} 条，请缩小搜索范围。",
+    "inspect": "查看结构",
+    "inspectTitle": "压缩包结构",
+    "inspectDescription": "选择要入库的视频。",
+    "inspectTruncated": "仅显示前 5000 项。",
+    "inspectFailed": "无法读取下载内容",
+    "useFile": "使用此文件",
+    "importStarted": "已开始入库",
+    "actions": "操作",
+    "recognize": "入库后自动识别",
+    "recognizeDescription": "使用 Smartag 为该视频生成标签。"
   },
   "Api": {
     "baiduInstallUnsupported": "当前平台不支持自动安装，或手动指定的程序路径无效。",
@@ -735,9 +755,9 @@
     "baiduNotConfigured": "请先在服务器配置已登录的 BaiduPCS-Go 账号。",
     "baiduUnavailable": "无法运行 BaiduPCS-Go，请检查安装及程序路径。",
     "baiduDownloadFailed": "百度网盘下载失败，请检查分享、提取码、账号登录状态及网盘空间。",
-    "sykbArchiveStructure": "压缩包结构不符：外层 7z/zip 中只能有一个内层 7z/zip，内层只能有一个 MP4。",
+    "sykbArchiveStructure": "压缩包结构不符",
     "archiveDamaged": "解压失败，压缩包可能未下载完整、已损坏或需要解压密码。",
-    "archiveUnsupported": "仅支持 ZIP 和 7z 压缩包。",
+    "archiveUnsupported": "仅支持 ZIP、7z、tar 和 tar.gz 压缩包。",
     "archiveUnsafe": "压缩包包含链接或指向解压目录之外的路径，已拒绝。",
     "selectTarget": "请选择目标标签。",
     "selectMergeTags": "请选择要合并的标签。",
@@ -818,7 +838,10 @@
     "downloadUrlRequired": "请输入视频 URL。",
     "baiduUrlInvalid": "请输入以 https://pan.baidu.com/s/ 开头的分享链接。",
     "baiduCodeInvalid": "提取码必须是 4 位字母或数字。",
-    "invalidParameters": "下载参数无效。"
+    "invalidParameters": "下载参数无效。",
+    "updateBlockedByTasks": "{count} 个后台任务正在运行，请等待完成后再更新。",
+    "downloadSelectionInvalid": "所选文件已不在下载内容中。",
+    "downloadNotVideo": "所选文件不是视频。"
   },
   "JobLog": {
     "started": "待处理 {count} 个视频，模型 {model}，服务 {endpoint}。",

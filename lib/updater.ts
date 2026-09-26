@@ -8,6 +8,10 @@ export const updateStatusSchema = z.object({
 });
 export type UpdateStatus = z.infer<typeof updateStatusSchema>;
 
+/** Why the updater cannot be reached, so the page can say what to fix. */
+export type UpdaterUnavailableReason =
+  "development" | "notInstalled" | "notRunning" | "permission" | "unreachable";
+
 export function callUpdater(
   method: "GET" | "POST",
   version?: string,

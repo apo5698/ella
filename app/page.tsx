@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { TagsIcon } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import VideoLink from "@/components/VideoLink";
+import Link from "next/link";
 import PageContainer from "@/components/PageContainer";
 import { formatDuration } from "@/lib/format";
 import { SCROLL_KEY } from "@/lib/browserState";
@@ -313,7 +313,7 @@ function HomeContent() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
               {videos.map((v) => (
                 <Card key={v.id} className="p-0 gap-0 overflow-hidden">
-                  <VideoLink
+                  <Link
                     href={`/video/${v.id}`}
                     className="group block"
                     onClick={rememberScroll}
@@ -360,7 +360,7 @@ function HomeContent() {
                         {t("views", { count: v.views })}
                       </div>
                     </div>
-                  </VideoLink>
+                  </Link>
                   <div className="flex flex-wrap gap-1 px-2.5 pb-2.5 pt-1">
                     {/* The series always leads, so a card's origin reads first. */}
                     {v.series_id !== null && v.series_name && (

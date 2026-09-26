@@ -110,12 +110,48 @@ test("archive extraction and downloader integration use isolated fixtures", asyn
             if (layers.at(-1) !== layer) layers.push(layer);
           });
           assert.deepEqual(
-            await readFile(video),
+            await readFile(video.file),
             await readFile(path.join(fixture, "123.mp4")),
           );
+          assert.equal(video.extension, ".mp4");
           assert.deepEqual(layers, [1, 2]);
         });
       }
+    // The layout a real share used: a directory holding a tar.gz, holding a
+    // video with no extension at all.
+    await mkdir(path.join(fixture, "bare"));
+    await writeFile(
+      path.join(fixture, "bare", "492"),
+      await readFile(path.join(fixture, "123.mp4")),
+    );
+    execFileSync("tar", ["czf", "492.tar.gz", "-C", "bare", "492"], {
+      cwd: fixture,
+    });
+    execFileSync("tar", ["cf", "492.tar", "-C", "bare", "492"], {
+      cwd: fixture,
+    });
+    // Old V7 tar, as the real share used: no `ustar` magic in the header.
+    execFileSync(
+      "tar",
+      ["czf", "492-v7.tar.gz", "--format=v7", "-C", "bare", "492"],
+      { cwd: fixture },
+    );
+    await mkdir(path.join(fixture, "wrapped"));
+    for (const inner of ["492.tar.gz", "492.tar", "492-v7.tar.gz"]) {
+      await writeFile(
+        path.join(fixture, "wrapped", inner),
+        await readFile(path.join(fixture, inner)),
+      );
+    }
+    for (const inner of ["492.tar.gz", "492.tar", "492-v7.tar.gz"]) {
+      const archive = pack(`outer-${inner}.zip`, [`wrapped/${inner}`]);
+      await t.test(`zip -> directory -> ${inner} -> bare video`, async () => {
+        const work = await mkdtemp(path.join(root, "extract-"));
+        const video = await extractSykbVideo(archive, work, () => {});
+        assert.equal(path.basename(video.file), "492");
+        assert.equal(video.extension, ".mp4");
+      });
+    }
     await writeFile(path.join(fixture, "extra.txt"), "extra");
     const badArchives = [
       pack("single.zip", ["123.mp4"]),
@@ -270,6 +306,72 @@ if (args[0] === 'transfer') {
         await assert.rejects(readdir(trace.at(-1).directory), {
           code: "ENOENT",
         });
+      },
+    );
+    await t.test(
+      "a layout mismatch keeps the files for the user to choose from",
+      async () => {
+        const { RetainedDownloadError, importSelectedFile } =
+          await import("../lib/utilities/downloadInspect");
+        // A different video, so the library does not already hold it.
+        execFileSync("ffmpeg", [
+          "-v",
+          "error",
+          "-f",
+          "lavfi",
+          "-i",
+          "color=c=white:s=64x64:d=5",
+          "-c:v",
+          "mpeg4",
+          "-f",
+          "mp4",
+          path.join(fixture, "789"),
+        ]);
+        const archive = pack("mismatch.zip", ["789", "extra.txt"]);
+        const originalArchive = process.env.SYKB_TEST_ARCHIVE;
+        process.env.SYKB_TEST_ARCHIVE = archive;
+        let failure: InstanceType<typeof RetainedDownloadError> | undefined;
+        try {
+          await downloadSykb({ ...input, name: "Chosen video" });
+        } catch (error) {
+          failure = error as InstanceType<typeof RetainedDownloadError>;
+        } finally {
+          process.env.SYKB_TEST_ARCHIVE = originalArchive;
+        }
+        assert.ok(failure instanceof RetainedDownloadError);
+        assert.equal(failure.code, "sykbArchiveStructure");
+        const { retained } = failure;
+        assert.ok(retained.workspace.startsWith(path.join(root, "work")));
+        await readdir(retained.workspace);
+
+        const [outer] = retained.tree;
+        assert.equal(outer.kind, "archive");
+        const names = outer.children!.map((node) => [node.name, node.video]);
+        assert.deepEqual(names, [
+          ["789", ".mp4"],
+          ["extra.txt", null],
+        ]);
+        const text = outer.children!.find((node) => node.name === "extra.txt")!;
+        await assert.rejects(
+          importSelectedFile(
+            "Chosen video",
+            { ...retained, path: text.path },
+            () => {},
+          ),
+          (error) =>
+            error instanceof RetainedDownloadError &&
+            error.code === "downloadNotVideo",
+        );
+        await readdir(retained.workspace);
+
+        const video = outer.children!.find((node) => node.name === "789")!;
+        const result = await importSelectedFile(
+          "Chosen video",
+          { ...retained, path: video.path },
+          () => {},
+        );
+        assert.equal(result.filename, "Chosen video.mp4");
+        await assert.rejects(readdir(retained.workspace), { code: "ENOENT" });
       },
     );
     await t.test("cancel stops the transfer and cleans workspace", async () => {

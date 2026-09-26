@@ -34,18 +34,49 @@ export type DownloadProgress =
 
 export type DownloadProgressReporter = (progress: DownloadProgress) => void;
 
+/** One entry of a downloaded share, with nested archives opened. */
+export type ArchiveNode = {
+  name: string;
+  /** Relative to the task's workspace, with `/` separators. Identifies it. */
+  path: string;
+  kind: "directory" | "archive" | "file";
+  size: number;
+  /** The extension a video would be stored under; null when not a video. */
+  video: string | null;
+  /** Error code when an archive could not be opened. */
+  error?: string;
+  children?: ArchiveNode[];
+};
+
+export type DownloadInspection = {
+  tree: ArchiveNode[];
+  /** Set when the listing stopped at its size limit. */
+  truncated: boolean;
+};
+
+/**
+ * Files kept after a download whose layout the source did not expect, so the
+ * user can choose the video. Removed with the task, or on a fresh retry.
+ */
+export type RetainedDownload = DownloadInspection & { workspace: string };
+
 /** `background_jobs.payload` of a VIDEO_DOWNLOAD task. */
 export type DownloadJobPayload = {
   source: DownloaderSource;
   /** Top level so the queue can refuse a second active task of one name. */
   name: string;
   input: Record<string, unknown>;
+  /** A file chosen from a retained download, to import instead. */
+  selection?: RetainedDownload & { path: string };
+  /** Queue recognition of the imported video, in this interface locale. */
+  recognize?: { locale?: string };
 };
 
 /** `background_jobs.outcome` of a failed VIDEO_DOWNLOAD task. */
 export type DownloadJobFailure = {
   error: ErrorDetails;
   video?: VideoRef | null;
+  retained?: RetainedDownload;
 };
 
 export type DownloadProgressPresentation = {

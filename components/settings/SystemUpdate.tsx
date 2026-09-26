@@ -1,17 +1,23 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { GhostIcon, LoaderCircleIcon } from "lucide-react";
+import { GhostIcon, ListChecksIcon, LoaderCircleIcon } from "lucide-react";
 import { APP_NAME } from "@/lib/brand";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useTaskQueue } from "@/hooks/useTaskQueue";
 import {
   compareVersions,
   RELEASES_URL,
   type ReleaseStatus,
 } from "@/lib/releases";
-import type { UpdateStatus } from "@/lib/updater";
+import type { UpdaterUnavailableReason, UpdateStatus } from "@/lib/updater";
+
+const UPDATE_GUIDE_URL =
+  "https://github.com/apo5698/ella/blob/main/docs/updates.md";
 
 export default function SystemUpdate({
   currentVersion,
@@ -23,10 +29,16 @@ export default function SystemUpdate({
   const t = useTranslations("SystemUpdate");
   const [release, setRelease] = useState(initialRelease);
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [unavailableReason, setUnavailableReason] =
+    useState<UpdaterUnavailableReason>("unreachable");
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
   const [target, setTarget] = useState<string | null>(null);
+  // An update restarts the service, which would cut running tasks off.
+  const runningTasks = useTaskQueue().jobs.filter(
+    (job) => job.status === "running",
+  );
 
   useEffect(() => {
     let stopped = false;
@@ -43,9 +55,11 @@ export default function SystemUpdate({
           available: boolean;
           currentVersion: string;
           update: UpdateStatus | null;
+          reason?: UpdaterUnavailableReason;
         } = await response.json();
         if (stopped) return;
         setAvailable(data.available);
+        if (data.reason) setUnavailableReason(data.reason);
         if (data.update) {
           const active = ["pulling", "restarting"].includes(data.update.state);
           if (active) {
@@ -180,7 +194,9 @@ export default function SystemUpdate({
           className="col-span-2 sm:col-span-1"
           variant={newer ? "default" : "secondary"}
           onClick={() => void (newer ? update() : check())}
-          disabled={busy || (newer && available !== true)}
+          disabled={
+            busy || (newer && (available !== true || runningTasks.length > 0))
+          }
         >
           {busy && (
             <LoaderCircleIcon
@@ -207,9 +223,37 @@ export default function SystemUpdate({
             {t("releaseNotes")}
           </a>
         )}
+        {newer && available === true && !pending && runningTasks.length > 0 && (
+          <Alert className="col-span-full">
+            <ListChecksIcon />
+            <AlertTitle>
+              {t("tasksRunning", { count: runningTasks.length })}
+            </AlertTitle>
+            <AlertDescription>
+              {t("tasksRunningDescription")}{" "}
+              <Link
+                href={
+                  runningTasks.some((job) => job.kind === "VIDEO_DOWNLOAD")
+                    ? "/admin/utilities/downloader"
+                    : "/admin/notifications"
+                }
+              >
+                {t("viewTasks")}
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
         {newer && available === false && !pending && (
           <p className="col-span-full text-xs text-muted-foreground">
-            {t("unsupported")}
+            {t(`unavailable.${unavailableReason}`)}{" "}
+            <a
+              href={UPDATE_GUIDE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              {t("updateGuide")}
+            </a>
           </p>
         )}
       </CardContent>

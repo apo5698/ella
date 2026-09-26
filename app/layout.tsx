@@ -65,7 +65,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                   <SidebarInset
                     id="main-content"
                     tabIndex={-1}
-                    className="min-w-0"
+                    className="min-w-0 pb-(--task-dock-space)"
                   >
                     <TopNav />
                     {children}

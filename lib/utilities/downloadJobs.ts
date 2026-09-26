@@ -2,9 +2,11 @@ import type Database from "better-sqlite3";
 import { listJobsOfKind, type Job } from "@/lib/jobs";
 import { matchesPinyinSearch, normalizeSearchText } from "@/lib/pinyinSearch";
 import type {
+  DownloadJobFailure,
   DownloadJobPayload,
   ImportedDownloadResult,
 } from "@/lib/utilities/downloadTypes";
+import { discardWorkspace } from "@/lib/utilities/downloadWorkspace";
 
 /** Enough history for a page; a search reaches past it. */
 export const DOWNLOAD_LIST_LIMIT = 200;
@@ -48,8 +50,15 @@ export function listDownloads(db: Database.Database, query = ""): DownloadList {
     total: matches.length,
     downloads: matches.slice(0, DOWNLOAD_LIST_LIMIT).map((job) => {
       const { source, name, input } = job.payload as DownloadJobPayload;
+      // The kept files' location and full listing stay on the server; the
+      // inspect dialog asks for the listing when it opens.
+      const failure = job.outcome as DownloadJobFailure | null;
+      const outcome = failure?.retained
+        ? { error: failure.error, video: failure.video, inspectable: true }
+        : job.outcome;
       return {
         ...job,
+        outcome,
         payload: {
           source,
           name,
@@ -58,4 +67,18 @@ export function listDownloads(db: Database.Database, query = ""): DownloadList {
       };
     }),
   };
+}
+
+/** Files a download kept for inspection, or chose from: its workspaces. */
+export function downloadWorkspaces(job: Job): string[] {
+  const payload = job.payload as DownloadJobPayload;
+  const failure = job.outcome as DownloadJobFailure | null;
+  return [payload.selection?.workspace, failure?.retained?.workspace].filter(
+    (workspace): workspace is string => Boolean(workspace),
+  );
+}
+
+/** Removes what a download kept, once its task no longer needs it. */
+export async function discardDownloadFiles(job: Job) {
+  await Promise.all(downloadWorkspaces(job).map(discardWorkspace));
 }

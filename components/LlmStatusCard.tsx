@@ -92,6 +92,16 @@ export default function LlmStatusCard() {
   const [sweep, setSweep] = useState(0);
   // Read by the poll, which must not clobber a save that is still in flight.
   const busyRef = useRef(false);
+  // The address and model are adopted from the server once, from whichever
+  // answer comes first. Later answers would fight whatever is being typed.
+  const adoptedRef = useRef(false);
+
+  function adopt(saved: LlmSettings) {
+    if (adoptedRef.current) return;
+    adoptedRef.current = true;
+    setSettings(saved);
+    setUrl(saved.url);
+  }
 
   // Drives the ring. Kept apart from the poll so the countdown redraws often
   // while the network request happens at most once per interval.
@@ -103,11 +113,23 @@ export default function LlmStatusCard() {
     return () => clearInterval(id);
   }, [cycleStartedAt, cycleMs]);
 
+  // The saved values show at once; only the connection waits on the probe.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/llm-status?probe=0", { signal: controller.signal })
+      .then((res) => res.json() as Promise<Pick<LlmStatusResponse, "settings">>)
+      .then((data) => adopt(data.settings))
+      .catch(() => {
+        // The first probe fills them in instead.
+      });
+    return () => controller.abort();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    async function tick(first: boolean) {
+    async function tick() {
       let reachable = false;
       setProbing(true);
       try {
@@ -118,12 +140,7 @@ export default function LlmStatusCard() {
         // A save in flight owns the state; a poll that started before it must
         // not overwrite the newer answer with an older one.
         if (!busyRef.current) setProbe(data.probe);
-        // The address and model are only ever adopted from the server on the
-        // first pass. Later passes would fight whatever is being typed.
-        if (first) {
-          setSettings(data.settings);
-          setUrl(data.settings.url);
-        }
+        adopt(data.settings);
       } catch {
         // Offline or mid-restart. The next tick retries.
       }
@@ -134,10 +151,10 @@ export default function LlmStatusCard() {
       setCycleMs(wait);
       setSweep(0);
       setCycleStartedAt(Date.now());
-      timer = setTimeout(() => tick(false), wait);
+      timer = setTimeout(tick, wait);
     }
 
-    tick(true);
+    tick();
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -197,6 +214,12 @@ export default function LlmStatusCard() {
         <CardTitle className="flex items-center gap-1.5">
           {t("title")}
           <HelpTip side="right">{t("description")}</HelpTip>
+          {!probe && settings && (
+            <Badge variant="outline" className="gap-1 text-muted-foreground">
+              <Spinner />
+              {t("connecting")}
+            </Badge>
+          )}
           {probe && (
             <Badge
               variant="outline"
@@ -313,7 +336,9 @@ export default function LlmStatusCard() {
                       spellCheck={false}
                       className="font-mono"
                     />
-                    <FieldDescription>{t("manualModel")}</FieldDescription>
+                    {probe && (
+                      <FieldDescription>{t("manualModel")}</FieldDescription>
+                    )}
                   </>
                 )}
               </Field>

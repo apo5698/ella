@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import VideoLink from "@/components/VideoLink";
+import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { TagBadge } from "@/components/tags/TagBadge";
@@ -50,12 +50,12 @@ export default function VideoListItem({
       </ItemMedia>
       <ItemContent className="min-w-0">
         <ItemTitle className="w-full max-w-full text-sm">
-          <VideoLink
+          <Link
             href={`/video/${video.id}`}
             className="block truncate hover:underline"
           >
             {video.title}
-          </VideoLink>
+          </Link>
         </ItemTitle>
         <p className="flex flex-wrap items-center gap-y-0.5 text-xs text-muted-foreground">
           <span>

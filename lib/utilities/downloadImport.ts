@@ -125,6 +125,8 @@ export async function importDownloadedVideo(
   video: string,
   requestedName: string,
   onProgress: (progress: { phase: "importing" }) => void,
+  /** For a file whose name carries no extension, or the wrong one. */
+  extension = path.extname(video).toLowerCase(),
 ) {
   onProgress({ phase: "importing" });
   // The only look the content itself gets, and the one that catches a video
@@ -138,7 +140,6 @@ export async function importDownloadedVideo(
   const duplicates = matches;
   const similar = findSimilarNames(db, requestedName);
 
-  const extension = path.extname(video).toLowerCase();
   const safeName = buildSafeVideoName(requestedName, extension);
   await mkdir(VIDEO_ROOT, { recursive: true });
   const target = path.join(VIDEO_ROOT, safeName.filename);

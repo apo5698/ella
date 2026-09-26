@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import BackLabel from "@/components/BackLabel";
 import PageContainer from "@/components/PageContainer";
 import db from "@/lib/db";
 import { formatDuration, formatSize } from "@/lib/format";
@@ -9,22 +7,8 @@ import { loadTagPaths } from "@/lib/tagHierarchy";
 import VideoDetail from "./VideoDetail";
 import type { Video } from "@/lib/types";
 
-export default async function VideoPage({
-  params,
-  searchParams,
-}: PageProps<"/video/[id]">) {
+export default async function VideoPage({ params }: PageProps<"/video/[id]">) {
   const { id } = await params;
-  const { from } = await searchParams;
-  const candidate = Array.isArray(from) ? from[0] : from;
-  const requestedBackHref = candidate
-    ? new URL(candidate, "http://localhost")
-    : null;
-  const backHref =
-    requestedBackHref?.origin === "http://localhost" &&
-    !requestedBackHref.pathname.startsWith("/video/") &&
-    !requestedBackHref.pathname.startsWith("/api/")
-      ? `${requestedBackHref.pathname}${requestedBackHref.search}${requestedBackHref.hash}`
-      : "/";
   const video = db
     .prepare(
       `SELECT v.*, s.name AS series_name
@@ -55,13 +39,6 @@ export default async function VideoPage({
   return (
     <div className="min-h-screen bg-background text-foreground p-6">
       <PageContainer>
-        <Link
-          href={backHref}
-          className="flex items-center gap-1 self-start text-sm text-link hover:underline"
-        >
-          <BackLabel />
-        </Link>
-
         <VideoDetail
           video={{
             id: video.id,

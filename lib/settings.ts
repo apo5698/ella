@@ -26,6 +26,8 @@ export type TagSettings = {
   frameCount: number | null;
   /** Width the frames are scaled to before being sent to the model. */
   frameWidth: number;
+  /** Default of the new-download option that recognizes the imported video. */
+  recognizeDownloads: boolean;
 };
 
 export const DEFAULT_SETTINGS: TagSettings = {
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: TagSettings = {
   strategy: "scene",
   frameCount: null,
   frameWidth: 512,
+  recognizeDownloads: true,
 };
 
 export const FRAME_COUNT_RANGE = [1, 12] as const;
@@ -68,6 +71,10 @@ export function normalizeTagSettings(
     frameCount,
     frameWidth,
     tagLanguage: isAppLocale(raw.tagLanguage) ? raw.tagLanguage : "auto",
+    recognizeDownloads:
+      typeof raw.recognizeDownloads === "boolean"
+        ? raw.recognizeDownloads
+        : DEFAULT_SETTINGS.recognizeDownloads,
   };
 }
 

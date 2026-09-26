@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { ListTreeIcon } from "lucide-react";
 import Link from "next/link";
-import VideoLink from "@/components/VideoLink";
 import { InlineTagBadge, TagBadge } from "@/components/tags/TagBadge";
 import {
   Dialog,
@@ -121,7 +120,7 @@ function AffectedVideosDialog({
                   size="sm"
                   className="min-w-0 overflow-hidden"
                   render={
-                    <VideoLink
+                    <Link
                       href={`/video/${video.id}`}
                       target="_blank"
                       rel="noreferrer"
@@ -292,7 +291,7 @@ export default function TagImpactAnalysis({
                   {impact.videos.slice(0, VIDEO_PREVIEW_LIMIT).map((video) => (
                     // A new tab rather than this one: the dialog holds a decision
                     // that is not finished being made.
-                    <VideoLink
+                    <Link
                       key={video.id}
                       href={`/video/${video.id}`}
                       target="_blank"
@@ -314,7 +313,7 @@ export default function TagImpactAnalysis({
                       <div className="mt-1 truncate text-muted-foreground group-hover:text-foreground">
                         {video.title}
                       </div>
-                    </VideoLink>
+                    </Link>
                   ))}
                 </div>
                 {impact.videos.length > VIDEO_PREVIEW_LIMIT && (

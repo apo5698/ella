@@ -20,6 +20,11 @@ import { getTagSettings } from "./settingsStore";
 import { suggestVideoTagsById } from "./vision";
 import { upsertVideoTags } from "./tags";
 import { DuplicateContentError } from "./utilities/downloadImport";
+import {
+  importSelectedFile,
+  RetainedDownloadError,
+} from "./utilities/downloadInspect";
+import { sweepWorkspaces } from "./utilities/downloadWorkspace";
 import type {
   DownloadJobFailure,
   DownloadJobPayload,
@@ -196,14 +201,30 @@ const DOWNLOADERS = {
 
 /** Downloads one video from its source and adds it to the library. */
 const downloadVideo: TaskHandler = async ({ payload, report, signal }) => {
-  const { source, input } = payload as DownloadJobPayload;
-  const downloader = DOWNLOADERS[source];
-  if (!downloader) throw new AppError("operationFailed");
-  const result = await downloader.download(
-    downloader.schema.parse(input) as never,
-    report,
-    signal,
-  );
+  const { source, input, name, selection, recognize } =
+    payload as DownloadJobPayload;
+  let result: ImportedDownloadResult;
+  if (selection) {
+    // A file the user chose from a download kept after a layout mismatch.
+    result = await importSelectedFile(name, selection, report);
+  } else {
+    const downloader = DOWNLOADERS[source];
+    if (!downloader) throw new AppError("operationFailed");
+    result = await downloader.download(
+      downloader.schema.parse(input) as never,
+      report,
+      signal,
+    );
+  }
+  if (recognize) {
+    // The video is in the library by now; a recognition that cannot be
+    // queued leaves it there untagged rather than failing the download.
+    try {
+      enqueueVideoRetag(db, result.videoId, recognize.locale);
+    } catch (cause) {
+      console.error("[tasks] Unable to queue recognition", cause);
+    }
+  }
   return result;
 };
 
@@ -231,9 +252,13 @@ function notificationPayload(job: Job, outcome: JobPayload | null): JobPayload {
 
 /** Kept on a failed task so its list entry can say what went wrong. */
 function failureOutcome(cause: unknown): DownloadJobFailure {
+  const retained =
+    cause instanceof RetainedDownloadError ? cause.retained : undefined;
+  const reason = retained ? (cause as Error).cause : cause;
   return {
     error: errorDetails(cause),
-    video: cause instanceof DuplicateContentError ? cause.video : null,
+    video: reason instanceof DuplicateContentError ? reason.video : null,
+    ...(retained ? { retained } : {}),
   };
 }
 
@@ -251,6 +276,10 @@ const g = globalThis as unknown as {
     running: Record<Lane, number>;
     active: Map<number, AbortController>;
     recovered: boolean;
+    /** Set while the app is being replaced by an update. */
+    held?: boolean;
+    /** Set until leftover download workspaces have been swept. */
+    starting?: boolean;
   };
 };
 if (!g.__taskWorker)
@@ -260,6 +289,33 @@ if (!g.__taskWorker)
     recovered: false,
   };
 const worker = g.__taskWorker;
+
+/** Tasks in progress right now. Queued ones have not started any work. */
+export function runningTaskCount(): number {
+  return (
+    db
+      .prepare(
+        "SELECT COUNT(*) AS c FROM background_jobs WHERE status = 'running'",
+      )
+      .get() as { c: number }
+  ).c;
+}
+
+/**
+ * Stops new tasks from starting while an update replaces this process.
+ * Queued tasks stay queued and start in the new version, which is as close
+ * to pausing as work that cannot resume mid-transfer gets.
+ */
+export function holdTaskRunner() {
+  worker.held = true;
+}
+
+/** Lets queued tasks start again, after an update that did not happen. */
+export function releaseTaskRunner() {
+  if (!worker.held) return;
+  worker.held = false;
+  kickTaskRunner();
+}
 
 /**
  * Asks a running task to stop. Work that honors the signal stops at once;
@@ -384,6 +440,7 @@ async function runOne(job: Job, controller: AbortController) {
  * server down, and a queue is not worth a page that stops answering.
  */
 export function kickTaskRunner() {
+  if (worker.held || worker.starting) return;
   try {
     for (const lane of Object.keys(LANE_LIMITS) as Lane[]) {
       while (worker.running[lane] < LANE_LIMITS[lane]) {
@@ -425,11 +482,49 @@ function recoverInterrupted() {
   if (info.changes > 0) notifyJobsChanged();
 }
 
+/**
+ * Download workspaces that no task refers to belong to downloads cut off by a
+ * restart, which start over in a fresh one. Files kept for inspection are
+ * referenced by their task and stay.
+ */
+async function sweepDownloadWorkspaces() {
+  const rows = db
+    .prepare(
+      "SELECT payload, outcome FROM background_jobs WHERE kind = 'VIDEO_DOWNLOAD'",
+    )
+    .all() as { payload: string; outcome: string | null }[];
+  const keep = new Set<string>();
+  for (const row of rows) {
+    const payload = JSON.parse(row.payload) as DownloadJobPayload;
+    const outcome = row.outcome
+      ? (JSON.parse(row.outcome) as DownloadJobFailure)
+      : null;
+    if (payload.selection?.workspace) keep.add(payload.selection.workspace);
+    if (outcome?.retained?.workspace) keep.add(outcome.retained.workspace);
+  }
+  await sweepWorkspaces(keep);
+}
+
 // Importing this module must not be able to fail: it is pulled in by the
 // request paths that queue work, and by the layout's dock through the stream.
 try {
+  const firstLoad = !worker.recovered;
   recoverInterrupted();
-  kickTaskRunner();
+  if (firstLoad) {
+    // Nothing may start until the sweep is done, or it could remove the
+    // workspace of a download that has just begun.
+    worker.starting = true;
+    void sweepDownloadWorkspaces()
+      .catch((cause) =>
+        console.error("[tasks] Unable to sweep downloads", cause),
+      )
+      .finally(() => {
+        worker.starting = false;
+        kickTaskRunner();
+      });
+  } else {
+    kickTaskRunner();
+  }
 } catch (cause) {
   console.error("[tasks] Unable to load queue at startup", cause);
 }
@@ -528,9 +623,17 @@ export function enqueueDownload(
   database: Database.Database,
   source: DownloaderSource,
   input: { name: string } & Record<string, unknown>,
-  { start = true }: { start?: boolean } = {},
+  {
+    start = true,
+    recognize,
+  }: { start?: boolean; recognize?: DownloadJobPayload["recognize"] } = {},
 ): number | null {
-  const payload: DownloadJobPayload = { source, name: input.name, input };
+  const payload: DownloadJobPayload = {
+    source,
+    name: input.name,
+    input,
+    ...(recognize ? { recognize } : {}),
+  };
   const id = createJob(
     database,
     {

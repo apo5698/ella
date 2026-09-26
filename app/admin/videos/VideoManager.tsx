@@ -19,7 +19,6 @@ import TagAutocomplete from "@/components/TagAutocomplete";
 import type { Option as TagOption } from "@/components/TagAutocomplete";
 import ListPagination from "@/components/ListPagination";
 import LocalTime from "@/components/LocalTime";
-import VideoLink from "@/components/VideoLink";
 import {
   InlineSeriesBadge,
   RemovableSeriesBadge,
@@ -427,7 +426,6 @@ function VideoTable({
   loading,
   selected,
   sort,
-  returnHref,
   onToggleVideo,
   onTogglePage,
   onChanged,
@@ -438,7 +436,6 @@ function VideoTable({
   loading: boolean;
   selected: Set<number>;
   sort: string;
-  returnHref: string;
   onToggleVideo: (id: number, checked: boolean) => void;
   onTogglePage: (ids: number[], checked: boolean) => void;
   onChanged: () => void;
@@ -538,7 +535,7 @@ function VideoTable({
                   </TableCell>
                   <TableCell className="whitespace-normal">
                     <div className="flex min-w-0 items-center gap-3">
-                      <VideoLink
+                      <Link
                         href={`/video/${video.id}`}
                         target="_blank"
                         rel="noreferrer"
@@ -562,7 +559,7 @@ function VideoTable({
                             }}
                           />
                         )}
-                      </VideoLink>
+                      </Link>
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <div className="flex min-w-0 items-center justify-between gap-4">
                           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -576,7 +573,7 @@ function VideoTable({
                                 </span>
                               </SeriesBadge>
                             )}
-                            <VideoLink
+                            <Link
                               href={`/video/${video.id}`}
                               target="_blank"
                               rel="noreferrer"
@@ -584,7 +581,7 @@ function VideoTable({
                               className="min-w-0 flex-1 truncate text-sm font-medium text-foreground underline-offset-4 hover:underline"
                             >
                               {video.title}
-                            </VideoLink>
+                            </Link>
                           </div>
                           {tagCount > 0 && (
                             <div className="hidden min-w-0 max-w-1/2 shrink items-center justify-end gap-1 overflow-hidden md:flex">
@@ -592,9 +589,7 @@ function VideoTable({
                                 <TagBadge
                                   key={tag.id}
                                   render={
-                                    <Link
-                                      href={`/admin/tags/${tag.id}?from=${encodeURIComponent(returnHref)}`}
-                                    />
+                                    <Link href={`/admin/tags/${tag.id}`} />
                                   }
                                   source={tag.source}
                                   title={tag.name}
@@ -919,15 +914,6 @@ function VideoManagerContent() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const returnHref = videoManagerHref({
-    pathname,
-    query: debouncedQuery,
-    tagIds: filterTagIds,
-    sort,
-    page,
-    pageSize,
-  });
-
   function refreshVideos() {
     setRefreshEpoch((epoch) => epoch + 1);
   }
@@ -1051,7 +1037,6 @@ function VideoManagerContent() {
           loading={loading}
           selected={selected}
           sort={sort}
-          returnHref={returnHref}
           onToggleVideo={toggleVideo}
           onTogglePage={togglePage}
           onChanged={refreshVideos}

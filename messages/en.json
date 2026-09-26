@@ -7,8 +7,8 @@
     "system": "System",
     "operationFailed": "Operation failed. Please try again.",
     "loading": "Loading",
-    "back": "Back",
     "help": "Help",
+    "clear": "Clear",
     "clearSearch": "Clear Search",
     "previousPage": "Previous",
     "nextPage": "Next",
@@ -40,7 +40,9 @@
     "selectPage": "Select All on This Page",
     "videosPerPage": "Videos per Page",
     "loadVideosFailed": "Unable to load videos",
-    "deselectAll": "Deselect All"
+    "deselectAll": "Deselect All",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "Navigation": {
     "home": "Home",
@@ -170,9 +172,19 @@
     "updateNow": "Update Now",
     "check": "Check for Updates",
     "releaseNotes": "Release Notes",
-    "unsupported": "Direct updates are unavailable on this device.",
     "title": "Software Updates",
-    "idle": ""
+    "idle": "",
+    "tasksRunning": "{count, plural, one {# background task is running} other {# background tasks are running}}",
+    "tasksRunningDescription": "Updating restarts the service and interrupts running tasks. Queued tasks continue after the update.",
+    "viewTasks": "View Tasks",
+    "unavailable": {
+      "development": "Direct updates are unavailable in development. Use git pull to get the new version.",
+      "notInstalled": "The update service is not installed. Direct updates require a Docker Compose deployment with deploy/updater/install.sh run on the host.",
+      "notRunning": "The update service is not running. Run sudo systemctl start ella-updater on the host.",
+      "permission": "Ella cannot access the update service. Run deploy/updater/install.sh on the host again.",
+      "unreachable": "The update service is not responding. Check its log with sudo journalctl -u ella-updater on the host."
+    },
+    "updateGuide": "Update Guide"
   },
   "Home": {
     "title": "Video Library",
@@ -519,7 +531,9 @@
     "description": "Generate tags from frames selected by the frame extraction settings. Changes made after a task starts apply to subsequent tasks.",
     "tagged": "Tagged {count} of {total}",
     "remaining": "Estimated time remaining: {duration}",
-    "exit": "Last task finished (exit code {code})"
+    "exit": "Last task finished (exit code {code})",
+    "recognizeDownloads": "Recognize downloaded videos",
+    "recognizeDownloadsDescription": "Default for new downloads."
   },
   "ModelService": {
     "countdown": "Time until next connection check",
@@ -692,7 +706,6 @@
     "failed": "Download failed",
     "preparing": "Preparing download",
     "view": "View",
-    "added": "Video added to library",
     "truncated": "(Filename shortened on disk)",
     "duplicates": "Videos with similar duration and file size:",
     "similarNames": "Videos with similar names:",
@@ -700,10 +713,8 @@
     "submitFailed": "Unable to create the download",
     "empty": "No downloads",
     "canceled": "Canceled",
-    "cancel": "Cancel {name}",
-    "retry": "Retry {name}",
-    "remove": "Remove {name}",
-    "clearFinished": "Clear Finished",
+    "retry": "Retry",
+    "remove": "Remove",
     "new": "New",
     "newDownload": "New Download",
     "formDescription": "Downloads run in the background and are added to the library when complete.",
@@ -719,13 +730,22 @@
     "search": "Search Downloads",
     "sectionPending": "Pending",
     "sectionFinished": "Finished",
-    "starting": "Starting",
     "addedAt": "Added",
-    "start": "Start {name}",
+    "start": "Start",
     "startAll": "Start All",
     "emptyDescription": "New downloads appear here.",
     "emptySearch": "No matching downloads",
-    "limited": "Showing {shown} of {total} downloads. Refine the search to narrow the list."
+    "limited": "Showing {shown} of {total} downloads. Refine the search to narrow the list.",
+    "inspect": "Inspect",
+    "inspectTitle": "Archive Structure",
+    "inspectDescription": "Choose the video to import.",
+    "inspectTruncated": "Only the first 5000 entries are shown.",
+    "inspectFailed": "Unable to load the download contents",
+    "useFile": "Use This File",
+    "importStarted": "Import started",
+    "actions": "Actions",
+    "recognize": "Recognize after import",
+    "recognizeDescription": "Generate tags for this video with Smartag."
   },
   "Api": {
     "baiduInstallUnsupported": "Automatic installation is unavailable on this platform or an invalid executable override is configured.",
@@ -735,9 +755,9 @@
     "baiduNotConfigured": "Configure a logged-in BaiduPCS-Go account on the server first.",
     "baiduUnavailable": "BaiduPCS-Go is unavailable. Check its installation and executable path.",
     "baiduDownloadFailed": "Baidu download failed. Check the share, extraction code, account login and available cloud space.",
-    "sykbArchiveStructure": "Expected one 7z/zip archive containing one inner 7z/zip archive containing exactly one MP4.",
+    "sykbArchiveStructure": "Unexpected archive structure",
     "archiveDamaged": "Archive extraction failed. The archive may be incomplete, damaged or encrypted.",
-    "archiveUnsupported": "Only ZIP and 7z archives are supported.",
+    "archiveUnsupported": "Only ZIP, 7z, tar and tar.gz archives are supported.",
     "archiveUnsafe": "The archive contains links or paths outside the extraction folder and was rejected.",
     "selectTarget": "Select a target tag.",
     "selectMergeTags": "Select tags to merge.",
@@ -818,7 +838,10 @@
     "downloadUrlRequired": "Enter a video URL.",
     "baiduUrlInvalid": "Enter a share URL starting with https://pan.baidu.com/s/.",
     "baiduCodeInvalid": "The extraction code must contain exactly 4 letters or digits.",
-    "invalidParameters": "Invalid download parameters."
+    "invalidParameters": "Invalid download parameters.",
+    "updateBlockedByTasks": "{count, plural, one {# background task is} other {# background tasks are}} running. Wait for them to finish before updating.",
+    "downloadSelectionInvalid": "The selected file is no longer part of this download.",
+    "downloadNotVideo": "The selected file is not a video."
   },
   "JobLog": {
     "started": "Queued videos: {count}. Model: {model}. Endpoint: {endpoint}.",
