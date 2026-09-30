@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
-import { enqueueTagPromotion } from "@/lib/taskRunner";
 import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /**
@@ -40,10 +39,7 @@ export async function POST(
     );
   }
 
-  const tag = db.prepare("SELECT id FROM tags WHERE name = ?").get(name) as
-    { id: number } | undefined;
-  const taskId = tag ? enqueueTagPromotion(db, tag.id) : null;
   notifyVideosChanged([Number(id)]);
 
-  return NextResponse.json({ ok: true, name, taskId });
+  return NextResponse.json({ ok: true, name });
 }

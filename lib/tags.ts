@@ -62,20 +62,12 @@ export function replaceVideoTagState(
   db: Database.Database,
   videoId: number,
   state: VideoTagState,
-): number[] {
+): void {
   const active = Array.isArray(state.tags) ? state.tags : [];
   const rejected = Array.isArray(state.rejectedTags) ? state.rejectedTags : [];
   const seen = new Set<string>();
   const links: { id: number; source: "manual" | "vision"; status: string }[] =
     [];
-  const promotionIds = new Set<number>();
-  const existingSources = new Map(
-    (
-      db
-        .prepare("SELECT tag_id, source FROM video_tags WHERE video_id = ?")
-        .all(videoId) as { tag_id: number; source: string }[]
-    ).map((link) => [link.tag_id, link.source]),
-  );
 
   for (const requested of active) {
     const source = requested.source === "manual" ? "manual" : "vision";
@@ -90,9 +82,6 @@ export function replaceVideoTagState(
     if (seen.has(tag.name)) continue;
     seen.add(tag.name);
     links.push({ id: tag.id, source, status: "active" });
-    if (source === "manual" && existingSources.get(tag.id) !== "manual") {
-      promotionIds.add(tag.id);
-    }
   }
 
   for (const requested of rejected) {
@@ -125,8 +114,6 @@ export function replaceVideoTagState(
   } else {
     db.prepare("UPDATE videos SET series_id = NULL WHERE id = ?").run(videoId);
   }
-
-  return [...promotionIds];
 }
 
 /**
@@ -141,10 +128,9 @@ export function replaceVideoTagState(
  * they are not cleared, and any incoming tag that the user already rejected
  * for this video is dropped rather than re-added.
  *
- * A tag is the user's own or the model's, never both. A generated tag that the
- * user has accepted somewhere therefore joins this video as manual as well:
- * one tag split across both sources made "accepted" a fact about a video
- * rather than about the word, which is what accepting is actually saying.
+ * Generated associations stay generated even when the tag is approved.
+ * Approval says the word belongs to the library; whether it fits this video
+ * is still the model's guess until the user accepts it here.
  */
 export function upsertVideoTags(
   db: Database.Database,
@@ -163,9 +149,7 @@ export function upsertVideoTags(
     `SELECT t.name FROM tags t JOIN video_tags vt ON vt.tag_id = t.id
      WHERE vt.video_id = ? AND vt.status = 'rejected'`,
   );
-  const approvedTag = db.prepare(
-    "SELECT 1 FROM tags WHERE id = ? AND review_state = 'approved'",
-  );
+  const reviewState = db.prepare("SELECT review_state FROM tags WHERE id = ?");
 
   const tx = db.transaction((names: string[]) => {
     const rejected = new Set(
@@ -182,31 +166,18 @@ export function upsertVideoTags(
         source === "vision" ? "automatic" : "approved",
       );
       if (rejected.has(tag.name)) continue;
-      // The model does not know the tree: a word that names a group is dropped
-      // rather than stored, since the video earns a child of it or nothing.
+      const state = (reviewState.get(tag.id) as { review_state: string })
+        .review_state;
+      // An excluded tag is refused library wide, not only on the videos it
+      // was removed from.
+      if (source === "vision" && state === "excluded") continue;
+      // A word that names a group is dropped rather than stored, since the
+      // video earns a child of it or nothing.
       if (!isAssignableTag(db, tag.id)) continue;
-      const linkSource =
-        source === "vision" && approvedTag.get(tag.id) ? "manual" : source;
-      linkTag.run(videoId, tag.id, linkSource);
+      linkTag.run(videoId, tag.id, source);
     }
   });
   tx(tagNames);
-}
-
-/** Tags the user explicitly added — treated as ground truth. */
-export function getManualTags(
-  db: Database.Database,
-  videoId: number,
-): string[] {
-  return (
-    db
-      .prepare(
-        `SELECT t.name FROM tags t JOIN video_tags vt ON vt.tag_id = t.id
-         WHERE vt.video_id = ? AND vt.source = 'manual' AND vt.status = 'active'
-         ORDER BY t.name`,
-      )
-      .all(videoId) as { name: string }[]
-  ).map((r) => r.name);
 }
 
 /** Tags the user removed — fed back to the model as negative examples. */
@@ -226,24 +197,59 @@ export function getRejectedTags(
 }
 
 /**
- * Every tag the user has added by hand, most-used first.
- *
- * Handed to the model on every run, whole. These are the words the library
- * actually uses, and the ones the model cannot reach on its own: it describes
- * what it sees in general language, and a term it was never given is a term it
- * will never produce. Its own past output is deliberately not fed back, which
- * would only entrench whatever it drifted towards.
+ * Videos Smartag has already run on. Any generated association counts,
+ * rejected ones included: a video whose every generated tag the user removed
+ * was still recognized. Manual tags do not, so a video tagged only by hand is
+ * still offered to the model.
  */
-export function getAllManualTags(db: Database.Database): string[] {
-  return (
-    db
-      .prepare(
-        `SELECT t.name, COUNT(*) AS uses
-         FROM video_tags vt JOIN tags t ON t.id = vt.tag_id
-         WHERE vt.source = 'manual' AND vt.status = 'active'
-         GROUP BY t.id
-         ORDER BY uses DESC, t.name`,
-      )
-      .all() as { name: string; uses: number }[]
-  ).map((row) => row.name);
+export const RECOGNIZED_VIDEO_IDS =
+  "SELECT video_id FROM video_tags WHERE source = 'vision'";
+
+/** Upper bound on vocabulary terms per prompt, so a large library stays within a small model's context. */
+const VOCABULARY_LIMIT = 300;
+
+export type RecognitionLibrary = {
+  vocabulary: string[];
+  groups: string[];
+  excluded: string[];
+};
+
+/**
+ * The library-wide reference data handed to the model on every run.
+ *
+ * The vocabulary is the words a person vouched for: approved tags, and
+ * automatic ones the user placed in the tree. These are the terms the model
+ * cannot reach on its own: it describes what it sees in general language, and
+ * a term it was never given is a term it will never produce. Its other past
+ * output is deliberately not fed back, which would only entrench whatever it
+ * drifted towards.
+ *
+ * Groups are named so the model can avoid them, since a group name is dropped
+ * on write. Excluded tags are refused on write as well; naming them lets the
+ * model spend its tag budget elsewhere.
+ */
+export function getRecognitionLibrary(
+  db: Database.Database,
+): RecognitionLibrary {
+  const names = (sql: string, ...params: unknown[]) =>
+    (db.prepare(sql).all(...params) as { name: string }[]).map((r) => r.name);
+
+  return {
+    vocabulary: names(
+      `SELECT t.name
+       FROM tags t
+       LEFT JOIN video_tags vt ON vt.tag_id = t.id AND vt.status = 'active'
+       WHERE t.assignable = 1
+         AND (t.review_state = 'approved'
+              OR (t.review_state = 'automatic' AND t.parent_id IS NOT NULL))
+       GROUP BY t.id
+       ORDER BY COUNT(vt.video_id) DESC, t.name
+       LIMIT ?`,
+      VOCABULARY_LIMIT,
+    ),
+    groups: names("SELECT name FROM tags WHERE assignable = 0 ORDER BY name"),
+    excluded: names(
+      "SELECT name FROM tags WHERE review_state = 'excluded' ORDER BY name",
+    ),
+  };
 }

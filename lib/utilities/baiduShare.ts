@@ -11,6 +11,21 @@ import {
   type BaiduTransfer,
 } from "@/lib/utilities/baiduProgress";
 
+const FAILURE_PATTERN = /失败|错误|未登录|未登陆|以下文件下载失败/;
+
+/**
+ * The lines of a failed run that say what went wrong, for the server log.
+ * Anything that could carry a credential or a signed link is left out.
+ */
+function failureLines(output: string): string[] {
+  return output
+    .split(/[\r\n]+/)
+    .filter((line) => FAILURE_PATTERN.test(line))
+    .filter((line) => !/bduss|stoken|cookie|token|https?:|sign=/i.test(line))
+    .map((line) => line.trim().slice(0, 200))
+    .slice(-5);
+}
+
 // BaiduPCS-Go prints some failures but still exits 0. Never expose its raw
 // output: it may contain account information, cookies or signed URLs.
 async function run(
@@ -47,8 +62,7 @@ async function run(
     let reported = -1;
     const capture = (chunk: string) => {
       output = (output + chunk).slice(-64 * 1024);
-      if (/失败|错误|未登录|未登陆|以下文件下载失败/.test(output))
-        failed = true;
+      if (FAILURE_PATTERN.test(output)) failed = true;
       if (!onTransfer) return;
       // A redraw can be split across chunks, so the tail is read rather than
       // the chunk alone.
@@ -69,9 +83,15 @@ async function run(
     child.on("close", (code) => {
       clearTimeout(timer);
       if (signal?.aborted) reject(signal.reason);
-      else if (code !== 0 || failed || timedOut)
+      else if (code !== 0 || failed || timedOut) {
+        // The user sees one generic message; which step failed and what
+        // BaiduPCS-Go said about it is only ever written here.
+        console.error(
+          `[baidu] "${args[0]}" failed`,
+          JSON.stringify({ code, timedOut, lines: failureLines(output) }),
+        );
         reject(new AppError("baiduDownloadFailed"));
-      else resolve(output);
+      } else resolve(output);
     });
   });
 }

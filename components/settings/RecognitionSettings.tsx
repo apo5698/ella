@@ -20,6 +20,7 @@ import HelpTip from "@/components/HelpTip";
 import { formatDurationText } from "@/lib/format";
 import LlmStatusCard from "@/components/LlmStatusCard";
 import FrameSettingsCard from "@/components/FrameSettingsCard";
+import PromptPreviewCard from "@/components/PromptPreviewCard";
 import type { JobEvent, JobState } from "@/lib/tagJob";
 import type { TagProgress } from "@/lib/types";
 import type { SettingsResponse } from "@/app/api/settings/route";
@@ -214,7 +215,7 @@ export default function RecognitionSettings() {
                 it falls back to how much of the library is tagged. */}
           {(progress || current) && (
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 text-foreground">
+              <div className="flex items-center gap-2 whitespace-nowrap text-foreground">
                 <span>{t("overall")}</span>
                 <span className="tabular-nums">
                   {current
@@ -225,24 +226,21 @@ export default function RecognitionSettings() {
                       })}
                 </span>
                 <span className="tabular-nums">{overallLabel}%</span>
-                {current?.overallEtaSec != null && (
-                  <span className="ml-auto tabular-nums">
-                    {t("remaining", {
-                      duration: formatDurationText(
-                        current.overallEtaSec,
-                        locale,
-                      ),
-                    })}
-                  </span>
-                )}
               </div>
               <Progress value={overallPct} aria-label={t("overallLabel")} />
+              {current?.overallEtaSec != null && (
+                <div className="text-xs text-muted-foreground tabular-nums">
+                  {t("remaining", {
+                    duration: formatDurationText(current.overallEtaSec, locale),
+                  })}
+                </div>
+              )}
             </div>
           )}
 
           {current && (
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 text-foreground">
+              <div className="flex items-center gap-2 whitespace-nowrap text-foreground">
                 <Loader2Icon className="size-3.5 animate-spin" />
                 <span>
                   {current.phase === "infer" ? t("inference") : t("extraction")}
@@ -250,13 +248,6 @@ export default function RecognitionSettings() {
                 <span className="tabular-nums">
                   {Math.round(current.ratio * 100)}%
                 </span>
-                {current.etaSec != null && (
-                  <span className="ml-auto tabular-nums">
-                    {t("remaining", {
-                      duration: formatDurationText(current.etaSec, locale),
-                    })}
-                  </span>
-                )}
               </div>
               <Progress
                 value={Math.round(current.ratio * 100)}
@@ -266,6 +257,13 @@ export default function RecognitionSettings() {
                     : t("extractionProgress")
                 }
               />
+              {current.etaSec != null && (
+                <div className="text-xs text-muted-foreground tabular-nums">
+                  {t("remaining", {
+                    duration: formatDurationText(current.etaSec, locale),
+                  })}
+                </div>
+              )}
               <div className="truncate text-foreground">{current.title}</div>
             </div>
           )}
@@ -305,7 +303,7 @@ export default function RecognitionSettings() {
               <div className="mb-1.5 text-xs text-muted-foreground">
                 {t("logs")}
               </div>
-              <pre className="h-72 overflow-auto rounded-lg bg-muted p-3 text-xs leading-relaxed whitespace-pre-wrap">
+              <pre className="h-72 overflow-auto rounded-lg bg-muted p-3 text-xs leading-relaxed whitespace-pre">
                 {job.log
                   .slice(-60)
                   .map((entry) =>
@@ -329,6 +327,8 @@ export default function RecognitionSettings() {
           )}
         </CardContent>
       </Card>
+
+      <PromptPreviewCard />
     </div>
   );
 }

@@ -65,6 +65,7 @@ import { cn } from "@/lib/utils";
 import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import type { Video } from "@/lib/types";
 import type { VideoEvent } from "@/lib/videoEvents";
+import { type VideoListContext, videoEditorHref } from "@/lib/videoListContext";
 import AutoTagDialog from "./AutoTagDialog";
 import VideoRowActions from "./VideoRowActions";
 
@@ -426,9 +427,9 @@ function VideoTable({
   loading,
   selected,
   sort,
+  listContext,
   onToggleVideo,
   onTogglePage,
-  onChanged,
   onDeleted,
   onSort,
 }: {
@@ -436,9 +437,10 @@ function VideoTable({
   loading: boolean;
   selected: Set<number>;
   sort: string;
+  /** The filters in force, so the editor steps through this same list. */
+  listContext: VideoListContext;
   onToggleVideo: (id: number, checked: boolean) => void;
   onTogglePage: (ids: number[], checked: boolean) => void;
-  onChanged: () => void;
   onDeleted: (id: number) => void;
   onSort: (sort: string) => void;
 }) {
@@ -515,6 +517,7 @@ function VideoTable({
               const visibleTags = video.tags.slice(0, 3);
               const tagCount = video.tags.length;
               const checked = selected.has(video.id);
+              const editHref = videoEditorHref(video.id, listContext);
 
               return (
                 <TableRow
@@ -536,9 +539,7 @@ function VideoTable({
                   <TableCell className="whitespace-normal">
                     <div className="flex min-w-0 items-center gap-3">
                       <Link
-                        href={`/video/${video.id}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={editHref}
                         aria-label={t("openVideo", { title: video.title })}
                         className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-xs text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
                       >
@@ -574,9 +575,7 @@ function VideoTable({
                               </SeriesBadge>
                             )}
                             <Link
-                              href={`/video/${video.id}`}
-                              target="_blank"
-                              rel="noreferrer"
+                              href={editHref}
                               title={video.title}
                               className="min-w-0 flex-1 truncate text-sm font-medium text-foreground underline-offset-4 hover:underline"
                             >
@@ -657,7 +656,7 @@ function VideoTable({
                   <TableCell className="sticky right-0 z-10 bg-background text-right transition-colors group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-data-[state=selected]:bg-muted">
                     <VideoRowActions
                       video={video}
-                      onChanged={onChanged}
+                      editHref={editHref}
                       onDeleted={onDeleted}
                     />
                   </TableCell>
@@ -1037,9 +1036,13 @@ function VideoManagerContent() {
           loading={loading}
           selected={selected}
           sort={sort}
+          listContext={{
+            q: debouncedQuery,
+            tags: filterTagIds.join(","),
+            sort,
+          }}
           onToggleVideo={toggleVideo}
           onTogglePage={togglePage}
-          onChanged={refreshVideos}
           onDeleted={handleDeleted}
           onSort={(nextSort) => {
             setSort(nextSort);

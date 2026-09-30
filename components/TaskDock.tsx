@@ -20,14 +20,15 @@ import { cn } from "@/lib/utils";
  * The queue, floating over every page.
  *
  * Work queued from one page finishes while the user is on another, so where it
- * is reported cannot be the page that started it. It shows itself only when
- * there is something to say: work in flight, or an unread failure.
- * A task that finishes at once is reported by the page that queued it.
+ * is reported cannot be the page that started it. It shows itself only while
+ * work is in flight. How a task ended, failures included, is reported by the
+ * notification center, which the user can clear; a dock that stayed up for a
+ * failure had no way to be dismissed.
  */
 
 export default function TaskDock() {
   const t = useTranslations("TaskDock");
-  const { jobs, active } = useTaskQueue();
+  const { active } = useTaskQueue();
   const [collapsed, setCollapsed] = useState(false);
   const [dock, setDock] = useState<HTMLDivElement | null>(null);
 
@@ -50,8 +51,7 @@ export default function TaskDock() {
     };
   }, [dock]);
 
-  const failed = jobs.filter((job) => job.status === "failed");
-  if (active.length === 0 && failed.length === 0) return null;
+  if (active.length === 0) return null;
 
   // Downloads run alongside library work, so several can be running at once.
   const running = active.filter((job) => job.status === "running");
@@ -72,9 +72,7 @@ export default function TaskDock() {
           <ListChecksIcon className="size-4" />
         )}
         <span className="text-sm font-medium">
-          {active.length > 0
-            ? t("active", { count: active.length })
-            : t("failed", { count: failed.length })}
+          {t("active", { count: active.length })}
         </span>
         <Button
           variant="ghost"
@@ -94,12 +92,6 @@ export default function TaskDock() {
           ))}
 
           {queued > 0 && <span>{t("queued", { count: queued })}</span>}
-          {/* With nothing running, the header already gives this count. */}
-          {failed.length > 0 && active.length > 0 && (
-            <span className="text-destructive">
-              {t("failed", { count: failed.length })}
-            </span>
-          )}
 
           <Link
             href="/admin/notifications"

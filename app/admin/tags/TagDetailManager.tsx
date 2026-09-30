@@ -237,221 +237,227 @@ export default function TagDetailManager({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("details")}</CardTitle>
-          <CardDescription>
-            {t("coverage", { direct: node.count, total: node.totalCount })}
-          </CardDescription>
-          <CardAction>
-            <Button
-              onClick={save}
-              disabled={saving || !trimmedName || classificationBlocked}
-            >
-              {saving && <Spinner data-icon="inline-start" />}
-              {saving ? common("saving") : common("save")}
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="tag-name">{common("name")}</FieldLabel>
-              <Input
-                id="tag-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                autoComplete="off"
-              />
-            </Field>
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("details")}</CardTitle>
+            <CardDescription>
+              {t("coverage", { direct: node.count, total: node.totalCount })}
+            </CardDescription>
+            <CardAction>
+              <Button
+                onClick={save}
+                disabled={saving || !trimmedName || classificationBlocked}
+              >
+                {saving && <Spinner data-icon="inline-start" />}
+                {saving ? common("saving") : common("save")}
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="tag-name">{common("name")}</FieldLabel>
+                <Input
+                  id="tag-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  autoComplete="off"
+                />
+              </Field>
 
-            <Field>
-              <FieldLabel>{tagActions("parent")}</FieldLabel>
-              <div className="flex items-center gap-2">
-                {parentName ? (
-                  <RemovableTagBadge
-                    state={
-                      tagOptions.find((option) => option.id === parentId)
-                        ?.reviewState
-                    }
-                    removeLabel={t("removeParent", { name: parentName })}
-                    onClick={() => setParentId(null)}
-                    title={tagActions("moveRoot")}
-                  >
-                    {parentName}
-                  </RemovableTagBadge>
-                ) : (
-                  <TagAutocomplete
-                    endpoint="/api/tags/suggest"
-                    mode="single"
-                    placeholder={t("chooseParent")}
-                    allowCreate={false}
-                    disabledNames={blockedNames}
-                    onSelect={(picked) => {
-                      const target = optionByName.get(picked);
-                      if (target) setParentId(target.id);
-                    }}
-                    className="w-64"
-                  />
-                )}
-              </div>
-              <FieldDescription>{t("parentHelp")}</FieldDescription>
-            </Field>
-
-            <Field>
-              <FieldLabel>
-                {t("aliases")}
-                <HelpTip>{t("aliasHelp")}</HelpTip>
-              </FieldLabel>
-              {aliases.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {aliases.map((alias) => (
-                    <RemovableAliasBadge
-                      key={alias}
-                      removeLabel={t("removeAlias", { name: alias })}
-                      onClick={() => removeAlias(alias)}
-                    >
-                      {alias}
-                    </RemovableAliasBadge>
-                  ))}
-                </div>
-              )}
-              <TagAutocomplete
-                endpoint="/api/tags/suggest"
-                mode="single"
-                placeholder={t("newAlias")}
-                disabledNames={[node.name, ...aliases]}
-                onSelect={(picked, option) => {
-                  if (option.isNew || option.id === undefined)
-                    void addAlias(picked);
-                  else
-                    setMerging({
-                      id: option.id,
-                      name: picked,
-                      count: option.count ?? 0,
-                      reviewState: option.reviewState ?? "approved",
-                    });
-                }}
-                className="w-80 max-w-full"
-              />
-            </Field>
-
-            <FieldSet>
-              <FieldLegend variant="label">{t("options")}</FieldLegend>
-              <FieldGroup data-slot="checkbox-group">
-                <Field orientation="horizontal">
-                  <Switch
-                    id="tag-excluded"
-                    checked={excluded}
-                    onCheckedChange={setExcluded}
-                  />
-                  <FieldContent>
-                    <FieldLabel htmlFor="tag-excluded">
-                      {tagActions("exclude")}
-                    </FieldLabel>
-                    <FieldDescription>{t("excludeHelp")}</FieldDescription>
-                  </FieldContent>
-                </Field>
-
-                <Field orientation="horizontal">
-                  <Switch
-                    id="tag-assignable"
-                    checked={!assignable}
-                    onCheckedChange={(checked) => setAssignable(!checked)}
-                  />
-                  <FieldContent>
-                    <FieldLabel htmlFor="tag-assignable">
-                      {t("category")}
-                    </FieldLabel>
-                    <FieldDescription
-                      className={
-                        classificationBlocked ? "text-destructive" : undefined
+              <Field>
+                <FieldLabel>{tagActions("parent")}</FieldLabel>
+                <div className="flex items-center gap-2">
+                  {parentName ? (
+                    <RemovableTagBadge
+                      state={
+                        tagOptions.find((option) => option.id === parentId)
+                          ?.reviewState
                       }
+                      removeLabel={t("removeParent", { name: parentName })}
+                      onClick={() => setParentId(null)}
+                      title={tagActions("moveRoot")}
                     >
-                      {classificationBlocked
-                        ? t("categoryBlocked", { count: node.count })
-                        : t("categoryHelp")}
-                    </FieldDescription>
-                  </FieldContent>
-                </Field>
-              </FieldGroup>
-            </FieldSet>
-
-            {pending && <TagImpactAnalysis request={pending} />}
-            {error && (
-              <Alert variant="destructive">
-                <AlertTitle>{error}</AlertTitle>
-              </Alert>
-            )}
-          </FieldGroup>
-        </CardContent>
-        <CardFooter className="justify-between border-t">
-          <Button
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setConfirmingDelete(true)}
-          >
-            <Trash2Icon data-icon="inline-start" />
-            {tagActions("delete")}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {t("children", { count: node.children.length })}
-          </CardTitle>
-          <CardDescription>{t("childrenHelp")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {node.children.length === 0 ? (
-            <Empty className="rounded-lg border">
-              <EmptyHeader>
-                <EmptyTitle>{t("noChildren")}</EmptyTitle>
-                <EmptyDescription>{t("noChildrenHelp")}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <ItemGroup>
-              {node.children.map((child) => (
-                <div key={child.id} role="listitem">
-                  <Item
-                    variant="outline"
-                    render={<Link href={`/admin/tags/${child.id}`} />}
-                  >
-                    <ItemContent>
-                      <ItemTitle>
-                        <TagBadge state={child.reviewState}>
-                          {child.name}
-                        </TagBadge>
-                      </ItemTitle>
-                      <ItemDescription>
-                        {t("coverage", {
-                          direct: child.count,
-                          total: child.totalCount,
-                        })}
-                      </ItemDescription>
-                    </ItemContent>
-                    <ItemActions>
-                      <ChevronRightIcon />
-                    </ItemActions>
-                  </Item>
+                      {parentName}
+                    </RemovableTagBadge>
+                  ) : (
+                    <TagAutocomplete
+                      endpoint="/api/tags/suggest"
+                      mode="single"
+                      placeholder={t("chooseParent")}
+                      allowCreate={false}
+                      disabledNames={blockedNames}
+                      onSelect={(picked) => {
+                        const target = optionByName.get(picked);
+                        if (target) setParentId(target.id);
+                      }}
+                      className="w-64"
+                    />
+                  )}
                 </div>
-              ))}
-            </ItemGroup>
-          )}
-        </CardContent>
-      </Card>
+                <FieldDescription>{t("parentHelp")}</FieldDescription>
+              </Field>
 
-      <TagVideoList
-        key={`${node.id}-${node.count}`}
-        tagId={node.id}
-        tagName={node.name}
-        tagState={node.reviewState}
-        initialTotal={node.count}
-      />
+              <Field>
+                <FieldLabel>
+                  {t("aliases")}
+                  <HelpTip>{t("aliasHelp")}</HelpTip>
+                </FieldLabel>
+                {aliases.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {aliases.map((alias) => (
+                      <RemovableAliasBadge
+                        key={alias}
+                        removeLabel={t("removeAlias", { name: alias })}
+                        onClick={() => removeAlias(alias)}
+                      >
+                        {alias}
+                      </RemovableAliasBadge>
+                    ))}
+                  </div>
+                )}
+                <TagAutocomplete
+                  endpoint="/api/tags/suggest"
+                  mode="single"
+                  placeholder={t("newAlias")}
+                  disabledNames={[node.name, ...aliases]}
+                  onSelect={(picked, option) => {
+                    if (option.isNew || option.id === undefined)
+                      void addAlias(picked);
+                    else
+                      setMerging({
+                        id: option.id,
+                        name: picked,
+                        count: option.count ?? 0,
+                        reviewState: option.reviewState ?? "approved",
+                      });
+                  }}
+                  className="w-80 max-w-full"
+                />
+              </Field>
+
+              <FieldSet>
+                <FieldLegend variant="label">{t("options")}</FieldLegend>
+                <FieldGroup data-slot="checkbox-group">
+                  <Field orientation="horizontal">
+                    <Switch
+                      id="tag-excluded"
+                      checked={excluded}
+                      onCheckedChange={setExcluded}
+                    />
+                    <FieldContent>
+                      <FieldLabel htmlFor="tag-excluded">
+                        {tagActions("exclude")}
+                      </FieldLabel>
+                      <FieldDescription>{t("excludeHelp")}</FieldDescription>
+                    </FieldContent>
+                  </Field>
+
+                  <Field orientation="horizontal">
+                    <Switch
+                      id="tag-assignable"
+                      checked={!assignable}
+                      onCheckedChange={(checked) => setAssignable(!checked)}
+                    />
+                    <FieldContent>
+                      <FieldLabel htmlFor="tag-assignable">
+                        {t("category")}
+                      </FieldLabel>
+                      <FieldDescription
+                        className={
+                          classificationBlocked ? "text-destructive" : undefined
+                        }
+                      >
+                        {classificationBlocked
+                          ? t("categoryBlocked", { count: node.count })
+                          : t("categoryHelp")}
+                      </FieldDescription>
+                    </FieldContent>
+                  </Field>
+                </FieldGroup>
+              </FieldSet>
+
+              {pending && <TagImpactAnalysis request={pending} />}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>{error}</AlertTitle>
+                </Alert>
+              )}
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="justify-between border-t">
+            <Button
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <Trash2Icon data-icon="inline-start" />
+              {tagActions("delete")}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t("children", { count: node.children.length })}
+            </CardTitle>
+            <CardDescription>{t("childrenHelp")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {node.children.length === 0 ? (
+              <Empty className="rounded-lg border">
+                <EmptyHeader>
+                  <EmptyTitle>{t("noChildren")}</EmptyTitle>
+                  <EmptyDescription>{t("noChildrenHelp")}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <ItemGroup>
+                {node.children.map((child) => (
+                  <div key={child.id} role="listitem">
+                    <Item
+                      variant="outline"
+                      render={<Link href={`/admin/tags/${child.id}`} />}
+                    >
+                      <ItemContent>
+                        <ItemTitle>
+                          <TagBadge state={child.reviewState}>
+                            {child.name}
+                          </TagBadge>
+                        </ItemTitle>
+                        <ItemDescription>
+                          {t("coverage", {
+                            direct: child.count,
+                            total: child.totalCount,
+                          })}
+                        </ItemDescription>
+                      </ItemContent>
+                      <ItemActions>
+                        <ChevronRightIcon />
+                      </ItemActions>
+                    </Item>
+                  </div>
+                ))}
+              </ItemGroup>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* The videos sit beside the details rather than below them, so the
+          list stays in view while the tag itself is edited. */}
+      <div className="min-w-0">
+        <TagVideoList
+          key={`${node.id}-${node.count}`}
+          tagId={node.id}
+          tagName={node.name}
+          tagState={node.reviewState}
+          initialTotal={node.count}
+        />
+      </div>
 
       {confirmingDelete && (
         <TagConfirmDialog

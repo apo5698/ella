@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import type { TagSettings } from "@/lib/settings";
 import { getTagSettings, saveTagSettings } from "@/lib/settingsStore";
+import { RECOGNIZED_VIDEO_IDS } from "@/lib/tags";
 import { frameBudget } from "@/lib/vision";
 
 export const runtime = "nodejs";
 
 export type SettingsResponse = {
   settings: TagSettings;
-  /** Videos still awaiting a vision tag, and what processing them costs. */
+  /** Videos Smartag has not run on, and what processing them costs. */
   pending: {
     count: number;
     seconds: number;
@@ -24,9 +25,7 @@ function pending() {
     .prepare(
       `SELECT duration_sec FROM videos
        WHERE duration_sec IS NOT NULL
-         AND id NOT IN (
-           SELECT video_id FROM video_tags WHERE source = 'vision' AND status = 'active'
-         )`,
+         AND id NOT IN (${RECOGNIZED_VIDEO_IDS})`,
     )
     .all() as { duration_sec: number }[];
 

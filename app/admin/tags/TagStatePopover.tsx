@@ -106,7 +106,7 @@ export default function TagStatePopover({
               name,
               state: labels(TAG_STATE_LABEL[state]),
             })}
-            className="flex min-h-5 pointer-coarse:py-3 shrink-0 cursor-pointer items-center gap-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="flex min-h-5 shrink-0 cursor-pointer items-center gap-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           />

@@ -3,7 +3,11 @@
 import { useTranslations } from "next-intl";
 
 import { useEffect, useRef, useState } from "react";
-import { MediaPlayer, MediaProvider } from "@vidstack/react";
+import {
+  MediaPlayer,
+  MediaProvider,
+  type MediaPlayerInstance,
+} from "@vidstack/react";
 import { DefaultVideoLayout } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
@@ -43,12 +47,17 @@ export default function VideoPlayer({
   poster,
   initialViews,
   meta,
+  countViews = true,
+  playerRef,
 }: {
   videoId: number;
   src: string;
   poster?: string;
   initialViews: number;
   meta: { duration: string; resolution: string | null; size: string };
+  /** Off where playback is part of editing rather than watching. */
+  countViews?: boolean;
+  playerRef?: React.Ref<MediaPlayerInstance>;
 }) {
   const t = useTranslations("Player");
   const counted = useRef(false);
@@ -113,7 +122,7 @@ export default function VideoPlayer({
   }
 
   async function handlePlay() {
-    if (counted.current) return;
+    if (!countViews || counted.current) return;
     counted.current = true;
     try {
       const res = await fetch(`/api/videos/${videoId}/view`, {
@@ -136,6 +145,7 @@ export default function VideoPlayer({
         </Alert>
       ) : (
         <MediaPlayer
+          ref={playerRef}
           aria-label={t("label")}
           src={src}
           poster={poster}

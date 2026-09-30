@@ -4,7 +4,8 @@ import { useTranslations } from "next-intl";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { UnlinkIcon } from "lucide-react";
+import Link from "next/link";
+import { PencilIcon, UnlinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import ListPagination from "@/components/ListPagination";
 import SearchInput from "@/components/SearchInput";
@@ -29,6 +30,7 @@ import {
 import { ItemGroup } from "@/components/ui/item";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
+import { videoEditorHref } from "@/lib/videoListContext";
 import type { TagReviewState, Video } from "@/lib/types";
 
 export default function TagVideoList({
@@ -153,6 +155,13 @@ export default function TagVideoList({
   const someSelected =
     !allSelected && currentIds.some((id) => selected.has(id));
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // Matches the request above, so the editor steps through these videos.
+  const listContext = {
+    tags: String(tagId),
+    tagMode: "direct",
+    sort: "views",
+    q: debouncedQuery,
+  };
 
   function togglePage() {
     setSelected(allSelected ? new Set() : new Set(currentIds));
@@ -207,7 +216,19 @@ export default function TagVideoList({
       <CardHeader>
         <CardTitle>{t("title", { count: total })}</CardTitle>
         <CardDescription>{t("description")}</CardDescription>
-        <CardAction>
+        <CardAction className="flex gap-2">
+          {videos.length > 0 && (
+            <Button
+              variant="outline"
+              render={
+                <Link href={videoEditorHref(videos[0].id, listContext)} />
+              }
+              nativeButton={false}
+            >
+              <PencilIcon data-icon="inline-start" />
+              {t("editInTurn")}
+            </Button>
+          )}
           <Button
             variant="outline"
             disabled={selected.size === 0}
@@ -255,6 +276,7 @@ export default function TagVideoList({
               <VideoListItem
                 key={video.id}
                 video={video}
+                href={videoEditorHref(video.id, listContext)}
                 checked={selected.has(video.id)}
                 onCheckedChange={(checked) => {
                   setSelected((current) => {

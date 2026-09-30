@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { ScanSearchIcon, TimerIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { DECODE_RATE_RANGE } from "@/lib/progress";
 import {
   FRAME_COUNT_RANGE,
   FRAME_WIDTHS,
+  TAG_SETTINGS_EVENT,
   type FrameStrategy,
   type TagSettings,
 } from "@/lib/settings";
@@ -165,6 +166,7 @@ export default function FrameSettingsCard() {
       });
       if (!res.ok) throw new Error(String(res.status));
       setData(await res.json());
+      window.dispatchEvent(new Event(TAG_SETTINGS_EVENT));
     } catch {
       setData(previous);
     } finally {
@@ -320,7 +322,7 @@ export default function FrameSettingsCard() {
                   />
                   {/* Under automatic the checkbox already says so; the useful thing
                       to report is what the tiers actually work out to. */}
-                  <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                  <span className="min-w-20 shrink-0 text-right text-sm whitespace-nowrap tabular-nums">
                     {auto
                       ? t("average", { count: autoAverage })
                       : t("frames", { count: sliderValue })}
@@ -374,7 +376,9 @@ export default function FrameSettingsCard() {
                   duration: formatDurationText(data.pending.seconds, locale),
                 })}
               </div>
-              <div className="flex flex-col gap-1">
+              {/* A grid rather than a fixed label width, so a longer label in
+                  another language stays on one line and the values align. */}
+              <div className="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-sm">
                 {STRATEGIES.map((s) => {
                   const cost = extractionCost(
                     s.value,
@@ -383,23 +387,29 @@ export default function FrameSettingsCard() {
                   );
                   const active = data.settings.strategy === s.value;
                   return (
-                    <div
-                      key={s.value}
-                      className={cn(
-                        "flex items-baseline gap-3 text-sm",
-                        !active && "text-muted-foreground",
-                      )}
-                    >
-                      <span className="w-20 shrink-0">{t(s.label)}</span>
+                    <Fragment key={s.value}>
                       <span
-                        className={cn("tabular-nums", active && "font-medium")}
+                        className={cn(
+                          "whitespace-nowrap",
+                          !active && "text-muted-foreground",
+                        )}
                       >
-                        {formatRange(cost)}
+                        {t(s.label)}
                       </span>
-                      {active && (
-                        <Badge variant="secondary">{t("current")}</Badge>
-                      )}
-                    </div>
+                      <span className="flex items-baseline gap-3">
+                        <span
+                          className={cn(
+                            "tabular-nums whitespace-nowrap",
+                            active ? "font-medium" : "text-muted-foreground",
+                          )}
+                        >
+                          {formatRange(cost)}
+                        </span>
+                        {active && (
+                          <Badge variant="secondary">{t("current")}</Badge>
+                        )}
+                      </span>
+                    </Fragment>
                   );
                 })}
               </div>

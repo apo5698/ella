@@ -68,7 +68,6 @@
   },
   "TaskDock": {
     "active": "{count} 个任务",
-    "failed": "{count} 个任务失败",
     "queued": "{count} 个任务等待中",
     "expand": "展开通知中心",
     "collapse": "收起通知中心",
@@ -216,8 +215,6 @@
     "deleting": "删除中"
   },
   "TagActions": {
-    "approve": "标记为已审核",
-    "remove": "移除标签",
     "exclude": "排除标签",
     "parent": "父标签",
     "moveRoot": "移至顶级",
@@ -240,19 +237,43 @@
     "excluded": "已排除标签",
     "excludedHelp": "Smartag 不会生成已排除的标签。点击标签可恢复。",
     "restore": "恢复标签",
-    "removeNamedSeries": "移除系列“{name}”"
+    "removeNamedSeries": "移除系列“{name}”",
+    "removeNamed": "移除标签\"{name}\"",
+    "pending": "待审核（{count}）",
+    "pendingHelp": "Smartag 生成的标签。接受后成为已审核标签，排除后不再生成。",
+    "accept": "接受",
+    "acceptAll": "全部接受",
+    "acceptNamed": "接受\"{name}\"",
+    "excludeAll": "全部排除",
+    "exclude": "排除",
+    "excludeNamed": "排除\"{name}\""
   },
   "VideoEdit": {
     "pathRequired": "路径不能为空",
     "saveFailed": "保存失败",
-    "title": "编辑视频",
     "nameHint": "留空则使用文件名。",
     "path": "路径",
     "thumbnail": "封面",
     "thumbnailPreview": "封面预览",
-    "thumbnailPosition": "封面位置",
-    "thumbnailHint": "拖动以选取画面。不调整则保留当前封面。",
-    "pathTaken": "已被视频“{title}”使用。"
+    "pathTaken": "已被视频“{title}”使用。",
+    "previous": "上一个视频",
+    "next": "下一个视频",
+    "previousShortcut": "上一个视频 ([)",
+    "nextShortcut": "下一个视频 (])",
+    "saveShortcut": "保存 (Ctrl+S)",
+    "shortcuts": "Ctrl+S 保存。Ctrl+Enter 保存并打开下一个视频。[ 与 ] 切换视频。T 定位至标签输入框。",
+    "more": "更多操作",
+    "openPlayer": "在播放页打开",
+    "coverPending": "{time}（未保存）",
+    "undoCover": "撤销",
+    "useCurrentFrame": "使用当前画面",
+    "recognizeQueued": "识别任务已加入队列",
+    "details": "基本信息",
+    "unsavedTitle": "存在未保存的更改",
+    "unsavedDescription": "离开前是否保存该视频的更改？",
+    "discard": "不保存",
+    "saveAndContinue": "保存并继续",
+    "saved": "视频已保存"
   },
   "Autocomplete": {
     "selectSeries": "选择系列",
@@ -313,7 +334,7 @@
     "deselectNamed": "取消选择“{name}”",
     "sortAsc": "按{label}升序排列",
     "sortDesc": "按{label}降序排列",
-    "openVideo": "打开视频：{title}",
+    "openVideo": "编辑视频：{title}",
     "moreTags": "另有 {count} 个标签",
     "removeFilter": "移除标签筛选“{name}”",
     "selected": "已选择 <strong>{count}</strong> 个视频"
@@ -440,7 +461,8 @@
     "empty": "没有视频",
     "noAssignments": "没有视频直接使用该标签",
     "title": "视频（{count}）",
-    "removed": "已从 {count} 个视频移除 <tag>{name}</tag>"
+    "removed": "已从 {count} 个视频移除 <tag>{name}</tag>",
+    "editInTurn": "逐个编辑"
   },
   "TagNode": {
     "expand": "展开",
@@ -523,7 +545,7 @@
     "extraction": "抽帧",
     "inferenceProgress": "模型推理进度",
     "extractionProgress": "抽帧进度",
-    "retag": "重新识别已有标签的视频",
+    "retag": "重新识别已识别的视频",
     "running": "识别中",
     "start": "开始识别",
     "stop": "停止",
@@ -577,6 +599,13 @@
     "languageEnglish": "英语",
     "languageChinese": "简体中文",
     "tagLanguageHelp": "自动模式依次使用标题语言、界面语言和英语。手动选择的语言优先。现有标签保持不变。"
+  },
+  "Prompt": {
+    "title": "提示词",
+    "help": "Smartag 发送给模型的指令，按当前词库和标签语言生成。识别时另附视频标题、该视频的排除标签和抽取的帧。",
+    "copy": "复制",
+    "copied": "已复制",
+    "loadFailed": "无法加载提示词。"
   },
   "AutoTags": {
     "streamUnavailable": "浏览器无法读取扫描进度",
@@ -832,6 +861,7 @@
     "modelRequestFailed": "模型服务返回 HTTP {status}。",
     "videoFileMissing": "视频文件不存在。",
     "framesUnavailable": "无法提取视频画面。",
+    "modelReturnedNoTags": "模型未返回可用标签。",
     "modelUnavailable": "无法连接模型服务。",
     "downloadQueued": "队列中已有同名下载任务。",
     "taskCanceled": "任务已取消。",

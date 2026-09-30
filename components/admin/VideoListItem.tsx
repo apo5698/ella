@@ -12,10 +12,12 @@ import type { Video } from "@/lib/types";
 
 export default function VideoListItem({
   video,
+  href = `/video/${video.id}`,
   checked,
   onCheckedChange,
 }: {
   video: Video;
+  href?: string;
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }) {
@@ -50,10 +52,7 @@ export default function VideoListItem({
       </ItemMedia>
       <ItemContent className="min-w-0">
         <ItemTitle className="w-full max-w-full text-sm">
-          <Link
-            href={`/video/${video.id}`}
-            className="block truncate hover:underline"
-          >
+          <Link href={href} className="block truncate hover:underline">
             {video.title}
           </Link>
         </ItemTitle>

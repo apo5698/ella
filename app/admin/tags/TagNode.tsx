@@ -80,7 +80,7 @@ export default function TagNode({
       <div
         data-tag-row={node.id}
         className={cn(
-          "group flex items-start gap-1.5 rounded-md py-1 pr-2",
+          "group flex items-center gap-1.5 rounded-md py-1 pr-2",
           isTarget ? "bg-accent ring-2 ring-primary" : "hover:bg-accent/50",
           isBlocked && "opacity-40",
         )}
@@ -93,7 +93,7 @@ export default function TagNode({
           checked={selected.has(node.id)}
           onCheckedChange={(checked) => onSelect(node.id, checked === true)}
           aria-label={t("selectNamed", { name: node.name })}
-          className="mt-0.5 mr-1 shrink-0"
+          className="mr-1 shrink-0"
         />
 
         {hasChildren ? (
@@ -113,40 +113,44 @@ export default function TagNode({
           <span className="size-5 shrink-0" />
         )}
 
-        <div className="flex min-w-0 flex-1 gap-1.5">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-            <div className="flex shrink-0 items-center gap-1.5 text-sm">
-              <TagStatePopover
-                tagId={node.id}
-                name={node.name}
-                state={node.reviewState}
-                directVideoCount={node.count}
-                onChanged={onStateChanged}
-              />
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5 text-sm">
+            <TagStatePopover
+              tagId={node.id}
+              name={node.name}
+              state={node.reviewState}
+              directVideoCount={node.count}
+              onChanged={onStateChanged}
+            />
 
-              {/* The parent's number covers its whole subtree, which is what
+            {/* The parent's number covers its whole subtree, which is what
                   selecting it on the home page returns. */}
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {!node.assignable
-                  ? node.totalCount
-                  : hasChildren && node.totalCount !== node.count
-                    ? `${node.count} / ${node.totalCount}`
-                    : node.count}
-              </span>
-            </div>
-
-            {/* The dashed outline is what marks these as aliases; a tooltip
-                repeating that would only get in the way of a drag. */}
-            {node.aliases.map((alias) => (
-              <AliasBadge key={alias} className="shrink-0">
-                {alias}
-              </AliasBadge>
-            ))}
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {!node.assignable
+                ? node.totalCount
+                : hasChildren && node.totalCount !== node.count
+                  ? `${node.count} / ${node.totalCount}`
+                  : node.count}
+            </span>
           </div>
+
+          {/* The dashed outline is what marks these as aliases; a tooltip
+              repeating that would only get in the way of a drag. They are
+              only a hint, so they stay on one line and fade out where they
+              run out of room, which keeps every row the same height. */}
+          {node.aliases.length > 0 && (
+            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden mask-[linear-gradient(to_right,black_calc(100%-1.5rem),transparent)]">
+              {node.aliases.map((alias) => (
+                <AliasBadge key={alias} className="shrink-0">
+                  {alias}
+                </AliasBadge>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Keep actions visible so each operation has an explicit target. */}
-        <div className="ml-auto flex shrink-0 items-center [&>button]:pointer-coarse:h-auto [&>button]:pointer-coarse:w-auto [&>button]:pointer-coarse:p-3">
+        <div className="ml-auto flex shrink-0 items-center">
           <Button
             data-row-control=""
             type="button"

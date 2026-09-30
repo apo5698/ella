@@ -12,11 +12,12 @@ import { parseRecognitionTags } from "./recognitionTags";
 import { buildPrompt } from "./recognitionPrompt";
 export { buildPrompt } from "./recognitionPrompt";
 import { FFMPEG_PATH } from "./config";
+import type Database from "better-sqlite3";
 import {
   upsertVideoTags,
-  getManualTags,
   getRejectedTags,
-  getAllManualTags,
+  getRecognitionLibrary,
+  type RecognitionLibrary,
 } from "./tags";
 import type { TagSettings } from "./settings";
 import { getTagSettings, getLlmSettings } from "./settingsStore";
@@ -360,9 +361,18 @@ export async function extractFrames(
   );
 }
 
+/**
+ * Servers that refused `reasoning_effort`, keyed by address and model.
+ *
+ * A reasoning model such as Gemma 4 otherwise spends the whole token budget
+ * thinking and returns no tags, so the field is sent by default. A server that
+ * rejects it is asked again without it, once per process.
+ */
+const rejectsReasoningEffort = new Set<string>();
+
 export async function describeFrames(
   images: string[],
-  prompt: string = buildPrompt([], []),
+  prompt: string = buildPrompt({ frames: images.length }),
   signal?: AbortSignal,
 ): Promise<string[]> {
   type ContentPart =
@@ -378,17 +388,34 @@ export async function describeFrames(
   }
 
   const { url, model } = getLlmSettings();
-  const res = await fetch(`${url}/chat/completions`, {
-    signal,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content }],
-      temperature: 0.2,
-      max_tokens: 200,
-    }),
-  });
+  const endpoint = `${url}|${model}`;
+  const request = (skipReasoning: boolean) =>
+    fetch(`${url}/chat/completions`, {
+      signal,
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content }],
+        temperature: 0.2,
+        max_tokens: 200,
+        ...(skipReasoning ? { reasoning_effort: "none" } : {}),
+      }),
+    });
+
+  let res = await request(!rejectsReasoningEffort.has(endpoint));
+  if (res.status === 400 && !rejectsReasoningEffort.has(endpoint)) {
+    const detail = await res.text();
+    if (!/reasoning/i.test(detail)) {
+      throw new AppError(
+        "modelRequestFailed",
+        { status: res.status },
+        { cause: new Error(detail) },
+      );
+    }
+    rejectsReasoningEffort.add(endpoint);
+    res = await request(false);
+  }
   if (!res.ok) {
     throw new AppError(
       "modelRequestFailed",
@@ -400,7 +427,37 @@ export async function describeFrames(
   }
   const data = await res.json();
   const text: string = data.choices?.[0]?.message?.content ?? "";
-  return parseRecognitionTags(text);
+  const tags = parseRecognitionTags(text);
+  // Storing an empty answer would clear the video's generated tags, so an
+  // unusable reply fails the video instead.
+  if (tags.length === 0) throw new AppError("modelReturnedNoTags");
+  return tags;
+}
+
+/**
+ * The prompt for one video. The batch job passes the library it read at start
+ * so every video in one run sees the same reference data.
+ *
+ * Without a video it is the library-wide part alone, which the settings page
+ * shows as a preview.
+ */
+export function buildVideoPrompt(
+  database: Database.Database,
+  video: { id: number; title: string } | null,
+  frames: number | undefined,
+  context: { settings: TagSettings; uiLocale?: string },
+  library: RecognitionLibrary = getRecognitionLibrary(database),
+): string {
+  const rejected = video ? getRejectedTags(database, video.id) : [];
+  return buildPrompt({
+    rejected: [...new Set([...rejected, ...library.excluded])],
+    vocabulary: library.vocabulary,
+    groups: library.groups,
+    frames,
+    language: context.settings.tagLanguage,
+    title: video?.title,
+    uiLocale: context.uiLocale,
+  });
 }
 
 /** Recognizes tags without changing the video's stored associations. */
@@ -408,6 +465,7 @@ export async function suggestVideoTagsById(
   videoId: number,
   onProgress?: ProgressFn,
   uiLocale?: string,
+  signal?: AbortSignal,
 ): Promise<{ ok: true; tags: string[] } | { ok: false; error: AppError }> {
   const row = db
     .prepare("SELECT id, path, title, duration_sec FROM videos WHERE id = ?")
@@ -419,18 +477,23 @@ export async function suggestVideoTagsById(
   if (!fs.existsSync(row.path))
     return { ok: false, error: new AppError("videoFileMissing") };
 
-  const frames = await extractFrames(row.path, row.duration_sec, onProgress);
+  const settings = getTagSettings();
+  const frames = await extractFrames(
+    row.path,
+    row.duration_sec,
+    onProgress,
+    settings,
+    signal,
+  );
   if (frames.length === 0)
     return { ok: false, error: new AppError("framesUnavailable") };
 
-  const prompt = buildPrompt(
-    getManualTags(db, videoId),
-    getRejectedTags(db, videoId),
-    getAllManualTags(db),
-    { language: getTagSettings().tagLanguage, title: row.title, uiLocale },
-  );
+  const prompt = buildVideoPrompt(db, row, frames.length, {
+    settings,
+    uiLocale,
+  });
   onProgress?.({ phase: "infer", ratio: 1, frames: frames.length });
-  const tags = await describeFrames(frames, prompt);
+  const tags = await describeFrames(frames, prompt, signal);
   return { ok: true, tags };
 }
 

@@ -38,6 +38,9 @@ export const DEFAULT_SETTINGS: TagSettings = {
   recognizeDownloads: true,
 };
 
+/** Dispatched on `window` after the tag settings are saved. */
+export const TAG_SETTINGS_EVENT = "ella:tag-settings-saved";
+
 export const FRAME_COUNT_RANGE = [1, 12] as const;
 /** Widths the model handles sensibly; below this detail stops being legible. */
 export const FRAME_WIDTHS = [256, 384, 512, 768] as const;

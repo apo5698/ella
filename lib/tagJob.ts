@@ -5,12 +5,11 @@ import db from "./db";
 import { createTracker, type BatchProgress } from "./progress";
 import { getTagSettings, getLlmSettings } from "./settingsStore";
 import {
-  getAllManualTags,
-  getManualTags,
-  getRejectedTags,
+  getRecognitionLibrary,
+  RECOGNIZED_VIDEO_IDS,
   upsertVideoTags,
 } from "./tags";
-import { buildPrompt, describeFrames, extractFrames } from "./vision";
+import { buildVideoPrompt, describeFrames, extractFrames } from "./vision";
 
 export type JobLogEntry = {
   key:
@@ -152,9 +151,7 @@ async function runBatchTagJob(
   uiLocale?: string,
 ) {
   signal.throwIfAborted();
-  const already = force
-    ? ""
-    : `AND id NOT IN (SELECT video_id FROM video_tags WHERE status = 'active')`;
+  const already = force ? "" : `AND id NOT IN (${RECOGNIZED_VIDEO_IDS})`;
   const rows = db
     .prepare(
       `SELECT id, path, title, duration_sec FROM videos
@@ -171,7 +168,7 @@ async function runBatchTagJob(
   // Read these once so editing settings or tags mid-run cannot make the first
   // and second halves of one batch incomparable.
   const settings = getTagSettings();
-  const libraryTags = getAllManualTags(db);
+  const library = getRecognitionLibrary(db);
   const llm = getLlmSettings();
   appendLog(
     {
@@ -240,11 +237,12 @@ async function runBatchTagJob(
 
       tracker.update({ phase: "infer", ratio: 1, frames: frames.length });
       publishProgress();
-      const prompt = buildPrompt(
-        getManualTags(db, row.id),
-        getRejectedTags(db, row.id),
-        libraryTags,
-        { language: settings.tagLanguage, title: row.title, uiLocale },
+      const prompt = buildVideoPrompt(
+        db,
+        row,
+        frames.length,
+        { settings, uiLocale },
+        library,
       );
       const tags = await describeFrames(frames, prompt, signal);
       signal.throwIfAborted();
