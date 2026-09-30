@@ -52,11 +52,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupInput,
+  InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
@@ -125,6 +125,19 @@ function mergeRecognized(
 /** A position in the video; unlike a duration, the very start is a time too. */
 function coverTime(sec: number) {
   return sec < 1 ? "0:00" : formatDuration(Math.round(sec));
+}
+
+/**
+ * Names and paths are long, so they are edited in boxes that wrap, but
+ * neither may hold a line break: Enter adds none and a pasted one is dropped.
+ */
+function singleLine(value: string) {
+  return value.replace(/[\r\n]+/g, "");
+}
+
+function preventNewline(event: React.KeyboardEvent) {
+  if (event.key === "Enter" && !event.nativeEvent.isComposing)
+    event.preventDefault();
 }
 
 /** Whether a key press belongs to a text field rather than to the page. */
@@ -599,15 +612,16 @@ export default function VideoWorkbench({
                   <FieldLabel htmlFor="video-title">
                     {common("name")}
                   </FieldLabel>
-                  <Input
+                  <Textarea
                     id="video-title"
                     value={draft.title}
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
-                        title: event.target.value,
+                        title: singleLine(event.target.value),
                       }))
                     }
+                    onKeyDown={preventNewline}
                     placeholder={fileBaseName(draft.path)}
                   />
                   <FieldDescription>{t("nameHint")}</FieldDescription>
@@ -615,15 +629,16 @@ export default function VideoWorkbench({
                 <Field data-invalid={pathError ? true : undefined}>
                   <FieldLabel htmlFor="video-path">{t("path")}</FieldLabel>
                   <InputGroup data-invalid={pathError ? true : undefined}>
-                    <InputGroupInput
+                    <InputGroupTextarea
                       id="video-path"
                       value={draft.path}
                       onChange={(event) =>
                         setDraft((current) => ({
                           ...current,
-                          path: event.target.value,
+                          path: singleLine(event.target.value),
                         }))
                       }
+                      onKeyDown={preventNewline}
                       aria-invalid={pathError ? true : undefined}
                       spellCheck={false}
                       required
