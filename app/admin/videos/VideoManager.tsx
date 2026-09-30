@@ -447,6 +447,7 @@ function VideoTable({
   const t = useTranslations("VideoManager");
   const common = useTranslations("Common");
   const locale = useLocale();
+  const router = useRouter();
   const currentIds = useMemo(() => videos.map((video) => video.id), [videos]);
   const allSelected =
     currentIds.length > 0 && currentIds.every((id) => selected.has(id));
@@ -522,8 +523,20 @@ function VideoTable({
               return (
                 <TableRow
                   key={video.id}
-                  className="group bg-background hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]"
+                  className="group cursor-pointer bg-background hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]"
                   data-state={checked ? "selected" : undefined}
+                  // The whole row opens the editor. Controls inside it keep
+                  // their own click, and so do the menu and dialog it opens,
+                  // whose clicks reach here through React but not the DOM.
+                  onClick={(event) => {
+                    const target = event.target as HTMLElement;
+                    if (
+                      !event.currentTarget.contains(target) ||
+                      target.closest("a, button, input, label, [role=checkbox]")
+                    )
+                      return;
+                    router.push(editHref);
+                  }}
                 >
                   <TableCell>
                     <Checkbox
