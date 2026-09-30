@@ -9,7 +9,6 @@ import {
 } from "@/lib/autoTagging";
 import { ensureTag } from "@/lib/tagHierarchy";
 import { ensureSeries } from "@/lib/series";
-import { enqueueTagPromotion } from "@/lib/taskRunner";
 
 type RequestedSuggestion = {
   name: string;
@@ -77,7 +76,6 @@ export async function POST(req: Request) {
   }
 
   const canonicalNames: string[] = [];
-  const promoted: number[] = [];
   const tx = db.transaction(() => {
     const saveTag = db.prepare(
       `INSERT INTO video_tags (video_id, tag_id, source, status)
@@ -99,14 +97,9 @@ export async function POST(req: Request) {
       const tag = ensureTag(db, suggestion.name);
       saveTag.run(videoId, tag.id);
       canonicalNames.push(tag.name);
-      promoted.push(tag.id);
     }
   });
   tx();
-
-  // Outside the transaction: queueing is a write of its own, and the accepted
-  // tags are the user's own words from here on.
-  for (const tagId of promoted) enqueueTagPromotion(db, tagId);
 
   return Response.json({
     ok: true,

@@ -34,18 +34,19 @@ export async function discardWorkspace(directory: string | undefined) {
  * Removes workspaces nothing refers to: those of downloads cut off by a
  * restart, which start over in a new one. Run before any task starts.
  */
-export async function sweepWorkspaces(keep: Set<string>) {
+export async function sweepWorkspaces(keep: Set<string>): Promise<number> {
   let entries: string[];
   try {
     entries = await readdir(DOWNLOAD_WORK_ROOT);
   } catch {
-    return;
+    return 0;
   }
   const kept = new Set([...keep].map((directory) => path.resolve(directory)));
+  const stale = entries
+    .map((entry) => path.join(DOWNLOAD_WORK_ROOT, entry))
+    .filter((directory) => !kept.has(directory));
   await Promise.all(
-    entries
-      .map((entry) => path.join(DOWNLOAD_WORK_ROOT, entry))
-      .filter((directory) => !kept.has(directory))
-      .map((directory) => rm(directory, { recursive: true, force: true })),
+    stale.map((directory) => rm(directory, { recursive: true, force: true })),
   );
+  return stale.length;
 }

@@ -7,7 +7,7 @@ import { groupTags } from "@/lib/tagOrder";
 
 /**
  * The tags as they stand. Read only on purpose: adding, accepting and removing
- * them lives in the edit dialog.
+ * them lives in the video editor, which plays the video beside them.
  */
 export default function TagList({
   series,

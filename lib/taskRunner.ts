@@ -73,11 +73,9 @@ type TaskHandler = (ctx: TaskContext) => Promise<JobPayload>;
 /**
  * Rewrites every remaining generated association of one tag as a manual one.
  *
- * Accepting a generated tag is a statement about the tag, not about the one
- * video it was accepted on: the user has confirmed the word belongs to the
- * library. Left per-video, the same tag would read as the user's own in one
- * place and as a guess in another, which is the "manual and AI" state the row
- * dot had to invent a colour for.
+ * Nothing queues this any longer: accepting a tag now confirms it on one video
+ * only, since promoting it everywhere also confirmed every wrong guess of it.
+ * The handler stays so jobs queued by an earlier version still finish.
  *
  * Rejections keep their source: they are the model's output that the user
  * turned down, and re-generation still needs to read them that way.
@@ -128,6 +126,7 @@ const retagVideo: TaskHandler = async ({
   setTotal,
   advance,
   canceled,
+  signal,
 }) => {
   const videoId = Number(payload.videoId);
   const video = db
@@ -146,6 +145,7 @@ const retagVideo: TaskHandler = async ({
       videoId,
       (update) => tracker.update(update),
       typeof payload.uiLocale === "string" ? payload.uiLocale : undefined,
+      signal,
     );
     if (!result.ok) throw result.error;
     if (canceled()) return {};
@@ -268,10 +268,13 @@ const LANE_LIMITS: Record<Lane, number> = {
   download: Number.POSITIVE_INFINITY,
 };
 
-// One worker per server process, held on globalThis so a hot reload in
-// development neither starts a second worker against the same table nor
-// forgets the tasks the first one is still running.
-const g = globalThis as unknown as {
+// One worker per server process, so a hot reload in development neither
+// starts a second worker against the same table nor forgets the tasks the
+// first one is still running. Held on `process` rather than globalThis: the
+// development server can evaluate this module again under a fresh global,
+// and a worker found missing there would requeue a running download and
+// sweep away its workspace in the middle of the transfer.
+const g = process as unknown as {
   __taskWorker?: {
     running: Record<Lane, number>;
     active: Map<number, AbortController>;
@@ -334,12 +337,17 @@ function claimNext(lane: Lane): Job | undefined {
     )
     .get(lane === "download" ? 1 : 0) as { id: number } | undefined;
   if (!next) return undefined;
-  db.prepare(
-    `UPDATE background_jobs
-     SET status = 'running', started_at = ?, processed = 0, outcome = NULL,
-       progress = NULL
-     WHERE id = ?`,
-  ).run(Date.now(), next.id);
+  // Conditional, so a task another worker claimed in between is not started
+  // a second time.
+  const claimed = db
+    .prepare(
+      `UPDATE background_jobs
+       SET status = 'running', started_at = ?, processed = 0, outcome = NULL,
+         progress = NULL
+       WHERE id = ? AND status = 'queued'`,
+    )
+    .run(Date.now(), next.id);
+  if (claimed.changes === 0) return undefined;
   return getJob(db, next.id);
 }
 
@@ -479,7 +487,10 @@ function recoverInterrupted() {
       "UPDATE background_jobs SET status = 'queued', started_at = NULL, progress = NULL WHERE status = 'running'",
     )
     .run();
-  if (info.changes > 0) notifyJobsChanged();
+  if (info.changes > 0) {
+    console.warn(`[tasks] Requeued ${info.changes} interrupted task(s)`);
+    notifyJobsChanged();
+  }
 }
 
 /**
@@ -502,7 +513,11 @@ async function sweepDownloadWorkspaces() {
     if (payload.selection?.workspace) keep.add(payload.selection.workspace);
     if (outcome?.retained?.workspace) keep.add(outcome.retained.workspace);
   }
-  await sweepWorkspaces(keep);
+  const removed = await sweepWorkspaces(keep);
+  if (removed > 0)
+    console.warn(
+      `[tasks] Removed ${removed} unreferenced download workspace(s)`,
+    );
 }
 
 // Importing this module must not be able to fail: it is pulled in by the
@@ -527,44 +542,6 @@ try {
   }
 } catch (cause) {
   console.error("[tasks] Unable to load queue at startup", cause);
-}
-
-/**
- * Queues the promotion of one tag, unless nothing is left to promote or the
- * same tag is already waiting. Returns the task id when one was added.
- */
-export function enqueueTagPromotion(
-  database: Database.Database,
-  tagId: number,
-): number | null {
-  const pending = (
-    database
-      .prepare(
-        `SELECT COUNT(*) AS c FROM video_tags
-         WHERE tag_id = ? AND source = 'vision' AND status = 'active'`,
-      )
-      .get(tagId) as { c: number }
-  ).c;
-  if (pending === 0) return null;
-
-  const tag = database
-    .prepare("SELECT name FROM tags WHERE id = ?")
-    .get(tagId) as { name: string } | undefined;
-  if (!tag) return null;
-
-  const id = createJob(
-    database,
-    {
-      kind: "TAG_APPROVAL",
-      payload: { tagId, tagName: tag.name, pending },
-    },
-    "tagId",
-  );
-  if (id === null) return null;
-
-  notifyJobsChanged();
-  kickTaskRunner();
-  return id;
 }
 
 /** Queues one video for recognition, deduplicated while it is active. */

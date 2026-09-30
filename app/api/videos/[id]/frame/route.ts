@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
-// A single frame from a video, decoded on demand. Backs the thumbnail
-// scrubber: the dialog points an <img> at this while the slider moves, so
-// nothing is written to disk until the edit is saved.
+// A single frame from a video, decoded on demand. Backs the cover preview in
+// the video editor: a frame picked from playback shows here, and nothing is
+// written to disk until the edit is saved.
 import db from "@/lib/db";
 import { clampThumbSec, grabFrame } from "@/lib/thumbnail";
 

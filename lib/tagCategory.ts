@@ -18,10 +18,9 @@ export type TagCategory = TagReviewState;
  * Which group a tag reads as. This mirrors the dot on its row, where a
  * rejection outranks the sources beside it: one tag, one dot, one group.
  *
- * A tag is the user's own or the model's, never both: accepting one makes it
- * manual everywhere, and a generated association takes the source the tag
- * already has. Manual still wins here, so a row left over from an older
- * database reads as the user's rather than as neither.
+ * The group follows the tag's review state, not the sources of its
+ * associations: an approved tag may still hold generated associations the
+ * user has not accepted video by video.
  */
 export function tagCategory(
   node: Pick<TagTreeNode, "reviewState">,

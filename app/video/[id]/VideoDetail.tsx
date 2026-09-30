@@ -1,6 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { PencilIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
 import type { VideoDetailTag, VideoTagState } from "@/lib/types";
 import TagList from "./TagList";
@@ -21,6 +25,7 @@ export default function VideoDetail({
   initialViews: number;
   playerMeta: { duration: string; resolution: string | null; size: string };
 }) {
+  const t = useTranslations("VideoActions");
   const { notifications } = useTaskQueue();
   const mountedAt = useRef(0);
   const syncedTask = useRef<number | null>(null);
@@ -78,9 +83,20 @@ export default function VideoDetail({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="mt-2 mb-4 min-w-0">
-        <h1 className="break-all text-2xl font-semibold">{video.title}</h1>
-        <p className="text-xs text-muted-foreground">id={video.id}</p>
+      <div className="mt-2 mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="break-all text-2xl font-semibold">{video.title}</h1>
+          <p className="text-xs text-muted-foreground">id={video.id}</p>
+        </div>
+        <Button
+          variant="outline"
+          className="shrink-0"
+          render={<Link href={`/admin/videos/${video.id}`} />}
+          nativeButton={false}
+        >
+          <PencilIcon data-icon="inline-start" />
+          {t("edit")}
+        </Button>
       </div>
 
       <VideoPlayer

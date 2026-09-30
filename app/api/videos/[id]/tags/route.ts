@@ -7,7 +7,6 @@ import {
   resolveTagName,
   tagPath,
 } from "@/lib/tagHierarchy";
-import { enqueueTagPromotion } from "@/lib/taskRunner";
 import { notifyVideosChanged } from "@/lib/videoEvents";
 
 /**
@@ -52,16 +51,12 @@ export async function POST(
   });
   tx();
 
-  // Adding a tag by hand vouches for the word itself, so the tag stops being
-  // a generated one everywhere. Queued: it can touch many videos.
-  const taskId = tagId === null ? null : enqueueTagPromotion(db, tagId);
   notifyVideosChanged([videoId]);
 
   return NextResponse.json({
     ok: true,
     id: tagId,
     name: resolved.name,
-    taskId,
     // Returned so the editor can place the new chip in its family without
     // reloading the page.
     path: tagPath(db, tagId as number),

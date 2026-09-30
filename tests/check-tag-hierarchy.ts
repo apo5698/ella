@@ -46,7 +46,8 @@ async function main() {
     withDescendants,
     wouldCycle,
   } = await import("../lib/tagHierarchy");
-  const { upsertVideoTags } = await import("../lib/tags");
+  const { getRecognitionLibrary, upsertVideoTags } =
+    await import("../lib/tags");
 
   const tagId = (name: string) =>
     (
@@ -447,6 +448,47 @@ async function main() {
     "videos losing a tag is a destructive consequence",
     loss ? formatTagImpactFact(loss).tone : null,
     "destructive",
+  );
+
+  // --- recognition ---------------------------------------------------------
+  // An excluded tag stays off every video, including ones it never touched.
+  db.prepare("INSERT INTO tags (name, review_state) VALUES (?, ?)").run(
+    "测试排除",
+    "excluded",
+  );
+  upsertVideoTags(db, videoB, ["测试排除", "测试条目甲"], "vision");
+  check(
+    "generation never adds an excluded tag",
+    (
+      db
+        .prepare(
+          `SELECT t.name FROM tags t JOIN video_tags vt ON vt.tag_id = t.id
+           WHERE vt.video_id = ? AND vt.status = 'active' ORDER BY t.name`,
+        )
+        .all(videoB) as { name: string }[]
+    ).map((r) => r.name),
+    ["测试条目甲"],
+  );
+  // 测试条目甲 is approved, yet the model writing it is still only a guess.
+  check(
+    "a generated approved tag stays generated on the video",
+    db
+      .prepare(
+        "SELECT source FROM video_tags WHERE video_id = ? AND tag_id = ?",
+      )
+      .get(videoB, tagId("测试条目甲")),
+    { source: "vision" },
+  );
+  const library = getRecognitionLibrary(db);
+  check(
+    "the model is told about excluded tags and groups",
+    [library.excluded.includes("测试排除"), library.groups],
+    [true, []],
+  );
+  check(
+    "excluded tags are not offered as vocabulary",
+    library.vocabulary.includes("测试排除"),
+    false,
   );
 
   console.log(failures === 0 ? "\nall passed" : `\n${failures} failed`);

@@ -7,7 +7,6 @@ import db from "@/lib/db";
 import { VIDEO_ROOT } from "@/lib/config";
 import { sortTags } from "@/lib/tagOrder";
 import { loadVideoTagState, replaceVideoTagState } from "@/lib/tags";
-import { enqueueTagPromotion } from "@/lib/taskRunner";
 import type { VideoTagState } from "@/lib/types";
 import { notifyVideosChanged } from "@/lib/videoEvents";
 import {
@@ -112,7 +111,6 @@ export async function PATCH(
   }
 
   const tagState = body.tagState as VideoTagState | undefined;
-  let promotionIds: number[] = [];
   try {
     db.transaction(() => {
       if (thumbnail) {
@@ -127,7 +125,7 @@ export async function PATCH(
         );
       }
       if (tagState) {
-        promotionIds = replaceVideoTagState(db, row.id, tagState);
+        replaceVideoTagState(db, row.id, tagState);
       }
     })();
   } catch (error) {
@@ -137,7 +135,6 @@ export async function PATCH(
     );
   }
 
-  for (const tagId of promotionIds) enqueueTagPromotion(db, tagId);
   notifyVideosChanged([row.id]);
 
   return NextResponse.json({

@@ -3,7 +3,13 @@
 import { useTranslations } from "next-intl";
 
 import { useState } from "react";
-import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import Link from "next/link";
+import {
+  EllipsisVerticalIcon,
+  PencilIcon,
+  PlayIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,98 +20,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type {
-  EditableVideo,
-  Video,
-  VideoMetadataPatch,
-  VideoTagState,
-} from "@/lib/types";
+import type { Video } from "@/lib/types";
 import VideoDeleteDialog from "./VideoDeleteDialog";
-import VideoEditDialog from "./VideoEditDialog";
-
-type EditorState = {
-  video: EditableVideo;
-  initialThumbSec: number;
-  initialPathExists: boolean;
-  tagState: VideoTagState;
-};
-
-function defaultThumbSec(duration: number | null) {
-  return duration ? Math.min(Math.max(duration * 0.15, 1), 60) : 3;
-}
 
 export default function VideoRowActions({
   video,
-  onChanged,
+  editHref,
   onDeleted,
 }: {
   video: Video;
-  onChanged: () => void;
+  editHref: string;
   onDeleted: (videoId: number) => void;
 }) {
   const t = useTranslations("VideoActions");
+  const edit = useTranslations("VideoEdit");
   const common = useTranslations("Common");
-  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editLoading, setEditLoading] = useState(false);
-  const [editKey, setEditKey] = useState(0);
-  const [editor, setEditor] = useState<EditorState | null>(null);
-
-  async function openEditor() {
-    if (editLoading) return;
-    setEditLoading(true);
-    try {
-      const detailResponse = await fetch(`/api/videos/${video.id}`);
-      const detail = await detailResponse.json();
-      if (!detailResponse.ok) {
-        throw new Error(detail.error ?? t("loadFailed"));
-      }
-
-      const pathResponse = await fetch(
-        `/api/videos/path-check?path=${encodeURIComponent(detail.path)}&id=${video.id}`,
-      );
-      const pathCheck = await pathResponse.json();
-      if (!pathResponse.ok) {
-        throw new Error(pathCheck.error ?? t("pathFailed"));
-      }
-
-      setEditor({
-        video: {
-          id: detail.id,
-          title: detail.title,
-          path: detail.path,
-          duration_sec: detail.duration_sec,
-        },
-        initialThumbSec:
-          detail.thumbnail_sec ?? defaultThumbSec(detail.duration_sec),
-        initialPathExists: pathCheck.exists === true,
-        tagState: detail.tagState,
-      });
-      setEditKey((key) => key + 1);
-      setEditOpen(true);
-    } catch (cause) {
-      toast.error((cause as Error).message);
-    } finally {
-      setEditLoading(false);
-    }
-  }
-
-  function handleSaved(patch: VideoMetadataPatch) {
-    setEditor((current) =>
-      current
-        ? {
-            ...current,
-            video: {
-              ...current.video,
-              title: patch.title,
-              path: patch.path,
-            },
-            initialThumbSec: patch.thumbnailSec ?? current.initialThumbSec,
-          }
-        : current,
-    );
-    onChanged();
-  }
 
   return (
     <>
@@ -121,14 +51,23 @@ export default function VideoRowActions({
         >
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuGroup>
-            <DropdownMenuItem
-              disabled={editLoading}
-              onClick={() => void openEditor()}
-            >
+            <DropdownMenuItem render={<Link href={editHref} />}>
               <PencilIcon />
               {t("edit")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              render={
+                <Link
+                  href={`/video/${video.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+            >
+              <PlayIcon />
+              {edit("openPlayer")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -143,26 +82,6 @@ export default function VideoRowActions({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {editor && (
-        <VideoEditDialog
-          key={editKey}
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          video={editor.video}
-          initialThumbSec={editor.initialThumbSec}
-          initialPathExists={editor.initialPathExists}
-          tags={editor.tagState.tags}
-          rejectedTags={editor.tagState.rejectedTags}
-          seriesName={editor.tagState.seriesName}
-          onSaved={handleSaved}
-          onTagStateChange={(tagState) =>
-            setEditor((current) =>
-              current ? { ...current, tagState } : current,
-            )
-          }
-        />
-      )}
 
       <VideoDeleteDialog
         open={deleteOpen}
