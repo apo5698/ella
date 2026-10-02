@@ -1,3 +1,4 @@
+import { isSameOrigin } from "@/lib/sameOrigin";
 import { getTranslations } from "next-intl/server";
 import { version } from "@/package.json";
 import { getLatestRelease, compareVersions } from "@/lib/releases";
@@ -50,14 +51,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const t = await getTranslations("Api");
-  const origin = request.headers.get("origin");
-  let sameOrigin = false;
-  try {
-    sameOrigin = Boolean(
-      origin && new URL(origin).host === request.headers.get("host"),
-    );
-  } catch {}
-  if (!sameOrigin) {
+  if (!isSameOrigin(request)) {
     return json({ error: t("invalidUpdateOrigin") }, 403);
   }
   const release = await getLatestRelease(true);

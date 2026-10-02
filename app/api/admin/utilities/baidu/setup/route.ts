@@ -1,3 +1,4 @@
+import { isSameOrigin } from "@/lib/sameOrigin";
 import { getTranslations } from "next-intl/server";
 import { errorMessage } from "@/lib/appError";
 import {
@@ -14,11 +15,14 @@ export async function GET() {
   return Response.json(await baiduSetupStatus(), { headers });
 }
 export async function POST(request: Request) {
-  // Credential changes must originate from this application.
-  const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin)
-    return new Response(null, { status: 403 });
   const t = await getTranslations("Api");
+  // Credential changes must originate from this application. A request with
+  // no Origin is not from a browser page, so it carries no such risk.
+  if (request.headers.get("origin") && !isSameOrigin(request))
+    return Response.json(
+      { error: t("invalidOrigin") },
+      { status: 403, headers },
+    );
   try {
     const raw = await request.text();
     if (raw.length > 40_000) return new Response(null, { status: 413 });
