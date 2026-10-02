@@ -237,8 +237,12 @@ export default function TagDetailManager({
   }
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4">
+    // The same frame as the video editor: what the tag is applied to on the
+    // left, its own properties in a fixed-width panel on the right. Stacked,
+    // the properties come first, so renaming never means scrolling past
+    // every video.
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
         <Card>
           <CardHeader>
             <CardTitle>{t("details")}</CardTitle>
@@ -447,9 +451,7 @@ export default function TagDetailManager({
         </Card>
       </div>
 
-      {/* The videos sit beside the details rather than below them, so the
-          list stays in view while the tag itself is edited. */}
-      <div className="min-w-0">
+      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
         <TagVideoList
           key={`${node.id}-${node.count}`}
           tagId={node.id}
