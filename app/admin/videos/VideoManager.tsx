@@ -65,6 +65,7 @@ import { cn } from "@/lib/utils";
 import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import type { Video } from "@/lib/types";
 import type { VideoEvent } from "@/lib/videoEvents";
+import { cancelTask, useTaskQueue } from "@/hooks/useTaskQueue";
 import { type VideoListContext, videoEditorHref } from "@/lib/videoListContext";
 import AutoTagDialog from "./AutoTagDialog";
 import VideoRowActions from "./VideoRowActions";
@@ -720,6 +721,12 @@ function VideoManagerContent() {
   const [batchAction, setBatchAction] = useState<BatchAction | null>(null);
   const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
   const [scanSubmitting, setScanSubmitting] = useState(false);
+  const { jobs } = useTaskQueue();
+  const scanJob = jobs.find(
+    (job) =>
+      job.kind === "VIDEO_CATALOG_SCAN" &&
+      (job.status === "queued" || job.status === "running"),
+  );
   const [refreshEpoch, setRefreshEpoch] = useState(0);
   const [liveRefreshEpoch, setLiveRefreshEpoch] = useState(0);
   const requestKey = JSON.stringify([
@@ -910,10 +917,15 @@ function VideoManagerContent() {
     setRefreshEpoch((epoch) => epoch + 1);
   }
 
-  async function startCatalogScan() {
+  /** Starts a scan, or stops the one under way: one button, two states. */
+  async function toggleCatalogScan() {
     if (scanSubmitting) return;
     setScanSubmitting(true);
     try {
+      if (scanJob) {
+        await cancelTask(scanJob.id);
+        return;
+      }
       const response = await fetch("/api/videos/scan", { method: "POST" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? t("scanFailed"));
@@ -962,14 +974,14 @@ function VideoManagerContent() {
         <Button
           variant="outline"
           disabled={scanSubmitting}
-          onClick={startCatalogScan}
+          onClick={toggleCatalogScan}
         >
-          {scanSubmitting ? (
+          {scanSubmitting || scanJob ? (
             <Spinner data-icon="inline-start" />
           ) : (
             <RefreshCwIcon data-icon="inline-start" />
           )}
-          {t("scan")}
+          {scanJob ? t("stopScan") : t("scan")}
         </Button>
       </div>
 

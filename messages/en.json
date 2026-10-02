@@ -42,7 +42,8 @@
     "loadVideosFailed": "Unable to load videos",
     "deselectAll": "Deselect All",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "stop": "Stop"
   },
   "Navigation": {
     "home": "Home",
@@ -78,7 +79,9 @@
       "VIDEO_RETAG": "Updating tags for {videoTitle}.",
       "VIDEO_CATALOG_SCAN": "Scanning the video directory.",
       "VIDEO_DOWNLOAD": "Downloading {name}."
-    }
+    },
+    "cancel": "Cancel Task",
+    "cancelNamed": "Cancel {title}"
   },
   "Notifications": {
     "total": "{count, plural, one {# notification} other {# notifications}}",
@@ -337,7 +340,8 @@
     "openVideo": "Edit video: {title}",
     "moreTags": "{count, plural, one {# more tag} other {# more tags}}",
     "removeFilter": "Remove tag filter “{name}”",
-    "selected": "{count, plural, one {<strong>#</strong> video selected} other {<strong>#</strong> videos selected}}"
+    "selected": "{count, plural, one {<strong>#</strong> video selected} other {<strong>#</strong> videos selected}}",
+    "stopScan": "Stop Scan"
   },
   "Player": {
     "unavailable": "File unavailable",
@@ -546,7 +550,6 @@
     "inferenceProgress": "Inference Progress",
     "extractionProgress": "Frame Extraction Progress",
     "retag": "Include previously recognized videos",
-    "running": "Tagging",
     "start": "Start Tagging",
     "stop": "Stop",
     "logs": "Activity Log",

@@ -59,7 +59,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import { useTaskQueue } from "@/hooks/useTaskQueue";
+import { cancelTask, useTaskQueue } from "@/hooks/useTaskQueue";
 import { formatDuration } from "@/lib/format";
 import type { VideoTagState } from "@/lib/types";
 import { videoEditorHref } from "@/lib/videoListContext";
@@ -212,6 +212,9 @@ export default function VideoWorkbench({
   const [leaving, setLeaving] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [recognizeRequested, setRecognizeRequested] = useState(false);
+  /** The recognition task this page queued, until the queue lists it. */
+  const [submittedTask, setSubmittedTask] = useState<number | null>(null);
+  const [stoppingTask, setStoppingTask] = useState<number | null>(null);
   const [navigating, startNavigation] = useTransition();
 
   const typedPath = draft.path.trim();
@@ -228,14 +231,20 @@ export default function VideoWorkbench({
     id === null ? null : videoEditorHref(id, searchParams);
   const previousHref = hrefFor(neighbours.previous);
   const nextHref = hrefFor(neighbours.next);
+  const recognitionJob = jobs.find(
+    (job) =>
+      job.kind === "VIDEO_RETAG" &&
+      Number(job.payload.videoId) === video.id &&
+      (job.status === "queued" || job.status === "running"),
+  );
+  // Running from the click until the queue reports the task, so the button
+  // does not flicker back between the request and the first update.
   const recognizing =
+    recognitionJob !== undefined ||
     recognizeRequested ||
-    jobs.some(
-      (job) =>
-        job.kind === "VIDEO_RETAG" &&
-        Number(job.payload.videoId) === video.id &&
-        (job.status === "queued" || job.status === "running"),
-    );
+    (submittedTask !== null && !jobs.some((job) => job.id === submittedTask));
+  const stoppingRecognition =
+    recognitionJob !== undefined && recognitionJob.id === stoppingTask;
 
   useEffect(() => {
     mountedAt.current = Date.now();
@@ -291,7 +300,6 @@ export default function VideoWorkbench({
     );
     if (!completed) return;
     syncedTask.current = completed.id;
-    setRecognizeRequested(false);
     const controller = new AbortController();
     fetch(`/api/videos/${video.id}`, { signal: controller.signal })
       .then((res) => res.json() as Promise<{ tagState?: VideoTagState }>)
@@ -369,7 +377,18 @@ export default function VideoWorkbench({
     if (href) startNavigation(() => router.push(href));
   }
 
-  async function recognize() {
+  /** Starts recognition, or stops the one under way: one button, two states. */
+  async function toggleRecognition() {
+    if (recognitionJob) {
+      setStoppingTask(recognitionJob.id);
+      try {
+        await cancelTask(recognitionJob.id);
+      } catch (cause) {
+        setStoppingTask(null);
+        toast.error((cause as Error).message || common("operationFailed"));
+      }
+      return;
+    }
     setRecognizeRequested(true);
     try {
       const res = await fetch(`/api/videos/${video.id}/retag`, {
@@ -377,10 +396,12 @@ export default function VideoWorkbench({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      if (typeof data.taskId === "number") setSubmittedTask(data.taskId);
       toast.success(t("recognizeQueued"));
     } catch (cause) {
-      setRecognizeRequested(false);
       toast.error((cause as Error).message || common("operationFailed"));
+    } finally {
+      setRecognizeRequested(false);
     }
   }
 
@@ -580,15 +601,18 @@ export default function VideoWorkbench({
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={recognizing}
-                  onClick={() => void recognize()}
+                  disabled={
+                    stoppingRecognition ||
+                    (recognizing && recognitionJob === undefined)
+                  }
+                  onClick={() => void toggleRecognition()}
                 >
                   {recognizing ? (
                     <Spinner data-icon="inline-start" />
                   ) : (
                     <SparklesIcon data-icon="inline-start" />
                   )}
-                  Smartag
+                  {recognizing ? common("stop") : "Smartag"}
                 </Button>
               </CardAction>
             </CardHeader>

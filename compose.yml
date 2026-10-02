@@ -24,6 +24,10 @@ services:
 
     volumes:
       # Change this to the absolute video directory on the Docker host.
+      # Writable, because downloads, renames and deletes change files here.
+      # The host mount must allow it too: a network share mounted read-only,
+      # or owned by a user other than the container's (uid 1001), stays
+      # read-only inside the container whatever this line says.
       - /absolute/path/to/videos:/videos:rw
       - ./data:/app/data
       - ./thumbs:/app/public/thumbs
