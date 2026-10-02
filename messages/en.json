@@ -874,7 +874,8 @@
     "invalidParameters": "Invalid download parameters.",
     "updateBlockedByTasks": "{count, plural, one {# background task is} other {# background tasks are}} running. Wait for them to finish before updating.",
     "downloadSelectionInvalid": "The selected file is no longer part of this download.",
-    "downloadNotVideo": "The selected file is not a video."
+    "downloadNotVideo": "The selected file is not a video.",
+    "invalidOrigin": "The request did not come from this application."
   },
   "JobLog": {
     "started": "Queued videos: {count}. Model: {model}. Endpoint: {endpoint}.",

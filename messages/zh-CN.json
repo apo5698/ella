@@ -874,7 +874,8 @@
     "invalidParameters": "下载参数无效。",
     "updateBlockedByTasks": "{count} 个后台任务正在运行，请等待完成后再更新。",
     "downloadSelectionInvalid": "所选文件已不在下载内容中。",
-    "downloadNotVideo": "所选文件不是视频。"
+    "downloadNotVideo": "所选文件不是视频。",
+    "invalidOrigin": "请求来源无效。"
   },
   "JobLog": {
     "started": "待处理 {count} 个视频，模型 {model}，服务 {endpoint}。",

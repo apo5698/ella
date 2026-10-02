@@ -143,7 +143,8 @@ export default function BaiduSetupWizard({
               }),
             },
       );
-      const next = await response.json();
+      // An error page or an empty reply is not JSON; it still means failure.
+      const next = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(next.error || t("loadFailed"));
       setStatus(next);
       if (name === "connect") {
