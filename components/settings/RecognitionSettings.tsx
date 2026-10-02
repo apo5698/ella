@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Loader2Icon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -278,13 +279,14 @@ export default function RecognitionSettings() {
           </label>
 
           <div className="flex items-center gap-2">
-            <Button onClick={start} disabled={job?.running}>
-              {job?.running ? t("running") : t("start")}
-            </Button>
-            {job?.running && (
+            {/* One button: it starts a run, and stops the run it started. */}
+            {job?.running ? (
               <Button variant="outline" onClick={stop}>
+                <Spinner data-icon="inline-start" />
                 {t("stop")}
               </Button>
+            ) : (
+              <Button onClick={start}>{t("start")}</Button>
             )}
             {job && !job.running && job.finishedAt && (
               <span className="text-xs text-muted-foreground">

@@ -42,7 +42,8 @@
     "loadVideosFailed": "无法加载视频",
     "deselectAll": "取消选择",
     "expand": "展开",
-    "collapse": "收起"
+    "collapse": "收起",
+    "stop": "停止"
   },
   "Navigation": {
     "home": "首页",
@@ -78,7 +79,9 @@
       "VIDEO_RETAG": "正在重新识别 {videoTitle} 的标签。",
       "VIDEO_CATALOG_SCAN": "正在扫描视频目录。",
       "VIDEO_DOWNLOAD": "正在下载 {name}。"
-    }
+    },
+    "cancel": "取消任务",
+    "cancelNamed": "取消{title}"
   },
   "Notifications": {
     "total": "共 {count} 条通知",
@@ -337,7 +340,8 @@
     "openVideo": "编辑视频：{title}",
     "moreTags": "另有 {count} 个标签",
     "removeFilter": "移除标签筛选“{name}”",
-    "selected": "已选择 <strong>{count}</strong> 个视频"
+    "selected": "已选择 <strong>{count}</strong> 个视频",
+    "stopScan": "停止扫描"
   },
   "Player": {
     "unavailable": "无法读取文件",
@@ -546,7 +550,6 @@
     "inferenceProgress": "模型推理进度",
     "extractionProgress": "抽帧进度",
     "retag": "重新识别已识别的视频",
-    "running": "识别中",
     "start": "开始识别",
     "stop": "停止",
     "logs": "运行日志",

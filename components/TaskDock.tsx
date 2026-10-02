@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { ChevronDownIcon, ChevronUpIcon, ListChecksIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ListChecksIcon,
+  XIcon,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { presentDownloadProgress } from "@/components/admin/downloadProgress";
-import { taskRatio, useTaskQueue } from "@/hooks/useTaskQueue";
+import { cancelTask, taskRatio, useTaskQueue } from "@/hooks/useTaskQueue";
 import type { Job } from "@/lib/jobs";
 import type {
   DownloadJobPayload,
@@ -110,6 +116,8 @@ function RunningTask({ job }: { job: Job }) {
   const fields = useTranslations("DownloadFields");
   const downloads = useTranslations("Downloads");
   const notifications = useTranslations("Notifications");
+  const common = useTranslations("Common");
+  const [stopping, setStopping] = useState(false);
   const body = describeJob(t, job);
   // The notification a task ends in already names its kind.
   const title = notifications(`types.${job.kind}.label`);
@@ -132,11 +140,34 @@ function RunningTask({ job }: { job: Job }) {
       ? `${job.processed} / ${job.total}`
       : null;
 
+  async function stop() {
+    setStopping(true);
+    try {
+      await cancelTask(job.id);
+    } catch (cause) {
+      setStopping(false);
+      toast.error((cause as Error).message || common("operationFailed"));
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1">
-      <span className="truncate text-foreground" title={body}>
-        {body}
-      </span>
+      <div className="flex items-center gap-1">
+        <span className="min-w-0 flex-1 truncate text-foreground" title={body}>
+          {body}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+          aria-label={t("cancelNamed", { title })}
+          title={t("cancel")}
+          disabled={stopping}
+          onClick={() => void stop()}
+        >
+          {stopping ? <Spinner /> : <XIcon />}
+        </Button>
+      </div>
       <Progress
         value={ratio === null ? null : Math.round(ratio * 100)}
         aria-label={t("progress", { title })}

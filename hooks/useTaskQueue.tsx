@@ -83,3 +83,15 @@ export function taskRatio(job: Job): number | null {
   if (job.total <= 0) return null;
   return Math.min(1, job.processed / job.total);
 }
+
+/**
+ * Stops a task. A queued one ends at once; a running one stops at its next
+ * step and reports itself canceled through the queue.
+ */
+export async function cancelTask(id: number): Promise<void> {
+  const response = await fetch(`/api/tasks/${id}/cancel`, { method: "POST" });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error ?? "");
+  }
+}
