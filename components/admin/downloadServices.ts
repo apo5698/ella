@@ -14,7 +14,7 @@ export type DownloadService = {
 };
 
 /** Where download services are set up. */
-export const DOWNLOAD_SERVICES_HREF = "/settings/downloads";
+export const DOWNLOAD_SERVICES_HREF = "/admin/utilities/downloader/settings";
 
 export const DOWNLOAD_SERVICES = {
   baidu: {

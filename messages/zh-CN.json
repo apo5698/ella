@@ -755,6 +755,7 @@
     "setupRequired": "{service} 尚未配置",
     "setupRequiredDescription": "从该来源新建下载前，在设置中完成配置。",
     "openSettings": "前往设置",
+    "settings": "设置",
     "search": "搜索下载记录",
     "sectionPending": "待下载",
     "sectionFinished": "已结束",

@@ -59,25 +59,6 @@ export default async function SettingsPage() {
             </CardHeader>
           </Card>
         </Link>
-        <Link
-          href="/settings/downloads"
-          className="rounded-lg outline-offset-4"
-        >
-          <Card>
-            <CardHeader className="grid-cols-[1fr_auto] items-center">
-              <div className="flex flex-col gap-1">
-                <CardTitle>{navigation("downloadServices")}</CardTitle>
-                <CardDescription>
-                  {navigation("downloadServicesDescription")}
-                </CardDescription>
-              </div>
-              <ChevronRightIcon
-                aria-hidden="true"
-                className="size-4 text-muted-foreground"
-              />
-            </CardHeader>
-          </Card>
-        </Link>
       </div>
     </>
   );

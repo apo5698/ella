@@ -3,10 +3,17 @@
 import { useTranslations } from "next-intl";
 
 import { useEffect, useState } from "react";
-import { DownloadIcon, SearchXIcon, Trash2Icon } from "lucide-react";
+import Link from "next/link";
+import {
+  DownloadIcon,
+  SearchXIcon,
+  SettingsIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { toast } from "sonner";
 import SearchInput from "@/components/SearchInput";
 import DownloadList from "@/components/admin/DownloadList";
+import { DOWNLOAD_SERVICES_HREF } from "@/components/admin/downloadServices";
 import { downloadRequest } from "@/components/admin/downloadRequest";
 import NewDownloadDialog from "@/components/admin/NewDownloadDialog";
 import { Button } from "@/components/ui/button";
@@ -98,6 +105,14 @@ export default function Downloader() {
               {common("clear")}
             </Button>
           )}
+          <Button
+            variant="outline"
+            render={<Link href={DOWNLOAD_SERVICES_HREF} />}
+            nativeButton={false}
+          >
+            <SettingsIcon data-icon="inline-start" />
+            {t("settings")}
+          </Button>
           <NewDownloadDialog />
         </div>
       </div>

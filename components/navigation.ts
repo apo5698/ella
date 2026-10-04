@@ -1,6 +1,5 @@
 import {
   ClapperboardIcon,
-  DownloadIcon,
   FilmIcon,
   SettingsIcon,
   SparklesIcon,
@@ -26,11 +25,6 @@ export const SETTINGS_NAVIGATION = {
       href: "/settings/recognition",
       labelKey: "recognition",
       icon: SparklesIcon,
-    },
-    {
-      href: "/settings/downloads",
-      labelKey: "downloadServices",
-      icon: DownloadIcon,
     },
   ],
 } as const;

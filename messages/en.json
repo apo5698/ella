@@ -755,6 +755,7 @@
     "setupRequired": "{service} is not configured",
     "setupRequiredDescription": "Before you create a download from this source, complete the setup in Settings.",
     "openSettings": "Open Settings",
+    "settings": "Settings",
     "search": "Search Downloads",
     "sectionPending": "Pending",
     "sectionFinished": "Finished",
