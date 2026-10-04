@@ -2,32 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { relativeTime } from "@/lib/format";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-function relativeTime(value: number, now: number, locale: string) {
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-  const seconds = Math.round((value - now) / 1000);
-  const intervals = [
-    [60, "second"],
-    [60, "minute"],
-    [24, "hour"],
-    [30, "day"],
-    [12, "month"],
-    [Number.POSITIVE_INFINITY, "year"],
-  ] as const;
-
-  let amount = seconds;
-  for (const [limit, unit] of intervals) {
-    if (Math.abs(amount) < limit) {
-      return formatter.format(amount, unit);
-    }
-    amount = Math.round(amount / limit);
-  }
-}
 
 export default function LocalTime({
   value,

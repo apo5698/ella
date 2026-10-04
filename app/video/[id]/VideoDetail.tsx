@@ -1,13 +1,20 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PencilIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
-import type { VideoDetailTag, VideoTagState } from "@/lib/types";
+import { relativeTime } from "@/lib/format";
+import type { VideoCardData, VideoDetailTag, VideoTagState } from "@/lib/types";
+import { useNow } from "@/lib/useNow";
+import AutoplayOverlay from "./AutoplayOverlay";
 import TagList from "./TagList";
+import UpNext, { nextVideo } from "./UpNext";
+import { handOffPlayback, useAutoplay } from "./useAutoplay";
 import VideoPlayer from "./VideoPlayer";
 
 export default function VideoDetail({
@@ -17,15 +24,33 @@ export default function VideoDetail({
   seriesName,
   initialViews,
   playerMeta,
+  series,
+  related,
 }: {
-  video: { id: number; title: string };
+  video: { id: number; title: string; mtime: number; seriesId: number | null };
   thumbnail: string | null;
   tags: VideoDetailTag[];
   seriesName: string | null;
   initialViews: number;
   playerMeta: { duration: string; resolution: string | null; size: string };
+  series: VideoCardData[];
+  related: VideoCardData[];
 }) {
   const t = useTranslations("VideoActions");
+  const watch = useTranslations("Watch");
+  const card = useTranslations("VideoCard");
+  const locale = useLocale();
+  const now = useNow();
+  const router = useRouter();
+  const autoplay = useAutoplay();
+  const [views, setViews] = useState(initialViews);
+  const [ended, setEnded] = useState(false);
+  const next = nextVideo(video.id, series, related);
+  const playNext = useCallback(() => {
+    if (!next) return;
+    handOffPlayback(next.id);
+    router.push(`/video/${next.id}`);
+  }, [next, router]);
   const { notifications } = useTaskQueue();
   const mountedAt = useRef(0);
   const syncedTask = useRef<number | null>(null);
@@ -81,33 +106,98 @@ export default function VideoDetail({
     return () => controller.abort();
   }, [notifications, video.id]);
 
+  const facts = [
+    card("views", { count: views }),
+    playerMeta.duration,
+    playerMeta.resolution,
+    playerMeta.size,
+  ].filter(Boolean);
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="mt-2 mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="break-all text-2xl font-semibold">{video.title}</h1>
-          <p className="text-xs text-muted-foreground">id={video.id}</p>
+    <div className="grid gap-x-8 gap-y-8 xl:grid-cols-[minmax(0,1fr)_minmax(340px,400px)]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="relative isolate">
+          {/* Ambient light: the thumbnail, blurred, glows around the player. */}
+          {thumbnail && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumbnail}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 size-full scale-105 object-cover opacity-30 blur-3xl saturate-150 dark:opacity-50"
+            />
+          )}
+          <VideoPlayer
+            videoId={video.id}
+            src={`/api/stream/${video.id}`}
+            poster={thumbnail ?? undefined}
+            initialViews={initialViews}
+            meta={playerMeta}
+            showMeta={false}
+            morph
+            onViewsChange={setViews}
+            onEnded={() => setEnded(true)}
+          >
+            {ended && autoplay && next && (
+              <AutoplayOverlay
+                next={next}
+                onPlay={playNext}
+                onCancel={() => setEnded(false)}
+              />
+            )}
+          </VideoPlayer>
         </div>
-        <Button
-          variant="outline"
-          className="shrink-0"
-          render={<Link href={`/admin/videos/${video.id}`} />}
-          nativeButton={false}
-        >
-          <PencilIcon data-icon="inline-start" />
-          {t("edit")}
-        </Button>
+
+        <div className="flex flex-col gap-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
+          <h1 className="text-xl leading-snug font-semibold break-all sm:text-2xl">
+            {video.title}
+          </h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              {video.seriesId !== null && tagState.seriesName && (
+                <>
+                  <Link
+                    href={`/?series=${video.seriesId}`}
+                    className="font-medium text-foreground hover:underline"
+                  >
+                    {tagState.seriesName}
+                  </Link>
+                  <span aria-hidden>·</span>
+                </>
+              )}
+              {facts.map((fact, index) => (
+                <span key={index} className="flex items-center gap-2">
+                  {index > 0 && <span aria-hidden>·</span>}
+                  <span className="tabular-nums">{fact}</span>
+                </span>
+              ))}
+              <span aria-hidden>·</span>
+              <span suppressHydrationWarning>
+                {watch("added", {
+                  time: relativeTime(video.mtime, now, locale) ?? "",
+                })}
+              </span>
+            </p>
+            <Button
+              variant="outline"
+              className="shrink-0"
+              render={<Link href={`/admin/videos/${video.id}`} />}
+              nativeButton={false}
+            >
+              <PencilIcon data-icon="inline-start" />
+              {t("edit")}
+            </Button>
+          </div>
+          <TagList series={null} tags={tagState.tags} />
+        </div>
       </div>
 
-      <VideoPlayer
-        videoId={video.id}
-        src={`/api/stream/${video.id}`}
-        poster={thumbnail ?? undefined}
-        initialViews={initialViews}
-        meta={playerMeta}
+      <UpNext
+        currentId={video.id}
+        seriesName={tagState.seriesName}
+        series={series}
+        related={related}
       />
-
-      <TagList series={tagState.seriesName} tags={tagState.tags} />
     </div>
   );
 }

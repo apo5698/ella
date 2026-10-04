@@ -86,3 +86,19 @@ export type TagTreeNode = {
   aliases: string[];
   children: TagTreeNode[];
 };
+
+/** What a video card shows. A list of these stays small enough to inline. */
+export type VideoCardData = Pick<
+  Video,
+  | "id"
+  | "title"
+  | "thumbnail"
+  | "duration_sec"
+  | "width"
+  | "height"
+  | "views"
+  | "mtime"
+  | "ext"
+  | "series_id"
+  | "series_name"
+>;

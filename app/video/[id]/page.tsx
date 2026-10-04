@@ -4,6 +4,7 @@ import db from "@/lib/db";
 import { formatDuration, formatSize } from "@/lib/format";
 import { sortTags } from "@/lib/tagOrder";
 import { loadTagPaths } from "@/lib/tagHierarchy";
+import { loadRelated } from "@/lib/videoCards";
 import VideoDetail from "./VideoDetail";
 import type { Video } from "@/lib/types";
 
@@ -36,14 +37,21 @@ export default async function VideoPage({ params }: PageProps<"/video/[id]">) {
     })),
   );
 
+  const { series, related } = loadRelated(db, video);
+
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <PageContainer>
+    <div className="min-h-screen overflow-x-clip bg-background p-4 text-foreground sm:p-6">
+      <PageContainer className="max-w-[1760px]">
         <VideoDetail
+          key={video.id}
           video={{
             id: video.id,
             title: video.title,
+            mtime: video.mtime,
+            seriesId: video.series_id,
           }}
+          series={series}
+          related={related}
           thumbnail={video.thumbnail}
           tags={tags}
           seriesName={video.series_name ?? null}

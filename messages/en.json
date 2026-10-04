@@ -189,13 +189,11 @@
     "updateGuide": "Update Guide"
   },
   "Home": {
-    "title": "Video Library",
     "search": "Search titles, filenames, tags, or pinyin",
     "searchTags": "Search tags or pinyin",
     "selectedTags": "Selected Tags",
     "tagId": "Tag #{id}",
     "removeFilter": "Remove tag filter: {name}",
-    "views": "{count, plural, one {# view} other {# views}}",
     "emptyDescription": "Change the search terms or clear the filters."
   },
   "VideoSort": {
@@ -404,7 +402,9 @@
       "Unmute": "Unmute",
       "Volume": "Volume"
     },
-    "label": "Video Player"
+    "label": "Video Player",
+    "resumed": "Resumed from {time}",
+    "restart": "Start over"
   },
   "TagManager": {
     "refreshFailed": "Cannot refresh the list. The page shows the previous list.",
@@ -914,5 +914,44 @@
       "snippetHttp": "Direct link source",
       "snippetShare": "Baidu Netdisk share source"
     }
+  },
+  "Discover": {
+    "title": "Home",
+    "featured": "Featured",
+    "play": "Play",
+    "moreInSeries": "View series",
+    "slide": "Slide {index} of {count}",
+    "forYou": "Recommended",
+    "allVideos": "All videos",
+    "quickFilters": "Quick filters",
+    "continueWatching": "Continue watching",
+    "newest": "Recently added",
+    "popular": "Most played",
+    "discover": "Random picks",
+    "viewAll": "View all",
+    "scrollBack": "Scroll back",
+    "scrollForward": "Scroll forward"
+  },
+  "Browse": {
+    "allVideos": "All videos",
+    "resultsFor": "Results for \"{q}\""
+  },
+  "VideoCard": {
+    "views": "{count, plural, one {# view} other {# views}}"
+  },
+  "Search": {
+    "label": "Search videos",
+    "open": "Open search",
+    "close": "Close search",
+    "clear": "Clear search"
+  },
+  "Watch": {
+    "upNext": "Up next",
+    "autoplay": "Autoplay",
+    "related": "Related videos",
+    "playingNext": "Next video",
+    "playNow": "Play now",
+    "cancel": "Cancel",
+    "added": "Added {time}"
   }
 }

@@ -31,6 +31,8 @@ export type VideoListParams = {
   /** A series id, "none" for videos without one, or "" for any. */
   series: string;
   sort: string;
+  /** Only these videos, when given. */
+  ids: number[];
 };
 
 export function parseVideoListParams(
@@ -46,6 +48,11 @@ export function parseVideoListParams(
     directTags: searchParams.get("tagMode") === "direct",
     series: searchParams.get("series") ?? "",
     sort: searchParams.get("sort") ?? defaultSort,
+    ids: (searchParams.get("ids") ?? "")
+      .split(",")
+      .map((s) => parseInt(s, 10))
+      .filter((n) => Number.isFinite(n))
+      .slice(0, 100),
   };
 }
 
@@ -148,6 +155,10 @@ export function videoListQuery(db: Database.Database, list: VideoListParams) {
     params.push(seriesId);
   } else if (list.series === "none") {
     where += " AND v.series_id IS NULL";
+  }
+  if (list.ids.length > 0) {
+    where += ` AND v.id IN (${list.ids.map(() => "?").join(",")})`;
+    params.push(...list.ids);
   }
   // One clause per selected tag, so several chips still narrow rather than
   // widen. Each is satisfied by the tag itself or by any tag beneath it.

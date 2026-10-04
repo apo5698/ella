@@ -1,7 +1,7 @@
 import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import { compareNames } from "./tagOrder";
-import type { TagReviewState, TagTreeNode } from "./types";
+import type { TagCount, TagReviewState, TagTreeNode } from "./types";
 import { normalizeName } from "./names";
 
 /**
@@ -458,4 +458,19 @@ export function expandQuery(db: Database.Database, q: string): QueryExpansion {
   names.add(resolved.name);
   for (const alias of aliasesOf(db, resolved.id)) names.add(alias);
   return { names: [...names], tagIds: withDescendants(db, [resolved.id]) };
+}
+
+/**
+ * Every tag with the number of videos its whole subtree covers, most used
+ * first. The number matches what filtering by the tag returns.
+ */
+export function loadTagCounts(db: Database.Database): TagCount[] {
+  return flattenTree(loadTagTree(db))
+    .map((node) => ({
+      id: node.id,
+      name: node.name,
+      count: node.totalCount,
+      reviewState: node.reviewState,
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }

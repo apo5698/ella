@@ -44,3 +44,25 @@ export function formatSize(bytes?: number | null): string {
   }
   return `${v.toFixed(1)} ${units[i]}`;
 }
+
+/** "3 days ago" and the like, in the display locale. */
+export function relativeTime(value: number, now: number, locale: string) {
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const seconds = Math.round((value - now) / 1000);
+  const intervals = [
+    [60, "second"],
+    [60, "minute"],
+    [24, "hour"],
+    [30, "day"],
+    [12, "month"],
+    [Number.POSITIVE_INFINITY, "year"],
+  ] as const;
+
+  let amount = seconds;
+  for (const [limit, unit] of intervals) {
+    if (Math.abs(amount) < limit) {
+      return formatter.format(amount, unit);
+    }
+    amount = Math.round(amount / limit);
+  }
+}

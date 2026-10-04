@@ -19,6 +19,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@shikijs/transformers": "^4.4.3",
     "@tanstack/react-form": "^1.33.5",
+    "@tanstack/react-virtual": "^3.14.13",
     "@vidstack/react": "^1.15.6",
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",

@@ -2,8 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import {
-  flattenTree,
-  loadTagTree,
+  loadTagCounts,
   normalizeTagName,
   resolveTagName,
 } from "@/lib/tagHierarchy";
@@ -14,15 +13,7 @@ import {
  * any of its children too.
  */
 export async function GET() {
-  const tags = flattenTree(loadTagTree(db))
-    .map((node) => ({
-      id: node.id,
-      name: node.name,
-      count: node.totalCount,
-      reviewState: node.reviewState,
-    }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  return NextResponse.json({ tags });
+  return NextResponse.json({ tags: loadTagCounts(db) });
 }
 
 /** Creates a tag, optionally under a parent. */
