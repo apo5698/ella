@@ -10,7 +10,7 @@ note between developers. Every string a user can read is held to this
 standard: labels, buttons, help tips, status text, error messages, empty
 states, and any log line surfaced in the interface.
 
-## The three rules
+## The rules
 
 ### 1. Formal, professional, concise, precise
 
@@ -68,6 +68,24 @@ it.
 
 Mechanism belongs in code comments, where the audience is a maintainer. The
 interface states outcomes and tradeoffs only.
+
+### 4. ASD-STE100
+
+English strings follow ASD-STE100 Simplified Technical English. Chinese strings
+follow the same writing rules where they apply.
+
+- Use simple tenses. No progressive tense and no -ing nouns: "Download in
+  progress", "Smartag: {title}", not "Downloading", "Updating tags for {title}".
+- Use approved words: Cannot (not Unable to), keep (not retain), must (not
+  require), can (not may), Cannot find (not does not exist), is not correct
+  (not Invalid). No "Please" and no 请.
+- One instruction per sentence. Write instructions in the imperative. Split
+  multi-step text: "Save the file. Then run this command."
+- Prefer active voice with a named actor: "Ella added {title} to the library",
+  "Smartag generated these tags".
+- Keep sentences short: 20 words for procedures, 25 for descriptions.
+- One term per concept: Smartag (not recognition or tagging), media library
+  (媒体库), endpoint (端点), tag suggestions (标签建议).
 
 ## Checklist before committing a string
 
