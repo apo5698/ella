@@ -898,6 +898,21 @@
     "save": "Save",
     "saved": "The download sources are saved",
     "saveFailed": "Cannot save the download sources.",
-    "revert": "Revert"
+    "revert": "Revert",
+    "schema": {
+      "id": "Unique identifier. Use lowercase letters, digits and hyphens, up to 32 characters. Each download stores this value. Do not change it after the first download.",
+      "name": "Name in the source list and the download list. 1 to 40 characters.",
+      "description": "Text below the source list in the new download dialog. Up to 200 characters.",
+      "transport": "How Ella gets the files.",
+      "transportHttp": "Direct link. The form asks for a URL.",
+      "transportBaiduShare": "Baidu Netdisk share. The form asks for a share link and an extraction code. Connect Baidu Netdisk on this page first.",
+      "layers": "Number of archive layers around the video, from 0 to 3. 0 means that the download is the video.",
+      "password": "Archive password for all layers. When this field is present, the form shows a password field with this value.",
+      "onUnexpectedLayout": "Action when the files do not match the number of layers.",
+      "retain": "Keep the files. Select the video with \"Inspect\" in the download list.",
+      "fail": "Stop the download and delete the files.",
+      "snippetHttp": "Direct link source",
+      "snippetShare": "Baidu Netdisk share source"
+    }
   }
 }

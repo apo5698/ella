@@ -124,3 +124,59 @@ export type DownloadInput = { name: string; url: string } & {
   code?: string;
   password?: string;
 };
+
+/** Interface text the JSON Schema below carries, in the reader's language. */
+export type DownloadSourceSchemaText = Record<
+  | keyof DownloadSource
+  | "transportHttp"
+  | "transportBaiduShare"
+  | "retain"
+  | "fail"
+  | "snippetHttp"
+  | "snippetShare",
+  string
+>;
+
+type JsonSchemaNode = Record<string, unknown> & {
+  properties?: Record<string, Record<string, unknown>>;
+};
+
+/**
+ * The list as JSON Schema, so an editor can complete and check it while the
+ * user types. The server still validates with the zod schema on save.
+ */
+export function createDownloadSourcesJsonSchema(
+  text: DownloadSourceSchemaText,
+) {
+  const schema = z.toJSONSchema(z.array(downloadSourceSchema).max(50), {
+    io: "input",
+    target: "draft-7",
+  }) as JsonSchemaNode;
+  const item = schema.items as JsonSchemaNode;
+  for (const [key, property] of Object.entries(item.properties ?? {}))
+    property.description = text[key as keyof DownloadSource];
+  Object.assign(item.properties!.transport, {
+    enumDescriptions: [text.transportHttp, text.transportBaiduShare],
+  });
+  Object.assign(item.properties!.onUnexpectedLayout, {
+    enumDescriptions: [text.retain, text.fail],
+  });
+  item.defaultSnippets = [
+    {
+      label: text.snippetHttp,
+      body: {
+        id: "$1",
+        name: "$2",
+        transport: "http",
+        layers: 1,
+        password: "$3",
+        onUnexpectedLayout: "retain",
+      },
+    },
+    {
+      label: text.snippetShare,
+      body: { id: "$1", name: "$2", transport: "baidu-share", layers: 1 },
+    },
+  ];
+  return schema;
+}

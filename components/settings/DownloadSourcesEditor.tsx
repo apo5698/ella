@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type {
   DownloadSourcesError,
@@ -19,11 +19,31 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { Textarea } from "@/components/ui/textarea";
+import JsonCodeEditor from "@/components/settings/JsonCodeEditor";
+import {
+  createDownloadSourcesJsonSchema,
+  type DownloadSourceSchemaText,
+} from "@/lib/utilities/downloadSources";
 
 const ENDPOINT = "/api/admin/utilities/download-sources";
 const FORMAT_GUIDE_URL =
   "https://github.com/apo5698/ella/blob/main/docs/download-sources.md";
+
+const SCHEMA_TEXT = [
+  "id",
+  "name",
+  "description",
+  "transport",
+  "layers",
+  "password",
+  "onUnexpectedLayout",
+  "transportHttp",
+  "transportBaiduShare",
+  "retain",
+  "fail",
+  "snippetHttp",
+  "snippetShare",
+] as const satisfies (keyof DownloadSourceSchemaText)[];
 
 const format = (data: DownloadSourcesResponse) =>
   JSON.stringify(data.sources, null, 2);
@@ -35,6 +55,15 @@ export default function DownloadSourcesEditor() {
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<DownloadSourcesError | null>(null);
+  const schema = useMemo(
+    () =>
+      createDownloadSourcesJsonSchema(
+        Object.fromEntries(
+          SCHEMA_TEXT.map((key) => [key, t(`schema.${key}`)]),
+        ) as DownloadSourceSchemaText,
+      ),
+    [t],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,24 +123,26 @@ export default function DownloadSourcesEditor() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {saved === null && !problem ? (
-          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Spinner />
-            {t("loading")}
-          </p>
+        {saved === null ? (
+          !problem && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Spinner />
+              {t("loading")}
+            </p>
+          )
         ) : (
-          <Textarea
-            aria-label={t("title")}
+          <JsonCodeEditor
             value={text}
-            rows={14}
-            spellCheck={false}
-            autoCapitalize="none"
-            autoCorrect="off"
-            disabled={saving || saved === null}
-            className="font-mono text-xs"
-            onChange={(event) => {
-              setText(event.target.value);
+            schema={schema}
+            label={t("title")}
+            loadingLabel={t("loading")}
+            disabled={saving}
+            onChange={(next) => {
+              setText(next);
               setProblem(null);
+            }}
+            onSave={() => {
+              if (!saving && text !== saved) void save();
             }}
           />
         )}

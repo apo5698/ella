@@ -43,6 +43,11 @@ Unknown fields are errors. A save with an error does not change the saved
 sources, and the editor shows each error with its location, for example
 `[1].transport`.
 
+The editor checks the list while you type. Press Ctrl+Space for the fields
+and values that are valid at the cursor, or for a template of a new source
+inside the list. Point at a field to see its description. Press Ctrl+S or
+Cmd+S to save.
+
 ## Layout
 
 Ella recognises archives and videos by their contents, not by their names.
