@@ -12,10 +12,8 @@ import {
   discardDownloadFiles,
   listDownloads,
 } from "@/lib/utilities/downloadJobs";
-import {
-  DOWNLOAD_SCHEMAS,
-  isDownloaderSource,
-} from "@/lib/utilities/downloadSchemas";
+import { getDownloadSource } from "@/lib/utilities/downloadSourceStore";
+import { createDownloadInputSchema } from "@/lib/utilities/downloadSources";
 import type { DownloadFailure } from "@/lib/utilities/downloadTypes";
 
 export const runtime = "nodejs";
@@ -51,13 +49,19 @@ export async function POST(request: Request) {
     recognize?: unknown;
     fields?: unknown;
   } | null;
-  if (!isDownloaderSource(body?.source)) {
+  const source =
+    typeof body?.source === "string"
+      ? getDownloadSource(body.source)
+      : undefined;
+  if (!source) {
     return Response.json(
-      { error: errors("invalidParameters") },
+      { error: errors("downloadSourceMissing") },
       { status: 400 },
     );
   }
-  const parsed = DOWNLOAD_SCHEMAS[body.source](errors).safeParse(body.fields);
+  const parsed = createDownloadInputSchema(source, errors).safeParse(
+    body?.fields,
+  );
   if (!parsed.success) {
     return Response.json(
       { error: parsed.error.issues[0]?.message ?? errors("invalidParameters") },
@@ -77,10 +81,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const id = enqueueDownload(db, body.source, parsed.data, {
-    start: body.start !== false,
+  const id = enqueueDownload(db, source, parsed.data, {
+    start: body?.start !== false,
     recognize:
-      body.recognize === true ? { locale: await getLocale() } : undefined,
+      body?.recognize === true ? { locale: await getLocale() } : undefined,
   });
   if (id === null) {
     return Response.json(

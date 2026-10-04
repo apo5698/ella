@@ -30,6 +30,7 @@ type Walk = {
   nodes: number;
   truncated: boolean;
   signal?: AbortSignal;
+  password?: string;
 };
 
 const relative = (walk: Walk, file: string) =>
@@ -53,7 +54,10 @@ async function describeFile(
   if (depth >= MAX_DEPTH) return { ...node, kind: "archive", video: null };
   const destination = path.join(walk.root, String(++walk.opened));
   try {
-    await extractArchiveSafely(file, destination, { signal: walk.signal });
+    await extractArchiveSafely(file, destination, {
+      signal: walk.signal,
+      password: walk.password,
+    });
   } catch (error) {
     if (walk.signal?.aborted) throw error;
     return {
@@ -115,6 +119,7 @@ export async function inspectDownload(
   workspace: string,
   files: string[],
   signal?: AbortSignal,
+  password?: string,
 ): Promise<DownloadInspection> {
   const root = path.join(workspace, "inspect");
   await rm(root, { recursive: true, force: true });
@@ -126,6 +131,7 @@ export async function inspectDownload(
     nodes: 0,
     truncated: false,
     signal,
+    password,
   };
   const tree: ArchiveNode[] = [];
   for (const file of files) {

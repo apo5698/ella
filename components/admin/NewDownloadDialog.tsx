@@ -13,11 +13,12 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  DOWNLOAD_SOURCE_FORMS,
+import DownloadSourceFields, {
   type DownloadFieldErrors,
-} from "@/components/admin/downloadSources";
+  type DownloadFields,
+} from "@/components/admin/DownloadSourceFields";
 import {
+  DOWNLOAD_SERVICES,
   DOWNLOAD_SERVICES_HREF,
   type DownloadService,
 } from "@/components/admin/downloadServices";
@@ -61,19 +62,20 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import type { DownloadSourcesResponse } from "@/app/api/admin/utilities/download-sources/route";
 import type { SettingsResponse } from "@/app/api/settings/route";
 import type { VideoRef } from "@/lib/duplicates";
-import { DOWNLOAD_SCHEMAS } from "@/lib/utilities/downloadSchemas";
-import type { DownloadFailure } from "@/lib/utilities/downloadTypes";
 import {
-  DOWNLOADER_SOURCES,
-  type DownloaderSource,
-} from "@/lib/utilities/registry";
+  createDownloadInputSchema,
+  initialDownloadValues,
+  type DownloadSource,
+} from "@/lib/utilities/downloadSources";
+import type { DownloadFailure } from "@/lib/utilities/downloadTypes";
 import { cn } from "@/lib/utils";
 
 const FORM_ID = "new-download-form";
 
-type Fields = { name: string } & Record<string, string>;
+type Fields = DownloadFields;
 type SchemaIssue = { message: string; path?: PropertyKey[] };
 
 function DiffName({ parts }: { parts: Change[] }) {
@@ -146,10 +148,10 @@ function SimilarNameConflict({
 }
 
 function issuesByField(issues: SchemaIssue[]) {
-  const errors: DownloadFieldErrors<Fields> = {};
+  const errors: DownloadFieldErrors = {};
   for (const issue of issues) {
-    const field = issue.path?.[0] as keyof Fields | undefined;
-    if (field === undefined) continue;
+    const field = issue.path?.[0];
+    if (typeof field !== "string") continue;
     (errors[field] ??= []).push({ message: issue.message });
   }
   return errors;
@@ -192,6 +194,28 @@ function useServiceSetup(
   return state.key === key ? state.value : "checking";
 }
 
+/** The configured sources, read each time the dialog opens. */
+function useDownloadSources(open: boolean) {
+  const [sources, setSources] = useState<DownloadSource[] | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    fetch("/api/admin/utilities/download-sources", {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then((response) => response.json() as Promise<DownloadSourcesResponse>)
+      .then((data) => setSources(data.sources))
+      .catch(() => {
+        if (!controller.signal.aborted) setSources([]);
+      });
+    return () => controller.abort();
+  }, [open]);
+
+  return sources;
+}
+
 /** The Smartag page's default for recognizing downloads, read on each open. */
 function useRecognizeDefault(open: boolean) {
   const [value, setValue] = useState(false);
@@ -219,59 +243,73 @@ function useRecognizeDefault(open: boolean) {
 export default function NewDownloadDialog() {
   const t = useTranslations("Downloads");
   const utilities = useTranslations("Utilities");
+  const common = useTranslations("Common");
   const validation = useTranslations("Api");
   const [open, setOpen] = useState(false);
-  const [source, setSource] = useState<DownloaderSource>(
-    DOWNLOADER_SOURCES[0].slug,
-  );
+  const sources = useDownloadSources(open);
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const source =
+    sources?.find((item) => item.id === chosenId) ?? sources?.[0] ?? null;
   // Changing the key remounts the fields, clearing any state they hold.
   const [entryId, setEntryId] = useState(1);
-  const [values, setValues] = useState<Fields>(
-    DOWNLOAD_SOURCE_FORMS[source].createFields,
-  );
-  const [errors, setErrors] = useState<DownloadFieldErrors<Fields> | null>(
+  // Kept per source, so the form starts from the source's own defaults.
+  const [entry, setEntry] = useState<{ id: string; values: Fields } | null>(
     null,
   );
+  const values =
+    source && entry?.id === source.id
+      ? entry.values
+      : source
+        ? initialDownloadValues(source)
+        : { name: "" };
+  const [errors, setErrors] = useState<DownloadFieldErrors | null>(null);
   const [failure, setFailure] = useState<DownloadFailure | null>(null);
   const [submitting, setSubmitting] = useState<"now" | "pending" | null>(null);
-  const service = DOWNLOAD_SOURCE_FORMS[source].service;
+  const service =
+    source?.transport === "baidu-share" ? DOWNLOAD_SERVICES.baidu : undefined;
   const setup = useServiceSetup(service, open);
   const recognizeDefault = useRecognizeDefault(open);
   // Null until the user touches the switch, so the default shows through.
   const [recognizeChoice, setRecognizeChoice] = useState<boolean | null>(null);
   const recognize = recognizeChoice ?? recognizeDefault;
 
-  const SourceFields = DOWNLOAD_SOURCE_FORMS[source].fields;
-  const sourceItem = DOWNLOADER_SOURCES.find((item) => item.slug === source)!;
-  const ready = setup === "ready";
+  const ready = source !== null && setup === "ready";
 
   function changeOpen(next: boolean) {
     if (next) setRecognizeChoice(null);
     setOpen(next);
   }
 
-  function reset(next: DownloaderSource) {
-    setValues(DOWNLOAD_SOURCE_FORMS[next].createFields());
+  function reset() {
+    setEntry(null);
     setErrors(null);
     setFailure(null);
     setEntryId((id) => id + 1);
   }
 
   function validate(fields: Fields) {
-    const parsed = DOWNLOAD_SCHEMAS[source](validation).safeParse(fields);
+    if (!source) return false;
+    const parsed = createDownloadInputSchema(source, validation).safeParse(
+      fields,
+    );
     setErrors(parsed.success ? {} : issuesByField(parsed.error.issues));
     return parsed.success;
   }
 
   async function submit(start: boolean) {
-    if (!ready || submitting || !validate(values)) return;
+    if (!ready || !source || submitting || !validate(values)) return;
     setSubmitting(start ? "now" : "pending");
     setFailure(null);
     try {
       const response = await fetch("/api/admin/utilities/downloads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source, start, recognize, fields: values }),
+        body: JSON.stringify({
+          source: source.id,
+          start,
+          recognize,
+          fields: values,
+        }),
       });
       if (!response.ok) {
         const data = (await response
@@ -285,7 +323,7 @@ export default function NewDownloadDialog() {
         return;
       }
       toast.success(t(start ? "started" : "addedPending"));
-      reset(source);
+      reset();
       setOpen(false);
     } catch {
       setFailure({ error: t("submitFailed") });
@@ -311,42 +349,64 @@ export default function NewDownloadDialog() {
           <DialogDescription>{t("formDescription")}</DialogDescription>
         </DialogHeader>
         <div className="-mx-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4">
-          <Field>
-            <FieldLabel htmlFor="download-source">{t("source")}</FieldLabel>
-            <Select
-              value={source}
-              onValueChange={(value) => {
-                const next = value as DownloaderSource;
-                if (next === source) return;
-                setSource(next);
-                reset(next);
-              }}
-            >
-              <SelectTrigger id="download-source" className="w-full">
-                <SelectValue>
-                  {(value: DownloaderSource) =>
-                    utilities(
-                      DOWNLOADER_SOURCES.find((item) => item.slug === value)!
-                        .name,
-                    )
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {DOWNLOADER_SOURCES.map((item) => (
-                    <SelectItem key={item.slug} value={item.slug}>
-                      {utilities(item.name)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <FieldDescription>
-              {utilities(sourceItem.description)}
-            </FieldDescription>
-          </Field>
-          {setup === "checking" && (
+          {sources === null && (
+            <p className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+              <Spinner />
+              {common("loading")}
+            </p>
+          )}
+          {sources?.length === 0 && (
+            <Alert>
+              <SettingsIcon />
+              <AlertTitle>{t("noSources")}</AlertTitle>
+              <AlertDescription>{t("noSourcesDescription")}</AlertDescription>
+              <AlertAction>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<Link href={DOWNLOAD_SERVICES_HREF} />}
+                  nativeButton={false}
+                >
+                  {t("openSettings")}
+                  <ArrowRightIcon data-icon="inline-end" />
+                </Button>
+              </AlertAction>
+            </Alert>
+          )}
+          {source && sources && (
+            <Field>
+              <FieldLabel htmlFor="download-source">{t("source")}</FieldLabel>
+              <Select
+                value={source.id}
+                onValueChange={(value) => {
+                  if (value === source.id) return;
+                  setChosenId(value as string);
+                  reset();
+                }}
+              >
+                <SelectTrigger id="download-source" className="w-full">
+                  <SelectValue>
+                    {(value: string) =>
+                      sources.find((item) => item.id === value)?.name
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {sources.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {source.description && (
+                <FieldDescription>{source.description}</FieldDescription>
+              )}
+            </Field>
+          )}
+          {source && setup === "checking" && (
             <p className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
               <Spinner />
               {t("checkingSetup")}
@@ -386,8 +446,9 @@ export default function NewDownloadDialog() {
                 void submit(true);
               }}
             >
-              <SourceFields
+              <DownloadSourceFields
                 key={entryId}
+                source={source}
                 entryId={entryId}
                 value={values}
                 disabled={submitting !== null}
@@ -395,7 +456,7 @@ export default function NewDownloadDialog() {
                 hasConflict={failure?.reason !== undefined}
                 onChange={(field, value) => {
                   const next = { ...values, [field]: value };
-                  setValues(next);
+                  setEntry({ id: source.id, values: next });
                   setFailure(null);
                   if (errors) validate(next);
                 }}

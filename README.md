@@ -44,6 +44,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 **Utilities → Downloader** lists every download, running first, then pending,
 then finished. **New** opens a dialog to choose a source; downloads run in the
-background. Sources hosted on Baidu Netdisk, such as SHARE, need the Baidu
-Netdisk connection set up in **Settings → Download Services**. See
-[Baidu Netdisk](docs/baidu-netdisk.md) and [SHARE](docs/share.md).
+background. Sources are JSON settings in **Settings → Download Settings**. See
+[Download sources](docs/download-sources.md) and
+[Baidu Netdisk](docs/baidu-netdisk.md).

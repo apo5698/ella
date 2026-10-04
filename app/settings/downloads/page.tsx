@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BaiduSetupWizard from "@/components/settings/BaiduSetupWizard";
+import DownloadSourcesEditor from "@/components/settings/DownloadSourcesEditor";
 
 export default async function DownloadServiceSettingsPage() {
   const t = await getTranslations("Navigation");
@@ -11,6 +12,7 @@ export default async function DownloadServiceSettingsPage() {
         description={t("downloadServicesDescription")}
       />
       <div className="flex flex-col gap-4">
+        <DownloadSourcesEditor />
         <BaiduSetupWizard />
       </div>
     </>

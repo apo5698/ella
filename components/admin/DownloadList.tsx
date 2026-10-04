@@ -54,7 +54,6 @@ import type {
   DownloadProgress,
   ImportedDownloadResult,
 } from "@/lib/utilities/downloadTypes";
-import { DOWNLOADER_SOURCES } from "@/lib/utilities/registry";
 
 function StatusIcon({ job }: { job: DownloadListItem }) {
   switch (job.status) {
@@ -347,12 +346,10 @@ function RowActions({
 function DownloadRow({ job }: { job: DownloadListItem }) {
   const t = useTranslations("Downloads");
   const common = useTranslations("Common");
-  const utilities = useTranslations("Utilities");
   const [busy, setBusy] = useState(false);
   const [inspecting, setInspecting] = useState(false);
   const [inspectKey, setInspectKey] = useState(0);
-  const { source, name, url } = job.payload;
-  const sourceItem = DOWNLOADER_SOURCES.find((item) => item.slug === source);
+  const { sourceName, name, url } = job.payload;
   const result =
     job.status === "succeeded"
       ? (job.outcome as ImportedDownloadResult | null)
@@ -437,7 +434,7 @@ function DownloadRow({ job }: { job: DownloadListItem }) {
           )}
         </ItemTitle>
         <ItemDescription className="truncate text-xs">
-          {sourceItem ? utilities(sourceItem.name) : source}
+          {sourceName}
           {/* A share link says little on a phone once it is cut short. */}
           {url && <span className="max-sm:hidden">{` · ${url}`}</span>}
         </ItemDescription>

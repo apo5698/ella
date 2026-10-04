@@ -1,12 +1,12 @@
 # Baidu Netdisk
 
 Download sources hosted on Baidu Netdisk share one connection. Set it up once
-in **Settings → Download Services**; every Baidu-hosted source uses it. When it
+in **Settings → Download Settings**; every Baidu-hosted source uses it. When it
 is not ready, the **New Download** dialog shows a notice with a link to that page instead
 of the source's form.
 
-Sources differ only in what the shared files contain. Each source validates its
-own layout after the transfer; see [SHARE](share.md) for an example.
+A source uses this connection when its `transport` is `baidu-share`. See
+[Download sources](download-sources.md).
 
 ## Setup wizard
 
@@ -62,15 +62,6 @@ changes immediately without restarting.
 
 ## Adding a source hosted on Baidu Netdisk
 
-1. **Schema.** Extend `createBaiduShareSchema` in
-   `lib/utilities/baiduShareSchema.ts` with the source's own fields.
-2. **Download.** Call `downloadBaiduShare`, which returns every file in the
-   share. Check the layout the source expects, extract with
-   `extractArchiveSafely` from `lib/utilities/safeArchive.ts`, and import with
-   `importDownloadedVideo`. `lib/utilities/share.ts` is the reference.
-3. **Register.** Add the source to `DOWNLOADER_SOURCES`
-   (`lib/utilities/registry.ts`), `DOWNLOAD_SCHEMAS`
-   (`lib/utilities/downloadSchemas.ts`) and `DOWNLOADERS`
-   (`lib/taskRunner.ts`). In `DOWNLOAD_SOURCE_FORMS`
-   (`components/admin/downloadSources.ts`), use `BaiduShareFields` and
-   `service: DOWNLOAD_SERVICES.baidu` so the form and the setup check are shared.
+Add a source with `"transport": "baidu-share"` in **Settings → Download
+Settings → Download Sources**. No code change is necessary. See
+[Download sources](download-sources.md).

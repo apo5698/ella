@@ -60,8 +60,8 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "recognitionDescription": "Configure models, frame extraction, and Smartag.",
-    "downloadServices": "Download Services",
-    "downloadServicesDescription": "Configure the services and accounts that the download sources use.",
+    "downloadServices": "Download Settings",
+    "downloadServicesDescription": "Configure the download sources and the services that they use.",
     "administration": "Administration"
   },
   "LocalTime": {
@@ -707,14 +707,10 @@
     "loadFailed": "Cannot check the setup. Try again."
   },
   "Utilities": {
-    "share": "SHARE",
-    "shareDescription": "Download a Baidu share, extract two archive layers, and import the renamed MP4.",
     "baidu": "Baidu Netdisk",
     "description": "Tools for managing the media library",
     "downloader": "Downloader",
-    "downloadDescription": "Download videos and add them to the library",
-    "source": "HttpSource",
-    "sourceDescription": "Download archives, extract videos, and add them to the library"
+    "downloadDescription": "Download videos and add them to the library"
   },
   "DownloadFields": {
     "baiduUrl": "Baidu share URL",
@@ -777,7 +773,9 @@
     "importStarted": "The import started",
     "actions": "Actions",
     "recognize": "Use Smartag after import",
-    "recognizeDescription": "Smartag generates tags for this video."
+    "recognizeDescription": "Smartag generates tags for this video.",
+    "noSources": "No download sources",
+    "noSourcesDescription": "Add a download source in Settings."
   },
   "Api": {
     "baiduInstallUnsupported": "Automatic installation is not available on this platform, or the executable override is not correct.",
@@ -787,7 +785,6 @@
     "baiduNotConfigured": "First, configure a BaiduPCS-Go account that is signed in on the server.",
     "baiduUnavailable": "BaiduPCS-Go is not available. Examine its installation and executable path.",
     "baiduDownloadFailed": "The Baidu download failed. Examine the share, the extraction code, the account sign-in, and the free cloud space.",
-    "shareArchiveStructure": "The archive structure is not correct.",
     "archiveDamaged": "Archive extraction failed. The archive is possibly incomplete, damaged, or encrypted.",
     "archiveUnsupported": "Ella supports only ZIP, 7z, tar, and tar.gz archives.",
     "archiveUnsafe": "Ella rejected the archive because it contains links or paths outside the extraction folder.",
@@ -875,7 +872,12 @@
     "updateBlockedByTasks": "{count, plural, one {# background task is} other {# background tasks are}} active. Wait until the tasks stop. Then start the update.",
     "downloadSelectionInvalid": "The selected file is no longer part of this download.",
     "downloadNotVideo": "The selected file is not a video.",
-    "invalidOrigin": "The request did not come from this application."
+    "invalidOrigin": "The request did not come from this application.",
+    "downloadLayoutUnexpected": "The download does not have the layout that its source specifies.",
+    "downloadSourceMissing": "Cannot find the download source.",
+    "downloadSourceDuplicateId": "Each source must have a different id.",
+    "downloadSourcesNotJson": "The text is not correct JSON.",
+    "downloadSourcesInvalid": "The download sources are not correct."
   },
   "JobLog": {
     "started": "Queued videos: {count}. Model: {model}. Endpoint: {endpoint}.",
@@ -886,5 +888,16 @@
     "finished": "The task is finished. Succeeded: {succeeded}. Failed: {failed}.",
     "stopped": "The task stopped.",
     "failed": "The task failed: {error}"
+  },
+  "DownloadSources": {
+    "title": "Download Sources",
+    "description": "Each source is a JSON object. The transport, the archive layers, and the password tell Ella how to get the video.",
+    "formatGuide": "Format Guide",
+    "loading": "Load in progress",
+    "loadFailed": "Cannot load the download sources.",
+    "save": "Save",
+    "saved": "The download sources are saved",
+    "saveFailed": "Cannot save the download sources.",
+    "revert": "Revert"
   }
 }

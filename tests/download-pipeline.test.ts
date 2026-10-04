@@ -1,3 +1,4 @@
+import { scratch } from "./isolate";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -9,24 +10,54 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { path7za } from "7zip-bin";
-import { shareDownloadSchema } from "../lib/utilities/shareSchema";
-import { extractShareVideo } from "../lib/utilities/shareArchive";
 import { parseBaiduTransfer } from "../lib/utilities/baiduProgress";
+import { unpackVideo } from "../lib/utilities/downloadPipeline";
+import {
+  createDownloadInputSchema,
+  downloadSourceSchema,
+} from "../lib/utilities/downloadSources";
+
+const shareSource = downloadSourceSchema.parse({
+  id: "share-test",
+  name: "Share test",
+  transport: "baidu-share",
+  layers: 2,
+});
+const httpSource = downloadSourceSchema.parse({
+  id: "http-test",
+  name: "HTTP test",
+  transport: "http",
+  layers: 1,
+  password: "",
+  onUnexpectedLayout: "fail",
+});
+const shareSchema = createDownloadInputSchema(shareSource);
+const extractTwoLayers = (
+  archive: string,
+  workspace: string,
+  onLayer: (layer: number) => void = () => {},
+) =>
+  unpackVideo([archive], {
+    layers: 2,
+    workspace,
+    onProgress: (progress) => {
+      if (progress.phase === "extracting" && progress.layer)
+        onLayer(progress.layer);
+    },
+  });
 
 const input = {
   url: "https://pan.baidu.com/s/1Example",
   code: "aB09",
   name: "Example video",
 };
-test("SHARE validates share origin, four-character code and required name", () => {
-  assert.ok(shareDownloadSchema.safeParse(input).success);
+test("a share source validates share origin, four-character code and required name", () => {
+  assert.ok(shareSchema.safeParse(input).success);
   assert.ok(
-    shareDownloadSchema.safeParse({ ...input, url: input.url + "?pwd=zz99" })
-      .success,
+    shareSchema.safeParse({ ...input, url: input.url + "?pwd=zz99" }).success,
   );
   for (const url of [
     "http://pan.baidu.com/s/1Example",
@@ -36,21 +67,11 @@ test("SHARE validates share origin, four-character code and required name", () =
     "https://pan.baidu.com/s/../other",
     "https://pan.baidu.com/s/%2f",
   ]) {
-    assert.equal(
-      shareDownloadSchema.safeParse({ ...input, url }).success,
-      false,
-      url,
-    );
+    assert.equal(shareSchema.safeParse({ ...input, url }).success, false, url);
   }
   for (const code of ["", "123", "12345", "a-12", "中文12"])
-    assert.equal(
-      shareDownloadSchema.safeParse({ ...input, code }).success,
-      false,
-    );
-  assert.equal(
-    shareDownloadSchema.safeParse({ ...input, name: "  " }).success,
-    false,
-  );
+    assert.equal(shareSchema.safeParse({ ...input, code }).success, false);
+  assert.equal(shareSchema.safeParse({ ...input, name: "  " }).success, false);
 });
 
 test("BaiduPCS-Go progress yields only the latest transfer sizes", () => {
@@ -69,7 +90,7 @@ test("BaiduPCS-Go progress yields only the latest transfer sizes", () => {
 });
 
 test("archive extraction and downloader integration use isolated fixtures", async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), "ella-share-test-"));
+  const root = scratch;
   const originalEnv = { ...process.env };
   let db: { close(): void } | undefined;
   try {
@@ -106,7 +127,7 @@ test("archive extraction and downloader integration use isolated fixtures", asyn
         await t.test(`${outer} -> ${inner} -> MP4`, async () => {
           const work = await mkdtemp(path.join(root, "extract-"));
           const layers: number[] = [];
-          const video = await extractShareVideo(archive, work, (layer) => {
+          const video = await extractTwoLayers(archive, work, (layer) => {
             if (layers.at(-1) !== layer) layers.push(layer);
           });
           assert.deepEqual(
@@ -147,7 +168,7 @@ test("archive extraction and downloader integration use isolated fixtures", asyn
       const archive = pack(`outer-${inner}.zip`, [`wrapped/${inner}`]);
       await t.test(`zip -> directory -> ${inner} -> bare video`, async () => {
         const work = await mkdtemp(path.join(root, "extract-"));
-        const video = await extractShareVideo(archive, work, () => {});
+        const video = await extractTwoLayers(archive, work);
         assert.equal(path.basename(video.file), "492");
         assert.equal(video.extension, ".mp4");
       });
@@ -185,12 +206,9 @@ test("archive extraction and downloader integration use isolated fixtures", asyn
     for (const archive of badArchives)
       await t.test(`reject ${path.basename(archive)}`, async () => {
         const work = await mkdtemp(path.join(root, "reject-"));
-        await assert.rejects(extractShareVideo(archive, work, () => {}));
+        await assert.rejects(extractTwoLayers(archive, work));
       });
 
-    process.env.DB_PATH = path.join(root, "catalog.db");
-    process.env.VIDEO_ROOT = path.join(root, "videos");
-    process.env.THUMB_DIR = path.join(root, "thumbs");
     process.env.BAIDUPCS_GO_CONFIG_DIR = path.join(root, "account");
     process.env.BAIDUPCS_GO_PATH = path.join(root, "fake-pcs");
     process.env.SHARE_TEST_ARCHIVE = path.join(fixture, "outer-zip-7z.zip");
@@ -227,9 +245,17 @@ if (args[0] === 'transfer') {
 `,
       { mode: 0o700 },
     );
-    const { downloadShare } = await import("../lib/utilities/share");
+    const { runDownload } = await import("../lib/utilities/downloadPipeline");
+    const { saveDownloadSources } =
+      await import("../lib/utilities/downloadSourceStore");
+    const downloadShare = (
+      value: unknown,
+      onProgress?: Parameters<typeof runDownload>[2],
+      signal?: AbortSignal,
+    ) => runDownload(shareSource, value, onProgress, signal);
     const database = (await import("../lib/db")).default;
     db = database;
+    saveDownloadSources([shareSource, httpSource]);
     await t.test(
       "imports renamed MP4, metadata, thumbnail and suggestions, then cleans workspace",
       async () => {
@@ -339,7 +365,7 @@ if (args[0] === 'transfer') {
           process.env.SHARE_TEST_ARCHIVE = originalArchive;
         }
         assert.ok(failure instanceof RetainedDownloadError);
-        assert.equal(failure.code, "shareArchiveStructure");
+        assert.equal(failure.code, "downloadLayoutUnexpected");
         const { retained } = failure;
         assert.ok(retained.workspace.startsWith(path.join(root, "work")));
         await readdir(retained.workspace);
@@ -411,12 +437,12 @@ if (args[0] === 'transfer') {
           throw new Error(`task ${id} did not settle`);
         };
 
-        const failedId = enqueueDownload(database, "share", {
+        const failedId = enqueueDownload(database, shareSource, {
           ...input,
           name: "Queued duplicate",
         })!;
         assert.equal(
-          enqueueDownload(database, "share", {
+          enqueueDownload(database, shareSource, {
             ...input,
             name: "Queued duplicate",
           }),
@@ -431,7 +457,7 @@ if (args[0] === 'transfer') {
         assert.ok((failed.outcome as { video: unknown }).video);
 
         process.env.SHARE_TEST_HANG = "1";
-        const canceledId = enqueueDownload(database, "share", {
+        const canceledId = enqueueDownload(database, shareSource, {
           ...input,
           name: "Queued cancel",
         })!;
@@ -449,7 +475,7 @@ if (args[0] === 'transfer') {
         const { listDownloads } = await import("../lib/utilities/downloadJobs");
         const parkedId = enqueueDownload(
           database,
-          "share",
+          shareSource,
           { ...input, name: "Parked download" },
           { start: false },
         )!;
@@ -461,7 +487,8 @@ if (args[0] === 'transfer') {
           [parkedId],
         );
         assert.deepEqual(found.downloads[0].payload, {
-          source: "share",
+          source: "share-test",
+          sourceName: "Share test",
           name: "Parked download",
           url: input.url,
         });
@@ -482,16 +509,14 @@ if (args[0] === 'transfer') {
         );
       },
     );
-    await t.test("HttpSource retains its shared import behavior", async () => {
-      const { downloadHttpSource } =
-        await import("../lib/utilities/httpsource");
+    await t.test("an HTTP source shares the import behavior", async () => {
       const fetchBefore = globalThis.fetch;
       const bytes = await readFile(innerZip);
       globalThis.fetch = async () => new Response(bytes);
       try {
         await assert.rejects(
-          downloadHttpSource({
-            name: "Different HttpSource fixture",
+          runDownload(httpSource, {
+            name: "Different HTTP fixture",
             url: "https://example.test/file.zip",
             password: "",
           }),
@@ -501,6 +526,97 @@ if (args[0] === 'transfer') {
         globalThis.fetch = fetchBefore;
       }
     });
+    await t.test(
+      "an HTTP source opens an archive with its password",
+      async () => {
+        execFileSync("ffmpeg", [
+          "-v",
+          "error",
+          "-f",
+          "lavfi",
+          "-i",
+          "color=c=red:s=64x64:d=4",
+          "-c:v",
+          "mpeg4",
+          path.join(fixture, "red.mp4"),
+        ]);
+        // Encrypted names too, so the archive cannot even be listed without it.
+        execFileSync(
+          path7za,
+          ["a", "-psecret", "-mhe=on", "secret.7z", "red.mp4"],
+          { cwd: fixture, stdio: "pipe" },
+        );
+        const bytes = await readFile(path.join(fixture, "secret.7z"));
+        const fetchBefore = globalThis.fetch;
+        globalThis.fetch = async () => new Response(bytes);
+        try {
+          const input = { url: "https://example.test/secret.7z" };
+          await assert.rejects(
+            runDownload(httpSource, { ...input, name: "Wrong password" }),
+          );
+          const result = await runDownload(httpSource, {
+            ...input,
+            name: "Encrypted fixture",
+            password: "secret",
+          });
+          assert.equal(result.filename, "Encrypted fixture.mp4");
+        } finally {
+          globalThis.fetch = fetchBefore;
+        }
+      },
+    );
+    await t.test(
+      "an install without saved sources rebuilds them from its downloads",
+      async () => {
+        const { getDownloadSources } =
+          await import("../lib/utilities/downloadSourceStore");
+        const insert = database.prepare(
+          "INSERT INTO background_jobs (kind, payload, status, created_at) VALUES ('VIDEO_DOWNLOAD', ?, 'succeeded', 0)",
+        );
+        insert.run(
+          JSON.stringify({
+            source: "legacy-share",
+            name: "a",
+            input: { url: input.url, code: input.code, name: "a" },
+          }),
+        );
+        insert.run(
+          JSON.stringify({
+            source: "legacy-http",
+            name: "b",
+            input: { url: "https://example.test/b", password: "pw", name: "b" },
+          }),
+        );
+        database
+          .prepare("DELETE FROM settings WHERE key = 'downloadSources'")
+          .run();
+        const rebuilt = getDownloadSources().filter((source) =>
+          source.id.startsWith("legacy-"),
+        );
+        assert.deepEqual(
+          rebuilt.map(({ id, transport, layers, password }) => ({
+            id,
+            transport,
+            layers,
+            password,
+          })),
+          [
+            {
+              id: "legacy-http",
+              transport: "http",
+              layers: 1,
+              password: "pw",
+            },
+            {
+              id: "legacy-share",
+              transport: "baidu-share",
+              layers: 2,
+              password: undefined,
+            },
+          ],
+        );
+      },
+    );
   } finally {
     db?.close();
     process.env = originalEnv;

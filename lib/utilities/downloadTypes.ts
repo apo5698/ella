@@ -1,7 +1,7 @@
 import type { AutoTagSuggestion } from "@/lib/autoTagging";
 import type { ErrorDetails } from "@/lib/appError";
 import type { ContentMatch, NameMatch, VideoRef } from "@/lib/duplicates";
-import type { DownloaderSource } from "@/lib/utilities/registry";
+import type { DownloadSource } from "@/lib/utilities/downloadSources";
 
 export type ImportedDownloadResult = {
   videoId: number;
@@ -62,7 +62,10 @@ export type RetainedDownload = DownloadInspection & { workspace: string };
 
 /** `background_jobs.payload` of a VIDEO_DOWNLOAD task. */
 export type DownloadJobPayload = {
-  source: DownloaderSource;
+  /** The id of the download source. */
+  source: string;
+  /** The source as it was when the download was added. */
+  config?: DownloadSource;
   /** Top level so the queue can refuse a second active task of one name. */
   name: string;
   input: Record<string, unknown>;

@@ -60,8 +60,8 @@
     "themeDark": "深色",
     "themeSystem": "跟随系统",
     "recognitionDescription": "配置模型、抽帧和 Smartag。",
-    "downloadServices": "下载服务",
-    "downloadServicesDescription": "配置下载来源使用的服务与账号。",
+    "downloadServices": "下载设置",
+    "downloadServicesDescription": "配置下载来源及其使用的服务。",
     "administration": "管理"
   },
   "LocalTime": {
@@ -707,14 +707,10 @@
     "loadFailed": "无法检查设置。重试。"
   },
   "Utilities": {
-    "share": "SHARE",
-    "shareDescription": "下载百度网盘分享，解压两层压缩包，并导入重命名后的 MP4。",
     "baidu": "百度网盘",
     "description": "媒体库管理工具",
     "downloader": "下载器",
-    "downloadDescription": "下载视频并添加到媒体库",
-    "source": "HTTP 来源",
-    "sourceDescription": "下载压缩包，解压视频，并添加到媒体库"
+    "downloadDescription": "下载视频并添加到媒体库"
   },
   "DownloadFields": {
     "baiduUrl": "百度网盘分享链接",
@@ -777,7 +773,9 @@
     "importStarted": "导入已开始",
     "actions": "操作",
     "recognize": "导入后使用 Smartag",
-    "recognizeDescription": "Smartag 为该视频生成标签。"
+    "recognizeDescription": "Smartag 为该视频生成标签。",
+    "noSources": "没有下载来源",
+    "noSourcesDescription": "在设置中添加下载来源。"
   },
   "Api": {
     "baiduInstallUnsupported": "当前平台不支持自动安装，或程序路径设置不正确。",
@@ -787,7 +785,6 @@
     "baiduNotConfigured": "先在服务器上配置已登录的 BaiduPCS-Go 账号。",
     "baiduUnavailable": "BaiduPCS-Go 不可用。检查其安装和程序路径。",
     "baiduDownloadFailed": "百度网盘下载失败。检查分享链接、提取码、账号登录状态和网盘剩余空间。",
-    "shareArchiveStructure": "压缩包结构不正确。",
     "archiveDamaged": "解压失败。压缩包可能不完整、已损坏或已加密。",
     "archiveUnsupported": "Ella 仅支持 ZIP、7z、tar 和 tar.gz 压缩包。",
     "archiveUnsafe": "压缩包包含链接或解压目录以外的路径。Ella 已拒绝该压缩包。",
@@ -875,7 +872,12 @@
     "updateBlockedByTasks": "{count} 个后台任务正在运行。等待任务结束，然后开始更新。",
     "downloadSelectionInvalid": "所选文件已不在下载内容中。",
     "downloadNotVideo": "所选文件不是视频。",
-    "invalidOrigin": "请求不是来自本应用。"
+    "invalidOrigin": "请求不是来自本应用。",
+    "downloadLayoutUnexpected": "下载内容的结构与下载来源的设置不符。",
+    "downloadSourceMissing": "找不到下载来源。",
+    "downloadSourceDuplicateId": "每个来源的 id 必须不同。",
+    "downloadSourcesNotJson": "内容不是正确的 JSON。",
+    "downloadSourcesInvalid": "下载来源设置不正确。"
   },
   "JobLog": {
     "started": "待处理 {count} 个视频，模型 {model}，服务 {endpoint}。",
@@ -886,5 +888,16 @@
     "finished": "任务已结束。成功 {succeeded} 个，失败 {failed} 个。",
     "stopped": "任务已停止。",
     "failed": "任务失败：{error}"
+  },
+  "DownloadSources": {
+    "title": "下载来源",
+    "description": "每个来源是一个 JSON 对象。获取方式、压缩层数和密码决定 Ella 如何取得视频。",
+    "formatGuide": "格式说明",
+    "loading": "加载中",
+    "loadFailed": "无法加载下载来源。",
+    "save": "保存",
+    "saved": "下载来源已保存",
+    "saveFailed": "无法保存下载来源。",
+    "revert": "还原"
   }
 }

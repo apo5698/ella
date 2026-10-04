@@ -28,14 +28,11 @@ import { sweepWorkspaces } from "./utilities/downloadWorkspace";
 import type {
   DownloadJobFailure,
   DownloadJobPayload,
-  DownloadProgressReporter,
   ImportedDownloadResult,
 } from "./utilities/downloadTypes";
-import type { DownloaderSource } from "./utilities/registry";
-import { downloadHttpSource } from "./utilities/httpsource";
-import { httpsourceDownloadSchema } from "./utilities/httpsourceSchema";
-import { downloadShare } from "./utilities/share";
-import { shareDownloadSchema } from "./utilities/shareSchema";
+import { runDownload } from "./utilities/downloadPipeline";
+import { getDownloadSource } from "./utilities/downloadSourceStore";
+import type { DownloadSource } from "./utilities/downloadSources";
 
 /**
  * The in-process worker behind the task queue.
@@ -182,39 +179,20 @@ const scanCatalog: TaskHandler = async ({ setTotal, advance, canceled }) => {
   return result;
 };
 
-type Downloader = (
-  input: never,
-  onProgress: DownloadProgressReporter,
-  signal: AbortSignal,
-) => Promise<ImportedDownloadResult>;
-
-const DOWNLOADERS = {
-  httpsource: {
-    schema: httpsourceDownloadSchema,
-    download: downloadHttpSource as Downloader,
-  },
-  share: { schema: shareDownloadSchema, download: downloadShare as Downloader },
-} satisfies Record<
-  DownloaderSource,
-  { schema: { parse(value: unknown): unknown }; download: Downloader }
->;
-
 /** Downloads one video from its source and adds it to the library. */
 const downloadVideo: TaskHandler = async ({ payload, report, signal }) => {
-  const { source, input, name, selection, recognize } =
+  const { source, config, input, name, selection, recognize } =
     payload as DownloadJobPayload;
   let result: ImportedDownloadResult;
   if (selection) {
     // A file the user chose from a download kept after a layout mismatch.
     result = await importSelectedFile(name, selection, report);
   } else {
-    const downloader = DOWNLOADERS[source];
-    if (!downloader) throw new AppError("operationFailed");
-    result = await downloader.download(
-      downloader.schema.parse(input) as never,
-      report,
-      signal,
-    );
+    // The source as it is now, so a corrected source applies to a retry.
+    // The copy taken when the download was added covers a deleted one.
+    const current = getDownloadSource(source) ?? config;
+    if (!current) throw new AppError("downloadSourceMissing");
+    result = await runDownload(current, input, report, signal);
   }
   if (recognize) {
     // The video is in the library by now; a recognition that cannot be
@@ -598,7 +576,7 @@ export function enqueueCatalogScan(database: Database.Database): number | null {
  */
 export function enqueueDownload(
   database: Database.Database,
-  source: DownloaderSource,
+  source: DownloadSource,
   input: { name: string } & Record<string, unknown>,
   {
     start = true,
@@ -606,7 +584,8 @@ export function enqueueDownload(
   }: { start?: boolean; recognize?: DownloadJobPayload["recognize"] } = {},
 ): number | null {
   const payload: DownloadJobPayload = {
-    source,
+    source: source.id,
+    config: source,
     name: input.name,
     input,
     ...(recognize ? { recognize } : {}),

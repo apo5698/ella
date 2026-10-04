@@ -6,6 +6,7 @@ import type {
   DownloadJobPayload,
   ImportedDownloadResult,
 } from "@/lib/utilities/downloadTypes";
+import { getDownloadSources } from "@/lib/utilities/downloadSourceStore";
 import { discardWorkspace } from "@/lib/utilities/downloadWorkspace";
 
 /** Enough history for a page; a search reaches past it. */
@@ -14,6 +15,8 @@ export const DOWNLOAD_LIST_LIMIT = 200;
 /** What the list shows of a download's payload. */
 export type DownloadListPayload = {
   source: DownloadJobPayload["source"];
+  /** The source's name now, or when the download was added if it is gone. */
+  sourceName: string;
   name: string;
   url: string | null;
 };
@@ -46,10 +49,13 @@ export function listDownloads(db: Database.Database, query = ""): DownloadList {
       (typeof title === "string" && matchesPinyinSearch(title, normalized))
     );
   });
+  const names = new Map(
+    getDownloadSources().map((source) => [source.id, source.name]),
+  );
   return {
     total: matches.length,
     downloads: matches.slice(0, DOWNLOAD_LIST_LIMIT).map((job) => {
-      const { source, name, input } = job.payload as DownloadJobPayload;
+      const { source, config, name, input } = job.payload as DownloadJobPayload;
       // The kept files' location and full listing stay on the server; the
       // inspect dialog asks for the listing when it opens.
       const failure = job.outcome as DownloadJobFailure | null;
@@ -61,6 +67,7 @@ export function listDownloads(db: Database.Database, query = ""): DownloadList {
         outcome,
         payload: {
           source,
+          sourceName: names.get(source) ?? config?.name ?? source,
           name,
           url: typeof input?.url === "string" ? input.url : null,
         },

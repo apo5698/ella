@@ -70,22 +70,33 @@ export async function detectArchiveType(
 type ExtractOptions = {
   onPercent?: (percent: number) => void;
   signal?: AbortSignal;
+  /** Without one, an encrypted archive is refused rather than prompted for. */
+  password?: string;
 };
 
 /**
  * Lists the archive before writing anything, and refuses links and paths that
  * could escape the destination, including Windows paths when running on Linux.
  */
-async function assertSafeListing(archive: string, signal?: AbortSignal) {
+async function assertSafeListing(
+  archive: string,
+  signal?: AbortSignal,
+  password?: string,
+) {
   const path7za = await ensure7za();
-  const listing = exec(path7za, ["l", "-slt", "-ba", "-p", archive], {
-    timeout: 60_000,
-    maxBuffer: 4 * 1024 * 1024,
-    signal,
-  });
+  const listing = exec(
+    path7za,
+    ["l", "-slt", "-ba", `-p${password ?? ""}`, archive],
+    {
+      timeout: 60_000,
+      maxBuffer: 4 * 1024 * 1024,
+      signal,
+    },
+  );
   listing.child.stdin?.end();
   const { stdout } = await listing;
-  if (/^Encrypted = \+/m.test(stdout)) throw new AppError("archiveDamaged");
+  if (!password && /^Encrypted = \+/m.test(stdout))
+    throw new AppError("archiveDamaged");
   for (const block of stdout.split(/\r?\n\r?\n/)) {
     const name = /^Path = (.*)$/m.exec(block)?.[1];
     if (!name) continue;
@@ -110,20 +121,23 @@ async function assertSafeListing(archive: string, signal?: AbortSignal) {
 export async function extractArchiveSafely(
   archive: string,
   destination: string,
-  { onPercent, signal }: ExtractOptions = {},
+  { onPercent, signal, password }: ExtractOptions = {},
 ) {
   try {
     const type = await detectArchiveType(archive);
     if (!type) throw new AppError("archiveUnsupported");
-    await assertSafeListing(archive, signal);
+    await assertSafeListing(archive, signal, password);
 
     if (type !== "gzip") {
       await mkdir(destination);
-      await run7za(["x", "-y", "-p", `-o${destination}`, archive], {
-        onPercent,
-        signal,
-        timeout: 60 * 60_000,
-      });
+      await run7za(
+        ["x", "-y", `-p${password ?? ""}`, `-o${destination}`, archive],
+        {
+          onPercent,
+          signal,
+          timeout: 60 * 60_000,
+        },
+      );
       return;
     }
 
