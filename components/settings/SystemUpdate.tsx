@@ -189,6 +189,16 @@ export default function SystemUpdate({
           <p role="status" className="text-xs text-muted-foreground">
             {description}
           </p>
+          {release.status === "available" && !busy && (
+            <a
+              href={release.url || RELEASES_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="w-fit text-xs text-primary underline-offset-4 hover:underline"
+            >
+              {t("releaseNotes")}
+            </a>
+          )}
         </div>
         <Button
           className="col-span-2 sm:col-span-1"
@@ -213,16 +223,6 @@ export default function SystemUpdate({
                 ? t("updateNow")
                 : t("check")}
         </Button>
-        {release.status === "available" && !busy && (
-          <a
-            href={release.url || RELEASES_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="col-start-2 w-fit text-xs text-primary underline-offset-4 hover:underline"
-          >
-            {t("releaseNotes")}
-          </a>
-        )}
         {newer && available === true && !pending && runningTasks.length > 0 && (
           <Alert className="col-span-full">
             <ListChecksIcon />
