@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatDuration } from "@/lib/format";
+import type { WatchReport } from "@/lib/watchEvents";
 import { morphName } from "@/lib/morph";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +37,7 @@ import {
   saveProgress,
 } from "@/lib/watchProgress";
 import { takePlaybackHandOff } from "./useAutoplay";
+import { useWatchReport } from "./useWatchReport";
 import { videoIcons } from "./videoIcons";
 import styles from "./VideoPlayer.module.css";
 
@@ -135,6 +137,8 @@ export default function VideoPlayer({
   const resumeChecked = useRef(false);
   const [resumedFrom, setResumedFrom] = useState<number | null>(null);
   const handedOff = useRef(false);
+  const startedBy = useRef<WatchReport["source"]>("click");
+  const report = useWatchReport(videoId, countViews);
 
   // Without dependencies, so it follows the player when it remounts.
   useImperativeHandle(playerRef, () => player.current as MediaPlayerInstance);
@@ -150,12 +154,14 @@ export default function VideoPlayer({
     if (!handedOff.current) {
       handedOff.current = true;
       const instance = player.current;
-      if (instance && takePlaybackHandOff(videoId))
+      if (instance && takePlaybackHandOff(videoId)) {
+        startedBy.current = "autoplay";
         // A browser that refuses sound without a click still plays muted.
         void instance.play().catch(() => {
           instance.muted = true;
           return instance.play().catch(() => {});
         });
+      }
     }
     if (!trackProgress || resumeChecked.current) return;
     resumeChecked.current = true;
@@ -163,9 +169,11 @@ export default function VideoPlayer({
     if (!isResumable(entry) || !player.current) return;
     player.current.currentTime = entry.time;
     setResumedFrom(entry.time);
+    if (startedBy.current === "click") startedBy.current = "resume";
   }
 
   function handleTimeUpdate(currentTime: number) {
+    report.progress(currentTime, player.current?.state.duration ?? 0);
     if (!trackProgress || !resumeChecked.current) return;
     const now = Date.now();
     if (now - savedAt.current < SAVE_INTERVAL_MS) return;
@@ -174,6 +182,7 @@ export default function VideoPlayer({
   }
 
   function handlePause() {
+    report.flush();
     if (!trackProgress || !player.current) return;
     saveProgress(
       videoId,
@@ -223,6 +232,7 @@ export default function VideoPlayer({
   }
 
   async function handlePlay() {
+    report.start(startedBy.current);
     if (!countViews || counted.current) return;
     counted.current = true;
     try {
@@ -264,6 +274,7 @@ export default function VideoPlayer({
             onTimeUpdate={(detail) => handleTimeUpdate(detail.currentTime)}
             onPause={handlePause}
             onEnded={() => {
+              report.flush();
               if (trackProgress) clearProgress(videoId);
               onEnded?.();
             }}

@@ -156,9 +156,25 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
+-- One row per sitting with a video, the input to recommendations (see
+-- docs/recommendations.md). session is chosen by the page, so the reports
+-- sent on each pause update one row rather than adding several.
+-- source: click | autoplay | resume | dismiss ("Not interested").
+CREATE TABLE IF NOT EXISTS watch_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session TEXT NOT NULL UNIQUE,
+  video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+  started_at INTEGER NOT NULL,
+  watched_sec REAL NOT NULL DEFAULT 0,
+  max_position REAL NOT NULL DEFAULT 0,
+  duration REAL,
+  source TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_video_tags_tag ON video_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_videos_title ON videos(title);
 CREATE INDEX IF NOT EXISTS idx_tag_aliases_tag ON tag_aliases(tag_id);
+CREATE INDEX IF NOT EXISTS idx_watch_events_video ON watch_events(video_id);
 `);
 
 const videoColumns = db.prepare("PRAGMA table_info(videos)").all() as {

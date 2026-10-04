@@ -19,6 +19,8 @@ function shelfTitle(
   t: ReturnType<typeof useTranslations<"Discover">>,
 ) {
   switch (shelf.kind) {
+    case "forYou":
+      return t("forYouShelf");
     case "newest":
       return t("newest");
     case "popular":

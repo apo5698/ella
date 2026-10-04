@@ -1,9 +1,7 @@
 import type Database from "better-sqlite3";
 import type { VideoCardData } from "@/lib/types";
-
-const CARD_COLUMNS = `v.id, v.title, v.thumbnail, v.duration_sec, v.width,
-  v.height, v.views, v.mtime, v.ext, v.series_id, s.name AS series_name`;
-const CARD_FROM = "videos v LEFT JOIN series s ON s.id = v.series_id";
+import { loadRecommendations } from "@/lib/recommend";
+import { CARD_COLUMNS, CARD_FROM } from "@/lib/videoCardRows";
 
 function cards(
   db: Database.Database,
@@ -39,7 +37,7 @@ function shuffle<T>(items: T[], seed: number) {
 
 export type HomeShelf = {
   /** Stable key; also selects the heading text. */
-  kind: "newest" | "popular" | "discover" | "series";
+  kind: "forYou" | "newest" | "popular" | "discover" | "series";
   id: string;
   /** The series name, for series shelves. */
   name?: string;
@@ -60,12 +58,7 @@ export function loadHome(db: Database.Database): HomeData {
   const withThumb = "v.thumbnail IS NOT NULL";
   const seed = daySeed();
 
-  // Popular videos lead, but the spotlight changes each day so the same five
-  // do not greet the user every visit.
-  const featured = shuffle(
-    cards(db, withThumb, "v.views DESC, v.mtime DESC", 40),
-    seed,
-  ).slice(0, 5);
+  const { featured, forYou } = loadRecommendations(db);
 
   const newest = cards(db, "1=1", "v.mtime DESC, v.views DESC", SHELF_SIZE);
   const popular = cards(db, "1=1", "v.views DESC, v.mtime DESC", SHELF_SIZE);
@@ -84,6 +77,7 @@ export function loadHome(db: Database.Database): HomeData {
     .all() as { id: number; name: string; count: number }[];
 
   const shelves: HomeShelf[] = [
+    { kind: "forYou", id: "for-you", videos: forYou },
     { kind: "newest", id: "newest", query: "sort=newest", videos: newest },
     { kind: "popular", id: "popular", query: "sort=views", videos: popular },
     ...series.map((entry): HomeShelf => ({
