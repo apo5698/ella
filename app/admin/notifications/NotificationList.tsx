@@ -36,7 +36,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LocalTime from "@/components/LocalTime";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
-import { formatNotification } from "@/lib/notificationMessages";
+import {
+  formatNotification,
+  type NotificationTranslator,
+} from "@/lib/notificationMessages";
 import type { Notification, NotificationType } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
@@ -103,7 +106,12 @@ function NotificationBody({
   linkVideo?: boolean;
 }): ReactNode {
   const t = useTranslations("Notifications");
-  const body = formatNotification(t, notification).body;
+  const errors = useTranslations("Api");
+  const body = formatNotification(
+    t,
+    notification,
+    errors as NotificationTranslator,
+  ).body;
   const videoId = Number(notification.payload.videoId);
   if (
     linkVideo &&
@@ -151,7 +159,12 @@ function NotificationItem({
   onRead: (id: number) => Promise<void>;
 }) {
   const t = useTranslations("Notifications");
-  const message = formatNotification(t, notification);
+  const errors = useTranslations("Api");
+  const message = formatNotification(
+    t,
+    notification,
+    errors as NotificationTranslator,
+  );
   const presentation = notificationPresentation(notification, message.label);
   const Icon = presentation.icon;
   const previewRef = useRef<HTMLSpanElement>(null);

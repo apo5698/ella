@@ -405,7 +405,11 @@ async function runOne(job: Job, controller: AbortController) {
         );
         createNotification(db, {
           type: "ERROR",
-          payload: { jobKind: job.kind, ...notificationPayload(job, null) },
+          payload: {
+            jobKind: job.kind,
+            ...notificationPayload(job, null),
+            error: errorDetails(cause),
+          },
         });
         notifyNotificationsChanged();
         console.error("[tasks] Task failed", cause);

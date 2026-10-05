@@ -31,6 +31,7 @@
     "name": "Name",
     "series": "Series",
     "setSeries": "Set Series",
+    "seriesNameHelp": "A series name can contain spaces. A tag name cannot.",
     "tags": "Tags",
     "sort": "Sort",
     "filterTags": "Filter by Tags",
@@ -97,6 +98,24 @@
     "emptyDescription": "This list shows notifications from background tasks.",
     "fallbackTag": "Tag",
     "fallbackVideo": "Video",
+    "failures": {
+      "TAG_APPROVAL": {
+        "title": "Tag Approval Failed",
+        "body": "Ella could not approve {tagName}."
+      },
+      "VIDEO_RETAG": {
+        "title": "Smartag Failed",
+        "body": "Smartag could not tag {videoTitle}."
+      },
+      "VIDEO_CATALOG_SCAN": {
+        "title": "Library Scan Failed",
+        "body": "Ella could not scan the library."
+      },
+      "VIDEO_DOWNLOAD": {
+        "title": "Download Failed",
+        "body": "Ella could not download {videoTitle}."
+      }
+    },
     "types": {
       "TAG_APPROVAL": {
         "label": "Tag Update",

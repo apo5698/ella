@@ -31,6 +31,7 @@
     "name": "名称",
     "series": "系列",
     "setSeries": "设置系列",
+    "seriesNameHelp": "系列名称可包含空格。标签名称不可包含空格。",
     "tags": "标签",
     "sort": "排序",
     "filterTags": "按标签筛选",
@@ -97,6 +98,24 @@
     "emptyDescription": "此处显示后台任务的通知。",
     "fallbackTag": "该标签",
     "fallbackVideo": "该视频",
+    "failures": {
+      "TAG_APPROVAL": {
+        "title": "标签审核失败",
+        "body": "Ella 无法审核 {tagName}。"
+      },
+      "VIDEO_RETAG": {
+        "title": "Smartag 失败",
+        "body": "Smartag 无法为 {videoTitle} 生成标签。"
+      },
+      "VIDEO_CATALOG_SCAN": {
+        "title": "媒体库扫描失败",
+        "body": "Ella 无法扫描媒体库。"
+      },
+      "VIDEO_DOWNLOAD": {
+        "title": "下载失败",
+        "body": "Ella 无法下载 {videoTitle}。"
+      }
+    },
     "types": {
       "TAG_APPROVAL": {
         "label": "标签更新",
