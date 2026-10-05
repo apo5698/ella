@@ -72,7 +72,7 @@ export default function VideoThumbnail({
   return (
     <div
       className={cn(
-        "relative aspect-video overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/5 transition-[border-radius,box-shadow] duration-300 group-hover/card:shadow-lg group-hover/card:shadow-black/10",
+        "@container relative aspect-video overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/5 transition-[border-radius,box-shadow] duration-300 group-hover/card:shadow-lg group-hover/card:shadow-black/10",
         ready && "rounded-md",
         className,
       )}
@@ -106,7 +106,7 @@ export default function VideoThumbnail({
         <VideoResolutionBadge
           width={video.width}
           height={video.height}
-          className="absolute top-1.5 right-1.5"
+          className="absolute top-1.5 right-1.5 @max-3xs:top-1 @max-3xs:right-1 @max-3xs:text-[0.625rem]/none"
         />
         <div
           className={cn(
