@@ -1,13 +1,13 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { TagBadge } from "@/components/tags/TagBadge";
 import AdminVideoThumbnail from "./AdminVideoThumbnail";
-import { formatDimensions, formatSize } from "@/lib/format";
+import { formatDimensions, formatSize, wordGap } from "@/lib/format";
 import type { Video } from "@/lib/types";
 
 export default function VideoListItem({
@@ -24,6 +24,7 @@ export default function VideoListItem({
   const resolution = formatDimensions(video.width, video.height);
 
   const t = useTranslations("Common");
+  const gap = wordGap(useLocale());
   return (
     <Item
       role="listitem"
@@ -48,20 +49,25 @@ export default function VideoListItem({
         </ItemTitle>
         <p className="flex flex-wrap items-center gap-y-0.5 text-xs text-muted-foreground">
           <span>
-            {t("size")}{" "}
+            {t("size")}
+            {gap}
             {video.size_bytes ? formatSize(video.size_bytes) : t("unknown")}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="ml-1.5">
               ·
             </span>
-            {t("resolution")} {resolution ?? t("unknown")}
+            {t("resolution")}
+            {gap}
+            {resolution ?? t("unknown")}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="ml-1.5">
               ·
             </span>
-            {t("views")} {video.views}
+            {t("views")}
+            {gap}
+            {video.views}
           </span>
         </p>
         <div className="flex flex-wrap gap-1">

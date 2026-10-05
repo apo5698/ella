@@ -1,6 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { wordGap } from "@/lib/format";
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ const format = (data: DownloadSourcesResponse) =>
 /** The download sources as one JSON document, checked on the server. */
 export default function DownloadSourcesEditor() {
   const t = useTranslations("DownloadSources");
+  const gap = wordGap(useLocale());
   const [saved, setSaved] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -111,7 +113,8 @@ export default function DownloadSourcesEditor() {
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          {t("description")}{" "}
+          {t("description")}
+          {gap}
           <a
             href={FORMAT_GUIDE_URL}
             target="_blank"

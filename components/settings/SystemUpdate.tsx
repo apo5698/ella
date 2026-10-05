@@ -1,6 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { wordGap } from "@/lib/format";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GhostIcon, ListChecksIcon, LoaderCircleIcon } from "lucide-react";
@@ -27,6 +28,7 @@ export default function SystemUpdate({
   initialRelease: ReleaseStatus;
 }) {
   const t = useTranslations("SystemUpdate");
+  const gap = wordGap(useLocale());
   const [release, setRelease] = useState(initialRelease);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [unavailableReason, setUnavailableReason] =
@@ -230,7 +232,8 @@ export default function SystemUpdate({
               {t("tasksRunning", { count: runningTasks.length })}
             </AlertTitle>
             <AlertDescription>
-              {t("tasksRunningDescription")}{" "}
+              {t("tasksRunningDescription")}
+              {gap}
               <Link
                 href={
                   runningTasks.some((job) => job.kind === "VIDEO_DOWNLOAD")
@@ -245,7 +248,8 @@ export default function SystemUpdate({
         )}
         {newer && available === false && !pending && (
           <p className="col-span-full text-xs text-muted-foreground">
-            {t(`unavailable.${unavailableReason}`)}{" "}
+            {t(`unavailable.${unavailableReason}`)}
+            {gap}
             <a
               href={UPDATE_GUIDE_URL}
               target="_blank"

@@ -72,6 +72,14 @@ export function formatSize(bytes?: number | null): string {
   return `${v.toFixed(1)} ${units[i]}`;
 }
 
+/**
+ * What goes between a label and its value, or between two sentences. Chinese
+ * sets them without a space.
+ */
+export function wordGap(locale: string): string {
+  return locale.startsWith("zh") ? "" : " ";
+}
+
 /** A count shortened the way the locale does it: 1.2K, 1.2万. */
 export function formatCount(value: number, locale: string) {
   return new Intl.NumberFormat(locale, {

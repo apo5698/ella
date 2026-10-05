@@ -1,6 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { wordGap } from "@/lib/format";
 
 import { useState, type ReactNode } from "react";
 import {
@@ -109,6 +110,7 @@ function RunningProgress({ job }: { job: DownloadListItem }) {
 function StatusLine({ job }: { job: DownloadListItem }) {
   const t = useTranslations("Downloads");
   const errors = useTranslations("Api");
+  const gap = wordGap(useLocale());
   const at = job.finishedAt ?? job.createdAt;
   switch (job.status) {
     case "running":
@@ -118,7 +120,9 @@ function StatusLine({ job }: { job: DownloadListItem }) {
     case "pending":
       return (
         <span>
-          {t("addedAt")} <LocalTime value={job.createdAt} />
+          {t("addedAt")}
+          {gap}
+          <LocalTime value={job.createdAt} />
         </span>
       );
     case "succeeded":
@@ -138,7 +142,7 @@ function StatusLine({ job }: { job: DownloadListItem }) {
             : t("failed")}
           {failure?.video && (
             <>
-              {" "}
+              {gap}
               <Link href={`/video/${failure.video.id}`}>{t("view")}</Link>
             </>
           )}

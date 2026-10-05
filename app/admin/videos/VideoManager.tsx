@@ -61,7 +61,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDimensions, formatSize } from "@/lib/format";
+import { formatDimensions, formatSize, wordGap } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import type { Video } from "@/lib/types";
@@ -217,6 +217,7 @@ function BatchSeriesDialog({
 }) {
   const t = useTranslations("VideoManager");
   const common = useTranslations("Common");
+  const gap = wordGap(useLocale());
   const [name, setName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -295,7 +296,10 @@ function BatchSeriesDialog({
               />
             )}
             <FieldDescription>
-              {t("seriesHelp")} {common("seriesNameHelp")}{" "}
+              {t("seriesHelp")}
+              {gap}
+              {common("seriesNameHelp")}
+              {gap}
               {common("tagNameHelp")}
             </FieldDescription>
           </Field>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { wordGap } from "@/lib/format";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -245,6 +246,7 @@ export default function NewDownloadDialog() {
   const utilities = useTranslations("Utilities");
   const common = useTranslations("Common");
   const validation = useTranslations("Api");
+  const gap = wordGap(useLocale());
   const [open, setOpen] = useState(false);
   const sources = useDownloadSources(open);
   const [chosenId, setChosenId] = useState<string | null>(null);
@@ -490,7 +492,7 @@ export default function NewDownloadDialog() {
                       {failure.error}
                       {failure.video && (
                         <>
-                          {" "}
+                          {gap}
                           <Link href={`/video/${failure.video.id}`}>
                             {t("view")}
                           </Link>
