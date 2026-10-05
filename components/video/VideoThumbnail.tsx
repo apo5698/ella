@@ -108,13 +108,13 @@ export default function VideoThumbnail({
       >
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/70 to-transparent" />
         {resolution && resolution !== "sd" && (
-          <span className="absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-xs/none font-semibold backdrop-blur-sm">
+          <span className="absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-xs/none font-medium backdrop-blur-sm">
             {resolution}
           </span>
         )}
         <div
           className={cn(
-            "absolute inset-x-2 flex items-center justify-between gap-2 text-xs/none font-medium [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]",
+            "absolute inset-x-2 flex items-center justify-between gap-2 text-xs/none [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]",
             watched !== null && !ready ? "bottom-2.5" : "bottom-1.5",
           )}
         >
