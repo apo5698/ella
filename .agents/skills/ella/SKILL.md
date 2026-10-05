@@ -43,6 +43,13 @@ Write as product documentation, not as speech. Cut hedges and filler.
 - One term per concept across the product: Smartag (not recognition or
   tagging, not 识别), media library (媒体库), endpoint (端点), tag suggestions
   (标签建议).
+- No space between Chinese and a number, placeholder, or Latin word:
+  "共{count}个标签", "Ella已更新到v{version}", "使用Smartag". Commands, paths,
+  URLs, and config keys keep their spaces so they can be copied: "运行 sudo
+  systemctl start ella-updater". In components, join a label and its value, or
+  two sentences, with `wordGap(locale)` from `lib/format.ts`, never a literal
+  space.
+- Full-width parentheses in Chinese: "保存（Ctrl+S）".
 
 ## 3. No dashes
 
@@ -69,6 +76,7 @@ code comments; the interface states outcomes and tradeoffs.
 ## Checklist
 
 1. Search the diff for `—`, `–`, `——`, `「`, `」`, `“`, `”`, `请` (as "please"), `Please`, `Unable`. There must be none.
-2. Each sentence holds one instruction or one fact.
-3. Every feature name matches its on-screen label and the product term list.
-4. Delete any sentence the reader would not miss.
+2. In zh-CN, no space sits between Chinese and a number or Latin word, except around code.
+3. Each sentence holds one instruction or one fact.
+4. Every feature name matches its on-screen label and the product term list.
+5. Delete any sentence the reader would not miss.
