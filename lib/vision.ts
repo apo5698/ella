@@ -22,6 +22,7 @@ import {
 } from "./tags";
 import type { TagSettings } from "./settings";
 import { getTagSettings, getLlmSettings } from "./settingsStore";
+import { recordInference } from "./inferenceTiming";
 
 // Read per call rather than captured at import: the address and model are
 // editable from the settings page, and a running server must pick up a change
@@ -395,6 +396,18 @@ export async function extractFrames(
  */
 const rejectsReasoningEffort = new Set<string>();
 
+/**
+ * The longest wait for one reply. Ahead of the five minutes after which
+ * Node's fetch gives up by itself, so the failure can say what happened.
+ */
+const MODEL_TIMEOUT_MS = 4 * 60_000;
+
+/** The timeouts Node's fetch raises itself, as the cause of its TypeError. */
+function isFetchTimeout(cause: unknown) {
+  const code = (cause as { cause?: { code?: unknown } }).cause?.code;
+  return code === "UND_ERR_HEADERS_TIMEOUT" || code === "UND_ERR_BODY_TIMEOUT";
+}
+
 export async function describeFrames(
   images: string[],
   prompt: string = buildPrompt({ frames: images.length }),
@@ -414,9 +427,11 @@ export async function describeFrames(
 
   const { url, model } = getLlmSettings();
   const endpoint = `${url}|${model}`;
+  const timeout = AbortSignal.timeout(MODEL_TIMEOUT_MS);
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const request = (skipReasoning: boolean) =>
     fetch(`${url}/chat/completions`, {
-      signal,
+      signal: combined,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -428,29 +443,46 @@ export async function describeFrames(
       }),
     });
 
-  let res = await request(!rejectsReasoningEffort.has(endpoint));
-  if (res.status === 400 && !rejectsReasoningEffort.has(endpoint)) {
-    const detail = await res.text();
-    if (!/reasoning/i.test(detail)) {
+  const startedAt = Date.now();
+  let data: { choices?: { message?: { content?: string } }[] };
+  try {
+    let res = await request(!rejectsReasoningEffort.has(endpoint));
+    if (res.status === 400 && !rejectsReasoningEffort.has(endpoint)) {
+      const detail = await res.text();
+      if (!/reasoning/i.test(detail)) {
+        throw new AppError(
+          "modelRequestFailed",
+          { status: res.status },
+          { cause: new Error(detail) },
+        );
+      }
+      rejectsReasoningEffort.add(endpoint);
+      res = await request(false);
+    }
+    if (!res.ok) {
       throw new AppError(
         "modelRequestFailed",
         { status: res.status },
-        { cause: new Error(detail) },
+        {
+          cause: new Error(await res.text()),
+        },
       );
     }
-    rejectsReasoningEffort.add(endpoint);
-    res = await request(false);
+    data = await res.json();
+  } catch (cause) {
+    if (signal?.aborted) throw cause;
+    if (timeout.aborted || isFetchTimeout(cause))
+      throw new AppError(
+        "modelTimeout",
+        { seconds: MODEL_TIMEOUT_MS / 1000 },
+        { cause },
+      );
+    // fetch rejects with a TypeError when it cannot reach the server.
+    if (cause instanceof TypeError)
+      throw new AppError("modelUnavailable", {}, { cause });
+    throw cause;
   }
-  if (!res.ok) {
-    throw new AppError(
-      "modelRequestFailed",
-      { status: res.status },
-      {
-        cause: new Error(await res.text()),
-      },
-    );
-  }
-  const data = await res.json();
+  recordInference(images.length, (Date.now() - startedAt) / 1000);
   const text: string = data.choices?.[0]?.message?.content ?? "";
   const tags = parseRecognitionTags(text);
   // Storing an empty answer would clear the video's generated tags, so an

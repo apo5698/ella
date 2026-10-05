@@ -3,6 +3,7 @@ import { AppError, errorDetails, type ErrorDetails } from "@/lib/appError";
 // after(), while this module owns state and pushes updates to SSE subscribers.
 import db from "./db";
 import { createTracker, type BatchProgress } from "./progress";
+import { inferenceScale } from "./inferenceTiming";
 import { getTagSettings, getLlmSettings } from "./settingsStore";
 import {
   getRecognitionLibrary,
@@ -195,7 +196,11 @@ async function runBatchTagJob(
 
   for (const [index, row] of rows.entries()) {
     signal.throwIfAborted();
-    const tracker = createTracker(row.duration_sec, settings.strategy);
+    const tracker = createTracker(
+      row.duration_sec,
+      settings.strategy,
+      inferenceScale(),
+    );
 
     const publishProgress = () => {
       if (signal.aborted) return;

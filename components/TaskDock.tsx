@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
   ChevronDownIcon,
@@ -20,6 +20,7 @@ import type {
   DownloadJobPayload,
   DownloadProgress,
 } from "@/lib/utilities/downloadTypes";
+import { formatDurationText } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -117,6 +118,8 @@ function RunningTask({ job }: { job: Job }) {
   const downloads = useTranslations("Downloads");
   const notifications = useTranslations("Notifications");
   const common = useTranslations("Common");
+  const recognition = useTranslations("Recognition");
+  const locale = useLocale();
   const [stopping, setStopping] = useState(false);
   const body = describeJob(t, job);
   // The notification a task ends in already names its kind.
@@ -129,16 +132,27 @@ function RunningTask({ job }: { job: Job }) {
           downloads("preparing"),
         )
       : null;
+  // A recognition waiting on the model has no count to show, only the wait.
+  const inferElapsed =
+    job.kind === "VIDEO_RETAG" && job.progress?.phase === "infer"
+      ? Number(job.progress.inferElapsedSec ?? 0)
+      : null;
   const ratio = download
     ? download.percent === null
       ? null
       : download.percent / 100
-    : taskRatio(job);
+    : inferElapsed !== null
+      ? null
+      : taskRatio(job);
   const detail = download
     ? download.detail
-    : job.total > 0
-      ? `${job.processed} / ${job.total}`
-      : null;
+    : inferElapsed !== null
+      ? recognition("waited", {
+          duration: formatDurationText(inferElapsed, locale),
+        })
+      : job.total > 0
+        ? `${job.processed} / ${job.total}`
+        : null;
 
   async function stop() {
     setStopping(true);
@@ -174,6 +188,7 @@ function RunningTask({ job }: { job: Job }) {
         className="gap-1"
       >
         {download && <span>{download.label}</span>}
+        {inferElapsed !== null && <span>{recognition("inference")}</span>}
         {detail && <span className="ml-auto tabular-nums">{detail}</span>}
       </Progress>
     </div>

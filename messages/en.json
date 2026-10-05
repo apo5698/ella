@@ -576,6 +576,7 @@
     "description": "Smartag generates tags from the frames that the frame extraction settings select. If you change the settings during a task, the changes apply to the next task.",
     "tagged": "Tagged {count} of {total}",
     "remaining": "Time remaining (estimate): {duration}",
+    "waited": "Waiting: {duration}",
     "exit": "The last task stopped with exit code {code}",
     "recognizeDownloads": "Use Smartag on downloaded videos",
     "recognizeDownloadsDescription": "This is the default for new downloads."

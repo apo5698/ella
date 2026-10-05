@@ -15,6 +15,7 @@ import {
   notifyNotificationsChanged,
 } from "./notifications";
 import { createTracker } from "./progress";
+import { inferenceScale } from "./inferenceTiming";
 import { scanVideoCatalog } from "./catalogScan";
 import { getTagSettings } from "./settingsStore";
 import { suggestVideoTagsById } from "./vision";
@@ -122,6 +123,7 @@ const retagVideo: TaskHandler = async ({
   payload,
   setTotal,
   advance,
+  report,
   canceled,
   signal,
 }) => {
@@ -131,10 +133,20 @@ const retagVideo: TaskHandler = async ({
     .get(videoId) as { title: string; duration_sec: number | null } | undefined;
   if (!video) throw new AppError("videoMissing");
 
-  const tracker = createTracker(video.duration_sec, getTagSettings().strategy);
+  const tracker = createTracker(
+    video.duration_sec,
+    getTagSettings().strategy,
+    inferenceScale(),
+  );
   setTotal(100);
   const ticker = setInterval(() => {
-    advance(Math.min(99, Math.round(tracker.snapshot().ratio * 100)));
+    const snapshot = tracker.snapshot();
+    // Inference has no measure of its own, so the dock shows the wait.
+    report({
+      phase: snapshot.phase,
+      inferElapsedSec: snapshot.inferElapsedSec,
+    });
+    advance(Math.min(99, Math.round(snapshot.ratio * 100)));
   }, PROGRESS_MS);
 
   try {

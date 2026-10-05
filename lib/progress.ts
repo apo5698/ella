@@ -7,8 +7,13 @@ export type PhaseProgress = {
   phase: TagPhase;
   /** Overall completion across extraction and inference, 0-1. */
   ratio: number;
-  /** Seconds left overall. Null while the estimate is still too noisy. */
+  /**
+   * Seconds left overall. Null while the estimate is still too noisy, and
+   * once inference has outrun its estimate.
+   */
   etaSec: number | null;
+  /** Seconds spent waiting for the model, null before inference starts. */
+  inferElapsedSec: number | null;
 };
 
 export type BatchProgress = PhaseProgress & {
@@ -32,6 +37,15 @@ const INFER_PER_FRAME_SEC = 1.1;
 const DEFAULT_FRAMES = 6;
 
 /**
+ * Expected seconds for one inference over `frames` frames. `scale` is how
+ * much slower or faster this model has proved to be, see
+ * lib/inferenceTiming.ts.
+ */
+export function inferEstimateSec(frames: number, scale = 1) {
+  return (INFER_BASE_SEC + INFER_PER_FRAME_SEC * frames) * scale;
+}
+
+/**
  * Blends the two phases into one 0-1 figure. Extraction is measured; inference
  * is a single opaque request, so its share is time-estimated from the frame
  * count. Weighting each phase by its expected duration keeps the bar moving at
@@ -40,6 +54,7 @@ const DEFAULT_FRAMES = 6;
 export function createTracker(
   durationSec: number | null,
   strategy: FrameStrategy = "scene",
+  inferScale = 1,
 ) {
   const startedAt = Date.now();
   let phase: TagPhase = "extract";
@@ -54,7 +69,7 @@ export function createTracker(
       : 0.5;
   let extractActual: number | null = null;
   let inferStartedAt: number | null = null;
-  let inferEst = INFER_BASE_SEC + INFER_PER_FRAME_SEC * DEFAULT_FRAMES;
+  let inferEst = inferEstimateSec(DEFAULT_FRAMES, inferScale);
 
   return {
     startedAt,
@@ -71,7 +86,7 @@ export function createTracker(
         extractActual = (Date.now() - startedAt) / 1000;
         inferStartedAt = Date.now();
         if (update.frames) {
-          inferEst = INFER_BASE_SEC + INFER_PER_FRAME_SEC * update.frames;
+          inferEst = inferEstimateSec(update.frames, inferScale);
         }
       }
     },
@@ -81,11 +96,11 @@ export function createTracker(
       const total = extractTotal + inferEst;
 
       let done: number;
+      let inferElapsed: number | null = null;
       if (phase === "extract") {
         done = extractRatio * extractTotal;
       } else {
-        const inferElapsed =
-          (Date.now() - (inferStartedAt ?? Date.now())) / 1000;
+        inferElapsed = (Date.now() - (inferStartedAt ?? Date.now())) / 1000;
         done = extractTotal + Math.min(inferElapsed, inferEst);
       }
 
@@ -94,10 +109,15 @@ export function createTracker(
       // The first few percent of the decode extrapolate badly, so withhold the
       // number until the pass is properly under way.
       const settled = phase === "infer" || extractRatio > 0.03;
+      // Past its estimate the model has no figure left to count down from.
+      const overdue = inferElapsed !== null && inferElapsed >= inferEst;
       return {
         phase,
         ratio,
-        etaSec: settled ? Math.max(0, Math.round(total - done)) : null,
+        etaSec:
+          settled && !overdue ? Math.max(0, Math.round(total - done)) : null,
+        inferElapsedSec:
+          inferElapsed === null ? null : Math.floor(inferElapsed),
       };
     },
   };

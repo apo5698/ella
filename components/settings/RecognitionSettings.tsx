@@ -246,12 +246,25 @@ export default function RecognitionSettings() {
                 <span>
                   {current.phase === "infer" ? t("inference") : t("extraction")}
                 </span>
+                {/* The model reports nothing until it answers, so its
+                    phase shows the wait instead of a percentage. */}
                 <span className="tabular-nums">
-                  {Math.round(current.ratio * 100)}%
+                  {current.phase === "infer"
+                    ? t("waited", {
+                        duration: formatDurationText(
+                          current.inferElapsedSec ?? 0,
+                          locale,
+                        ),
+                      })
+                    : `${Math.round(current.ratio * 100)}%`}
                 </span>
               </div>
               <Progress
-                value={Math.round(current.ratio * 100)}
+                value={
+                  current.phase === "infer"
+                    ? null
+                    : Math.round(current.ratio * 100)
+                }
                 aria-label={
                   current.phase === "infer"
                     ? t("inferenceProgress")

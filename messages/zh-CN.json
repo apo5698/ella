@@ -576,6 +576,7 @@
     "description": "Smartag 根据抽帧设置选取画面并生成标签。任务开始后修改设置，更改在下一个任务生效。",
     "tagged": "已处理 {count} / {total}",
     "remaining": "预计剩余 {duration}",
+    "waited": "已等待 {duration}",
     "exit": "上次任务已停止（退出码 {code}）",
     "recognizeDownloads": "对下载的视频使用 Smartag",
     "recognizeDownloadsDescription": "此为新建下载的默认设置。"
