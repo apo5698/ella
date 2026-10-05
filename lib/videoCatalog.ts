@@ -158,6 +158,11 @@ export function recordVideo(
       mtime,
       thumbnail,
     });
+    // The file changed, so its preview clip shows the old one. Without the
+    // row the clip is no longer offered, and lib/previewClips.ts cuts it again.
+    db.prepare("DELETE FROM video_previews WHERE video_id = ?").run(
+      existing.id,
+    );
     return { id: existing.id, status: "updated" };
   }
 

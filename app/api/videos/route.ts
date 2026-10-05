@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
+import { PREVIEW_CLIP_COLUMN } from "@/lib/videoCardRows";
 import { parseVideoListParams, videoListQuery } from "@/lib/videoQuery";
 
 const DEFAULT_PAGE_SIZE = 60;
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
 
   const rows = db
     .prepare(
-      `SELECT v.*, s.name AS series_name
+      `SELECT v.*, s.name AS series_name, ${PREVIEW_CLIP_COLUMN}
        FROM ${from}
        WHERE ${where}
        ORDER BY ${orderBy}

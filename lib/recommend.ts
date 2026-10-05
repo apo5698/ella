@@ -388,6 +388,7 @@ export function pick(ranking: Ranking, options: PickOptions): VideoCardData[] {
       series_id: video.series_id,
       series_name: video.series_name,
       preview_points: video.preview_points,
+      preview_clip: video.preview_clip,
     };
     return card;
   });

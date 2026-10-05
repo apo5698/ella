@@ -43,6 +43,7 @@ export default function VideoThumbnail({
       ext: video.ext,
       duration: video.duration_sec,
       points: video.preview_points,
+      clip: video.preview_clip,
       autoplay: preview && autoplay,
     });
   const watched = isResumable(progress)

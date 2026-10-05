@@ -43,6 +43,7 @@ next-env.d.ts
 
 # generated media
 /public/thumbs/
+/data/previews/
 
 # local database files
 /data/*.db*

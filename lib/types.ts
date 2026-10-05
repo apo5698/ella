@@ -104,4 +104,7 @@ export type VideoCardData = Pick<
   | "series_id"
   | "series_name"
   | "preview_points"
->;
+> & {
+  /** When the preview clip was cut, or null while it has none. */
+  preview_clip: number | null;
+};

@@ -14,6 +14,9 @@ export const DB_PATH =
   process.env.DB_PATH || path.join(process.cwd(), "data", "catalog.db");
 export const THUMB_DIR =
   process.env.THUMB_DIR || path.join(process.cwd(), "public", "thumbs");
+// Beside the database, so the Docker data volume keeps them.
+export const PREVIEW_DIR =
+  process.env.PREVIEW_DIR || path.join(path.dirname(DB_PATH), "previews");
 export const VIDEO_EXTENSIONS = new Set([
   ".mp4",
   ".mkv",

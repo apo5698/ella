@@ -4,6 +4,7 @@ import fs from "node:fs";
 import nodePath from "node:path";
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
+import { removePreviewClip } from "@/lib/previewClips";
 import { VIDEO_ROOT } from "@/lib/config";
 import { sortTags } from "@/lib/tagOrder";
 import { loadVideoTagState, replaceVideoTagState } from "@/lib/tags";
@@ -212,6 +213,7 @@ export async function DELETE(
   // and foreign key enforcement is on.
   db.prepare("DELETE FROM videos WHERE id = ?").run(row.id);
   removeThumbnail(row.id);
+  removePreviewClip(row.id);
   notifyVideosChanged([row.id]);
 
   return NextResponse.json({ ok: true, mode, fileNote });

@@ -15,6 +15,7 @@ skills-lock.json
 
 data/*.db*
 data/skills
+data/previews
 public/thumbs
 videos
 

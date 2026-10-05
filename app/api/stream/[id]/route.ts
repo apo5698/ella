@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import fs from "node:fs";
-import { Readable } from "node:stream";
 import db from "@/lib/db";
+import { fileResponse } from "@/lib/fileResponse";
 
 export const runtime = "nodejs";
 
@@ -36,49 +36,5 @@ export async function GET(
   }
 
   const mime = MIME_MAP[row.ext.toLowerCase()] ?? "application/octet-stream";
-  const range = req.headers.get("range");
-
-  if (!range) {
-    const stream = Readable.toWeb(
-      fs.createReadStream(row.path),
-    ) as ReadableStream;
-    return new Response(stream, {
-      status: 200,
-      headers: {
-        "Content-Type": mime,
-        "Content-Length": String(stat.size),
-        "Accept-Ranges": "bytes",
-      },
-    });
-  }
-
-  const match = /bytes=(\d*)-(\d*)/.exec(range);
-  let start = 0;
-  let end = stat.size - 1;
-  if (match) {
-    if (match[1]) start = parseInt(match[1], 10);
-    if (match[2]) end = parseInt(match[2], 10);
-  }
-  end = Math.min(end, stat.size - 1);
-  if (start > end || start >= stat.size) {
-    return new Response(null, {
-      status: 416,
-      headers: { "Content-Range": `bytes */${stat.size}` },
-    });
-  }
-  const chunkSize = end - start + 1;
-
-  const stream = Readable.toWeb(
-    fs.createReadStream(row.path, { start, end }),
-  ) as ReadableStream;
-
-  return new Response(stream, {
-    status: 206,
-    headers: {
-      "Content-Type": mime,
-      "Content-Length": String(chunkSize),
-      "Content-Range": `bytes ${start}-${end}/${stat.size}`,
-      "Accept-Ranges": "bytes",
-    },
-  });
+  return fileResponse(req, row.path, stat.size, mime);
 }

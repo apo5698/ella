@@ -11,4 +11,5 @@ export const scratch = mkdtempSync(path.join(tmpdir(), "ella-test-"));
 process.env.DB_PATH = path.join(scratch, "catalog.db");
 process.env.VIDEO_ROOT = path.join(scratch, "videos");
 process.env.THUMB_DIR = path.join(scratch, "thumbs");
+process.env.PREVIEW_DIR = path.join(scratch, "previews");
 process.env.DOWNLOAD_WORK_DIR = path.join(scratch, "work");

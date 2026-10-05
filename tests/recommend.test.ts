@@ -27,6 +27,7 @@ function video(id: number, extra: Partial<VideoCardData> = {}): VideoCardData {
     series_id: null,
     series_name: null,
     preview_points: null,
+    preview_clip: null,
     ...extra,
   };
 }

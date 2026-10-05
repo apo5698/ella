@@ -39,14 +39,15 @@ function Backdrop({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!active || !canPreview(video.ext) || !quietPreview()) return;
+    const playable = video.preview_clip !== null || canPreview(video.ext);
+    if (!active || !playable || !quietPreview()) return;
     const timer = setTimeout(() => setPreviewing(true), PREVIEW_DELAY_MS);
     return () => {
       clearTimeout(timer);
       setPreviewing(false);
       setReady(false);
     };
-  }, [active, video.ext]);
+  }, [active, video.ext, video.preview_clip]);
 
   const image = (
     // eslint-disable-next-line @next/next/no-img-element
@@ -79,7 +80,11 @@ function Backdrop({
       )}
       {previewing && (
         <video
-          src={`/api/stream/${video.id}`}
+          src={
+            video.preview_clip === null
+              ? `/api/stream/${video.id}`
+              : `/api/preview/${video.id}?v=${video.preview_clip}`
+          }
           muted
           playsInline
           autoPlay
@@ -89,8 +94,13 @@ function Backdrop({
           aria-hidden
           tabIndex={-1}
           onLoadedMetadata={(event) => {
+            // A clip starts where it should; the full file is skipped past
+            // its opening.
             const element = event.currentTarget;
-            if (Number.isFinite(element.duration))
+            if (
+              video.preview_clip === null &&
+              Number.isFinite(element.duration)
+            )
               element.currentTime = element.duration * 0.2;
           }}
           onPlaying={() => setReady(true)}

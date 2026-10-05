@@ -188,6 +188,17 @@ CREATE TABLE IF NOT EXISTS video_heat (
   scene_at INTEGER NOT NULL
 );
 
+-- The short clip a card previews, cut by lib/previewClips.ts into
+-- PREVIEW_DIR/<video id>.mp4. points is the videos.preview_points it was cut
+-- from, NULL when it used the fixed fallback. ok = 0 records a file ffmpeg
+-- could not cut, kept so it is not tried again. made_at versions the URL.
+CREATE TABLE IF NOT EXISTS video_previews (
+  video_id INTEGER PRIMARY KEY REFERENCES videos(id) ON DELETE CASCADE,
+  points TEXT,
+  ok INTEGER NOT NULL,
+  made_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_video_tags_tag ON video_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_videos_title ON videos(title);
 CREATE INDEX IF NOT EXISTS idx_tag_aliases_tag ON tag_aliases(tag_id);

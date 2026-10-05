@@ -133,7 +133,8 @@ on read:    decay the same way to now
 - Watch reports also carry the seconds played in each of 100 buckets, the
   input to the watch heat curve. See `lib/heat.ts`, which also holds the scene
   curve measured from ffmpeg scene scores (`lib/sceneHeat.ts`) and picks where
-  card previews play.
+  card previews play. `lib/previewClips.ts` cuts those segments into a small
+  clip per video, which the cards play instead of the full file.
 
 ## Implementation order
 

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import db from "@/lib/db";
 import { THUMB_DIR, VIDEO_ROOT } from "@/lib/config";
+import { removePreviewClip } from "@/lib/previewClips";
 import { listVideoFiles, recordVideo } from "@/lib/videoCatalog";
 
 export type CatalogScanProgress = {
@@ -62,6 +63,7 @@ export async function scanVideoCatalog(
     if (!filePaths.has(row.path)) {
       deleteVideo.run(row.id);
       fs.rmSync(path.join(THUMB_DIR, `${row.id}.jpg`), { force: true });
+      removePreviewClip(row.id);
       removed += 1;
     }
 
