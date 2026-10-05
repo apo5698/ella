@@ -26,6 +26,14 @@ export function formatResolution(
   return "SD";
 }
 
+/** The exact frame size, such as "1920 × 1080", or null when unknown. */
+export function formatDimensions(
+  width?: number | null,
+  height?: number | null,
+): string | null {
+  return width && height ? `${width} × ${height}` : null;
+}
+
 /** Human-readable duration using the selected display locale. */
 export function formatDurationText(sec: number, locale = "en"): string {
   const total = Math.max(0, Math.round(sec));

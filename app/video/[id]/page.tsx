@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import PageContainer from "@/components/PageContainer";
 import db from "@/lib/db";
-import { formatDuration, formatSize } from "@/lib/format";
+import { formatDimensions, formatDuration, formatSize } from "@/lib/format";
 import { loadHeat } from "@/lib/heat";
 import { sortTags } from "@/lib/tagOrder";
 import { loadTagPaths } from "@/lib/tagHierarchy";
@@ -59,10 +59,7 @@ export default async function VideoPage({ params }: PageProps<"/video/[id]">) {
           initialViews={video.views ?? 0}
           playerMeta={{
             duration: formatDuration(video.duration_sec),
-            resolution:
-              video.width && video.height
-                ? `${video.width}x${video.height}`
-                : null,
+            resolution: formatDimensions(video.width, video.height),
             size: formatSize(video.size_bytes),
           }}
           heat={loadHeat(db, video.id)}

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { notFound } from "next/navigation";
 import db from "@/lib/db";
-import { formatDuration, formatSize } from "@/lib/format";
+import { formatDimensions, formatDuration, formatSize } from "@/lib/format";
 import { loadVideoTagState } from "@/lib/tags";
 import type { Video } from "@/lib/types";
 import { parseVideoListParams, videoNeighbours } from "@/lib/videoQuery";
@@ -55,8 +55,7 @@ export default async function AdminVideoPage({
       views={video.views ?? 0}
       playerMeta={{
         duration: formatDuration(video.duration_sec),
-        resolution:
-          video.width && video.height ? `${video.width}x${video.height}` : null,
+        resolution: formatDimensions(video.width, video.height),
         size: formatSize(video.size_bytes),
       }}
     />

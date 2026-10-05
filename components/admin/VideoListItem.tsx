@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { TagBadge } from "@/components/tags/TagBadge";
-import { formatDuration, formatResolution, formatSize } from "@/lib/format";
+import AdminVideoThumbnail from "./AdminVideoThumbnail";
+import { formatDimensions, formatSize } from "@/lib/format";
 import type { Video } from "@/lib/types";
 
 export default function VideoListItem({
@@ -20,7 +21,7 @@ export default function VideoListItem({
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }) {
-  const resolution = formatResolution(video.width, video.height);
+  const resolution = formatDimensions(video.width, video.height);
 
   const t = useTranslations("Common");
   return (
@@ -36,18 +37,8 @@ export default function VideoListItem({
           aria-label={t("selectVideo", { title: video.title })}
         />
       )}
-      <ItemMedia className="aspect-video w-28 overflow-hidden rounded-md bg-muted">
-        {video.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={video.thumbnail}
-            alt=""
-            className="size-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <span className="text-muted-foreground">{t("noThumbnail")}</span>
-        )}
+      <ItemMedia>
+        <AdminVideoThumbnail video={video} className="w-28" />
       </ItemMedia>
       <ItemContent className="min-w-0">
         <ItemTitle className="w-full max-w-full text-sm">
@@ -57,12 +48,6 @@ export default function VideoListItem({
         </ItemTitle>
         <p className="flex flex-wrap items-center gap-y-0.5 text-xs text-muted-foreground">
           <span>
-            {t("duration")} {formatDuration(video.duration_sec)}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="ml-1.5">
-              ·
-            </span>
             {t("size")}{" "}
             {video.size_bytes ? formatSize(video.size_bytes) : t("unknown")}
           </span>

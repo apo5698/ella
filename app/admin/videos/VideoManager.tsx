@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/field";
 import SearchInput from "@/components/SearchInput";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import AdminVideoThumbnail from "@/components/admin/AdminVideoThumbnail";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -60,7 +61,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatSize } from "@/lib/format";
+import { formatDimensions, formatSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import type { Video } from "@/lib/types";
@@ -292,7 +293,9 @@ function BatchSeriesDialog({
                 onSelect={setName}
               />
             )}
-            <FieldDescription>{t("seriesHelp")}</FieldDescription>
+            <FieldDescription>
+              {t("seriesHelp")} {common("seriesNameHelp")}
+            </FieldDescription>
           </Field>
         </FieldGroup>
 
@@ -317,12 +320,6 @@ function BatchSeriesDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function videoResolution(video: Video) {
-  return video.width && video.height
-    ? `${video.width} × ${video.height}`
-    : null;
 }
 
 const HEADER_SORTS = {
@@ -447,6 +444,7 @@ function VideoTable({
 }) {
   const t = useTranslations("VideoManager");
   const common = useTranslations("Common");
+  const card = useTranslations("VideoCard");
   const locale = useLocale();
   const router = useRouter();
   const currentIds = useMemo(() => videos.map((video) => video.id), [videos]);
@@ -551,53 +549,25 @@ function VideoTable({
                     />
                   </TableCell>
                   <TableCell className="whitespace-normal">
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="@container flex min-w-0 items-center gap-3">
                       <Link
                         href={editHref}
                         aria-label={t("openVideo", { title: video.title })}
-                        className="relative flex h-[45px] w-20 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-xs text-muted-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+                        className="shrink-0 rounded-md outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
                       >
-                        <span aria-hidden="true">{common("noThumbnail")}</span>
-                        {video.thumbnail && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={video.thumbnail}
-                            src={video.thumbnail}
-                            alt=""
-                            width={80}
-                            height={45}
-                            loading="lazy"
-                            decoding="async"
-                            className="absolute inset-0 size-full object-cover"
-                            onError={(event) => {
-                              event.currentTarget.style.visibility = "hidden";
-                            }}
-                          />
-                        )}
+                        <AdminVideoThumbnail video={video} className="w-20" />
                       </Link>
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <div className="flex min-w-0 items-center justify-between gap-4">
-                          <div className="flex min-w-0 flex-1 items-center gap-2">
-                            {video.series_name && (
-                              <SeriesBadge
-                                className="min-w-0 max-w-24 shrink"
-                                title={video.series_name}
-                              >
-                                <span className="min-w-0 truncate">
-                                  {video.series_name}
-                                </span>
-                              </SeriesBadge>
-                            )}
-                            <Link
-                              href={editHref}
-                              title={video.title}
-                              className="min-w-0 flex-1 truncate text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                            >
-                              {video.title}
-                            </Link>
-                          </div>
+                          <Link
+                            href={editHref}
+                            title={video.title}
+                            className="line-clamp-2 min-w-0 flex-1 text-sm font-medium break-all text-foreground underline-offset-4 hover:underline @md:line-clamp-1"
+                          >
+                            {video.title}
+                          </Link>
                           {tagCount > 0 && (
-                            <div className="hidden min-w-0 max-w-1/2 shrink items-center justify-end gap-1 overflow-hidden md:flex">
+                            <div className="hidden min-w-0 max-w-1/2 shrink items-center justify-end gap-1 overflow-hidden @md:flex">
                               {visibleTags.map((tag, index) => (
                                 <TagBadge
                                   key={tag.id}
@@ -608,8 +578,8 @@ function VideoTable({
                                   title={tag.name}
                                   className={cn(
                                     "min-w-0 max-w-24 shrink cursor-pointer",
-                                    index === 1 && "hidden lg:inline-flex",
-                                    index === 2 && "hidden xl:inline-flex",
+                                    index === 1 && "hidden @lg:inline-flex",
+                                    index === 2 && "hidden @xl:inline-flex",
                                   )}
                                 >
                                   <span className="min-w-0 truncate">
@@ -621,7 +591,7 @@ function VideoTable({
                                 <Badge
                                   variant="secondary"
                                   title={t("moreTags", { count: tagCount - 3 })}
-                                  className="hidden shrink-0 xl:inline-flex text-xs/none"
+                                  className="hidden shrink-0 @xl:inline-flex text-xs/none"
                                 >
                                   +{tagCount - 3}
                                 </Badge>
@@ -630,7 +600,7 @@ function VideoTable({
                                 <Badge
                                   variant="secondary"
                                   title={t("moreTags", { count: tagCount - 2 })}
-                                  className="hidden shrink-0 lg:inline-flex xl:hidden text-xs/none"
+                                  className="hidden shrink-0 @lg:inline-flex @xl:hidden text-xs/none"
                                 >
                                   +{tagCount - 2}
                                 </Badge>
@@ -639,7 +609,7 @@ function VideoTable({
                                 <Badge
                                   variant="secondary"
                                   title={t("moreTags", { count: tagCount - 1 })}
-                                  className="shrink-0 lg:hidden text-xs/none"
+                                  className="shrink-0 @lg:hidden text-xs/none"
                                 >
                                   +{tagCount - 1}
                                 </Badge>
@@ -647,9 +617,26 @@ function VideoTable({
                             </div>
                           )}
                         </div>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {videoResolution(video) ?? common("unknown")}
-                        </span>
+                        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground">
+                          {video.series_name && (
+                            <SeriesBadge
+                              className="max-w-24 min-w-10 shrink"
+                              title={video.series_name}
+                            >
+                              <span className="min-w-0 truncate">
+                                {video.series_name}
+                              </span>
+                            </SeriesBadge>
+                          )}
+                          <span className="hidden truncate tabular-nums @xs:inline">
+                            {formatDimensions(video.width, video.height) ??
+                              common("unknown")}
+                          </span>
+                          {/* The views column appears only on wide screens. */}
+                          <span className="shrink-0 tabular-nums @xs:before:mr-1.5 @xs:before:content-['·'] lg:hidden">
+                            {card("views", { count: video.views })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
