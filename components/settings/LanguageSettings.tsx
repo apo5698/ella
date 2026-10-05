@@ -5,13 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { setLanguage } from "@/app/settings/language";
 import { isAppLocale } from "@/i18n/config";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -35,9 +29,6 @@ export default function LanguageSettings() {
     <Card>
       <CardHeader>
         <CardTitle id="language-title">{t("language")}</CardTitle>
-        <CardDescription id="language-description">
-          {t("languageDescription")}
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <Select
@@ -57,14 +48,13 @@ export default function LanguageSettings() {
           }}
         >
           <SelectTrigger
-            className="w-40"
+            className="w-full"
             aria-labelledby="language-title"
-            aria-describedby="language-description"
             aria-busy={pending}
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="w-40" alignItemWithTrigger={false}>
+          <SelectContent>
             <SelectGroup>
               {items.map((item) => (
                 <SelectItem key={item.value} value={item.value}>

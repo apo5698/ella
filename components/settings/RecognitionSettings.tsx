@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field";
@@ -75,10 +74,8 @@ function RecognizeDownloadsField() {
       <FieldContent>
         <FieldLabel htmlFor="recognize-downloads">
           {t("recognizeDownloads")}
+          <HelpTip>{t("recognizeDownloadsDescription")}</HelpTip>
         </FieldLabel>
-        <FieldDescription>
-          {t("recognizeDownloadsDescription")}
-        </FieldDescription>
       </FieldContent>
       <Switch
         id="recognize-downloads"
@@ -282,7 +279,7 @@ export default function RecognitionSettings() {
             </div>
           )}
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2">
             <Checkbox
               checked={force}
               onCheckedChange={(v) => setForce(Boolean(v))}

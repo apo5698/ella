@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { Field, FieldLabel, FieldTitle } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -198,6 +198,7 @@ export default function FrameSettingsCard() {
             <Field>
               <FieldLabel id="tag-language-label">
                 {t("tagLanguage")}
+                <HelpTip>{t("tagLanguageHelp")}</HelpTip>
               </FieldLabel>
               <Select
                 items={languageItems}
@@ -209,13 +210,12 @@ export default function FrameSettingsCard() {
                 }}
               >
                 <SelectTrigger
-                  className="w-40"
+                  className="w-full"
                   aria-labelledby="tag-language-label"
-                  aria-describedby="tag-language-help"
                 >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="w-40" alignItemWithTrigger={false}>
+                <SelectContent>
                   <SelectGroup>
                     {languageItems.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
@@ -225,12 +225,9 @@ export default function FrameSettingsCard() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <FieldDescription id="tag-language-help">
-                {t("tagLanguageHelp")}
-              </FieldDescription>
             </Field>
             <div className="flex flex-col gap-2">
-              <div className="text-sm font-medium">{t("strategy")}</div>
+              <FieldTitle>{t("strategy")}</FieldTitle>
               <div className="grid gap-2 sm:grid-cols-2">
                 {STRATEGIES.map((s) => {
                   const active = data.settings.strategy === s.value;
@@ -247,7 +244,7 @@ export default function FrameSettingsCard() {
                           : "border-border hover:bg-muted/50",
                       )}
                     >
-                      <span className="flex items-center gap-1.5 text-sm font-medium">
+                      <span className="flex items-center gap-1.5 font-medium">
                         <Icon className="size-4" />
                         {t(s.label)}
                         {active && (
@@ -273,13 +270,10 @@ export default function FrameSettingsCard() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
-                  <span
-                    id="frame-count-label"
-                    className="flex items-center gap-1 text-sm font-medium"
-                  >
+                  <FieldTitle id="frame-count-label">
                     {t("countLabel")}
                     <HelpTip>{t("autoHelp")}</HelpTip>
-                  </span>
+                  </FieldTitle>
                   <label className="ml-auto flex items-center gap-1.5">
                     <Checkbox
                       checked={auto}
@@ -322,7 +316,7 @@ export default function FrameSettingsCard() {
                   />
                   {/* Under automatic the checkbox already says so; the useful thing
                       to report is what the tiers actually work out to. */}
-                  <span className="min-w-20 shrink-0 text-right text-sm whitespace-nowrap tabular-nums">
+                  <span className="min-w-20 shrink-0 text-right whitespace-nowrap tabular-nums">
                     {auto
                       ? t("average", { count: autoAverage })
                       : t("frames", { count: sliderValue })}
@@ -331,13 +325,10 @@ export default function FrameSettingsCard() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <span
-                  id="frame-width-label"
-                  className="flex items-center gap-1 text-sm font-medium"
-                >
+                <FieldTitle id="frame-width-label">
                   {t("width")}
                   <HelpTip>{t("widthHelp")}</HelpTip>
-                </span>
+                </FieldTitle>
                 <div className="flex items-center gap-3">
                   {/* The widths are a fixed set rather than a continuous range,
                       so the slider travels over their positions and the value
@@ -361,7 +352,7 @@ export default function FrameSettingsCard() {
                     aria-labelledby="frame-width-label"
                     className="flex-1"
                   />
-                  <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                  <span className="w-20 shrink-0 text-right tabular-nums">
                     {data.settings.frameWidth} px
                   </span>
                 </div>
@@ -370,15 +361,16 @@ export default function FrameSettingsCard() {
 
             {/* The whole point of the choice, stated in the unit that hurts. */}
             <div className="flex flex-col gap-2">
-              <div className="text-sm font-medium">
+              <FieldTitle>
                 {t("estimate", {
                   count: data.pending.count,
                   duration: formatDurationText(data.pending.seconds, locale),
                 })}
-              </div>
+                <HelpTip>{t("estimateHelp")}</HelpTip>
+              </FieldTitle>
               {/* A grid rather than a fixed label width, so a longer label in
                   another language stays on one line and the values align. */}
-              <div className="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1 text-sm">
+              <div className="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1">
                 {STRATEGIES.map((s) => {
                   const cost = extractionCost(
                     s.value,
@@ -412,9 +404,6 @@ export default function FrameSettingsCard() {
                     </Fragment>
                   );
                 })}
-              </div>
-              <div className="text-xs leading-relaxed text-muted-foreground">
-                {t("estimateHelp")}
               </div>
             </div>
           </>

@@ -6,13 +6,7 @@ import { ChevronRightIcon } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SystemVersion from "@/components/settings/SystemVersion";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function SettingsPage() {
   const t = await getTranslations("Settings");
@@ -46,12 +40,7 @@ export default async function SettingsPage() {
         >
           <Card>
             <CardHeader className="grid-cols-[1fr_auto] items-center">
-              <div className="flex flex-col gap-1">
-                <CardTitle>{navigation("recognition")}</CardTitle>
-                <CardDescription>
-                  {navigation("recognitionDescription")}
-                </CardDescription>
-              </div>
+              <CardTitle>{navigation("recognition")}</CardTitle>
               <ChevronRightIcon
                 aria-hidden="true"
                 className="size-4 text-muted-foreground"

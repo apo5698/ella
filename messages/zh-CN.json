@@ -61,7 +61,6 @@
     "themeLight": "浅色",
     "themeDark": "深色",
     "themeSystem": "跟随系统",
-    "recognitionDescription": "配置模型、抽帧和 Smartag。",
     "downloadServices": "下载设置",
     "downloadServicesDescription": "配置下载来源及其使用的服务。",
     "administration": "管理"
@@ -167,7 +166,6 @@
   },
   "Settings": {
     "language": "语言",
-    "languageDescription": "此浏览器的显示语言。",
     "english": "English",
     "simplifiedChinese": "简体中文",
     "checkingUpdates": "正在检查更新"
@@ -586,7 +584,6 @@
     "title": "模型服务",
     "connected": "已连接",
     "disconnected": "未连接",
-    "retrying": "Ella 自动重试",
     "address": "端点",
     "connecting": "连接中",
     "connect": "连接",
@@ -600,9 +597,9 @@
   },
   "Frames": {
     "scene": "场景检测",
-    "sceneHelp": "Ella 解码完整视频，并选取画面变化最显著的帧。选帧更具代表性，处理耗时较长。",
+    "sceneHelp": "选帧更具代表性，处理耗时较长。",
     "fixed": "固定时间点",
-    "fixedHelp": "Ella 按等间隔时间点抽帧，不解码完整视频。速度更快，所选画面代表性较低。",
+    "fixedHelp": "处理速度更快，所选画面代表性较低。",
     "title": "抽帧设置",
     "saving": "保存中…",
     "strategy": "抽帧方式",
@@ -616,13 +613,13 @@
     "average": "平均 {count} 帧",
     "frames": "{count} 帧",
     "estimate": "{count} 个视频（共 {duration}）的抽帧耗时估算",
-    "estimateHelp": "估算不含推理耗时。场景检测耗时随视频编码和存储速度变化。",
+    "estimateHelp": "估算不含推理耗时。",
     "approximate": "约 {duration}",
     "range": "约 {min} 至 {max}",
     "tagLanguage": "标签语言",
     "languageEnglish": "英语",
     "languageChinese": "简体中文",
-    "tagLanguageHelp": "自动模式依次使用标题语言、界面语言和英语。手动选择的语言优先。现有标签不变。"
+    "tagLanguageHelp": "自动模式依次使用标题语言、界面语言和英语。现有标签不变。"
   },
   "Prompt": {
     "title": "提示词",

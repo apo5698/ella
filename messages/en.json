@@ -61,7 +61,6 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
-    "recognitionDescription": "Configure models, frame extraction, and Smartag.",
     "downloadServices": "Download Settings",
     "downloadServicesDescription": "Configure the download sources and the services that they use.",
     "administration": "Administration"
@@ -167,7 +166,6 @@
   },
   "Settings": {
     "language": "Language",
-    "languageDescription": "The interface language for this browser.",
     "english": "English",
     "simplifiedChinese": "简体中文",
     "checkingUpdates": "Update check in progress"
@@ -586,7 +584,6 @@
     "title": "Model Service",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "retrying": "Ella tries again automatically",
     "address": "Endpoint",
     "connecting": "Connection in progress",
     "connect": "Connect",
@@ -600,9 +597,9 @@
   },
   "Frames": {
     "scene": "Scene Detection",
-    "sceneHelp": "Ella decodes the full video and selects the frames with the largest visual changes. The frames are more representative, but the processing time is longer.",
+    "sceneHelp": "The frames are more representative. Processing takes longer.",
     "fixed": "Fixed Intervals",
-    "fixedHelp": "Ella extracts frames at equal intervals and does not decode the full video. This method is faster, but the frames can be less representative.",
+    "fixedHelp": "Processing is faster. The frames can be less representative.",
     "title": "Frame Extraction",
     "saving": "Save in progress…",
     "strategy": "Extraction Method",
@@ -616,13 +613,13 @@
     "average": "Average: {count} frames",
     "frames": "{count, plural, one {# frame} other {# frames}}",
     "estimate": "Extraction estimate for {count, plural, one {# video} other {# videos}} ({duration} total)",
-    "estimateHelp": "The estimate does not include the inference time. Scene detection estimates change with the video encoding and the storage speed.",
+    "estimateHelp": "The estimate does not include the inference time.",
     "approximate": "About {duration}",
     "range": "About {min} to {max}",
     "tagLanguage": "Tag Language",
     "languageEnglish": "English",
     "languageChinese": "Simplified Chinese",
-    "tagLanguageHelp": "Automatic uses the title language first, then the interface language, then English. A language that you select has priority. Existing tags do not change."
+    "tagLanguageHelp": "Automatic uses the title language first, then the interface language, then English. Existing tags do not change."
   },
   "Prompt": {
     "title": "Prompt",

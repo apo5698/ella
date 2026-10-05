@@ -6,10 +6,7 @@ export default async function RecognitionSettingsPage() {
   const t = await getTranslations("Navigation");
   return (
     <>
-      <AdminPageHeader
-        title={t("recognition")}
-        description={t("recognitionDescription")}
-      />
+      <AdminPageHeader title={t("recognition")} />
       <RecognitionSettings />
     </>
   );

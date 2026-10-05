@@ -238,13 +238,6 @@ export default function LlmStatusCard() {
               {probing ? <Spinner /> : <CountdownRing value={sweep} />}
             </Badge>
           )}
-          {/* Otherwise a stopped server looks like something the user has to
-              click to recover from. */}
-          {probe && !probe.reachable && (
-            <span className="font-normal text-muted-foreground">
-              {t("retrying")}
-            </span>
-          )}
         </CardTitle>
       </CardHeader>
 
@@ -275,7 +268,7 @@ export default function LlmStatusCard() {
                     }}
                     placeholder="http://localhost:1234/v1"
                     spellCheck={false}
-                    className="flex-1 font-mono"
+                    className="flex-1 font-mono text-[0.6875rem]"
                   />
                   <Button onClick={connect} disabled={busy || !url.trim()}>
                     <PlugIcon data-icon="inline-start" />
@@ -296,7 +289,7 @@ export default function LlmStatusCard() {
                       onValueChange={(v) => selectModel(v as string)}
                     >
                       <SelectTrigger
-                        className="w-full font-mono"
+                        className="w-full font-mono text-[0.6875rem]"
                         aria-label={t("model")}
                         aria-invalid={modelMissing || undefined}
                       >
@@ -308,7 +301,7 @@ export default function LlmStatusCard() {
                             <SelectItem
                               key={id}
                               value={id}
-                              className="font-mono"
+                              className="font-mono text-[0.6875rem]"
                             >
                               {id}
                             </SelectItem>
@@ -334,7 +327,7 @@ export default function LlmStatusCard() {
                       onBlur={(e) => selectModel(e.target.value)}
                       placeholder={t("modelName")}
                       spellCheck={false}
-                      className="font-mono"
+                      className="font-mono text-[0.6875rem]"
                     />
                     {probe && (
                       <FieldDescription>{t("manualModel")}</FieldDescription>
