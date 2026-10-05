@@ -78,7 +78,11 @@ export default function HeaderSearch() {
   }
 
   return (
+    // Chrome on iOS marks forms and fields for autofill (__gcruniqueid)
+    // before React hydrates them. Only these two elements' attributes are
+    // exempt from the hydration check.
     <form
+      suppressHydrationWarning
       role="search"
       onSubmit={(event) => {
         event.preventDefault();
@@ -111,6 +115,7 @@ export default function HeaderSearch() {
       >
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <input
+          suppressHydrationWarning
           ref={input}
           type="search"
           value={value}
