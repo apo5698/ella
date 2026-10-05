@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { TagBadge } from "@/components/tags/TagBadge";
 import {
   TAG_STATE_DOT_STYLE,
   TAG_STATE_LABEL,
@@ -106,22 +105,20 @@ export default function TagStatePopover({
               name,
               state: labels(TAG_STATE_LABEL[state]),
             })}
-            className="flex min-h-5 shrink-0 cursor-pointer items-center gap-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            title={labels(TAG_STATE_LABEL[state])}
+            className="group/dot flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           />
         }
       >
-        <span className="flex size-5 shrink-0 items-center justify-center">
-          <Dot
-            aria-hidden="true"
-            className={cn(
-              "transition-transform hover:scale-125",
-              TAG_STATE_DOT_STYLE[state],
-            )}
-          />
-        </span>
-        <TagBadge state={state}>{name}</TagBadge>
+        <Dot
+          aria-hidden="true"
+          className={cn(
+            "transition-transform group-hover/dot:scale-150",
+            TAG_STATE_DOT_STYLE[state],
+          )}
+        />
       </PopoverTrigger>
       <PopoverContent
         align="start"

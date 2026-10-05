@@ -22,7 +22,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -56,7 +55,6 @@ import {
   Item,
   ItemActions,
   ItemContent,
-  ItemDescription,
   ItemGroup,
   ItemTitle,
 } from "@/components/ui/item";
@@ -246,9 +244,6 @@ export default function TagDetailManager({
         <Card>
           <CardHeader>
             <CardTitle>{t("details")}</CardTitle>
-            <CardDescription>
-              {t("coverage", { direct: node.count, total: node.totalCount })}
-            </CardDescription>
             <CardAction>
               <Button
                 onClick={save}
@@ -408,7 +403,6 @@ export default function TagDetailManager({
             <CardTitle>
               {t("children", { count: node.children.length })}
             </CardTitle>
-            <CardDescription>{t("childrenHelp")}</CardDescription>
           </CardHeader>
           <CardContent>
             {node.children.length === 0 ? (
@@ -424,22 +418,31 @@ export default function TagDetailManager({
                   <div key={child.id} role="listitem">
                     <Item
                       variant="outline"
+                      size="sm"
                       render={<Link href={`/admin/tags/${child.id}`} />}
                     >
-                      <ItemContent>
-                        <ItemTitle>
-                          <TagBadge state={child.reviewState}>
-                            {child.name}
+                      <ItemContent className="min-w-0">
+                        <ItemTitle className="max-w-full">
+                          <TagBadge
+                            state={child.reviewState}
+                            title={child.name}
+                            className="max-w-full shrink"
+                          >
+                            <span className="min-w-0 truncate">
+                              {child.name}
+                            </span>
                           </TagBadge>
                         </ItemTitle>
-                        <ItemDescription>
-                          {t("coverage", {
-                            direct: child.count,
-                            total: child.totalCount,
-                          })}
-                        </ItemDescription>
                       </ItemContent>
-                      <ItemActions>
+                      <ItemActions className="text-xs tabular-nums text-muted-foreground">
+                        {/* The same count as the tag list: direct videos, and
+                            the whole family when that differs. */}
+                        {!child.assignable
+                          ? child.totalCount
+                          : child.children.length > 0 &&
+                              child.totalCount !== child.count
+                            ? `${child.count} / ${child.totalCount}`
+                            : child.count}
                         <ChevronRightIcon />
                       </ItemActions>
                     </Item>
@@ -453,11 +456,12 @@ export default function TagDetailManager({
 
       <div className="min-w-0 lg:col-start-1 lg:row-start-1">
         <TagVideoList
-          key={`${node.id}-${node.count}`}
+          key={`${node.id}-${node.count}-${node.assignable}`}
           tagId={node.id}
           tagName={node.name}
           tagState={node.reviewState}
-          initialTotal={node.count}
+          initialTotal={node.assignable ? node.count : node.totalCount}
+          family={!node.assignable}
         />
       </div>
 

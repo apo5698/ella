@@ -31,7 +31,23 @@ const EDGE_PX = 72;
 /** Pixels per frame at the very edge. */
 const EDGE_SPEED = 14;
 
-export type DropTarget = number | "root" | null;
+/**
+ * How wide the merge zone at the right end of a row is: 10rem, or 40% of a
+ * narrow row. TagNode draws the zone with the same numbers.
+ */
+const MERGE_ZONE_PX = 160;
+const MERGE_ZONE_SHARE = 0.4;
+
+/**
+ * Where a drop would land. On a row, the right end merges the dragged tags
+ * into that tag and the rest makes them its children.
+ */
+export type DropTarget = { id: number; merge: boolean } | "root" | null;
+
+function sameTarget(a: DropTarget, b: DropTarget): boolean {
+  if (a === null || b === null || a === "root" || b === "root") return a === b;
+  return a.id === b.id && a.merge === b.merge;
+}
 
 export type TagDrag = {
   /** The tags being dragged. Empty while idle. */
@@ -51,11 +67,14 @@ export function useTagDrag({
   idsFor,
   blockedFor,
   onDrop,
+  onMerge,
 }: {
   /** Which tags a press on this one drags, so a selection moves together. */
   idsFor: (id: number) => number[];
   blockedFor: (ids: number[]) => Set<number>;
   onDrop: (ids: number[], parentId: number | null) => void;
+  /** Asks to merge rather than merging: the caller confirms it first. */
+  onMerge: (ids: number[], targetId: number) => void;
 }): TagDrag {
   const [ids, setIds] = useState<number[]>([]);
   const [target, setTarget] = useState<DropTarget>(null);
@@ -117,7 +136,9 @@ export function useTagDrag({
     if (!row) return null;
     const id = Number(row.getAttribute("data-tag-row"));
     if (!Number.isFinite(id) || blocked.current.has(id)) return null;
-    return id;
+    const rect = row.getBoundingClientRect();
+    const zone = Math.min(MERGE_ZONE_PX, rect.width * MERGE_ZONE_SHARE);
+    return { id, merge: x > rect.right - zone };
   }, []);
 
   const aim = useCallback(
@@ -125,7 +146,7 @@ export function useTagDrag({
       point.current = { x, y };
       setCursor(point.current);
       const next = resolveTarget(x, y);
-      if (next !== dropAt.current) {
+      if (!sameTarget(next, dropAt.current)) {
         dropAt.current = next;
         setTarget(next);
       }
@@ -176,9 +197,11 @@ export function useTagDrag({
     }
 
     function up() {
-      if (live.current && dropAt.current !== null) {
-        const parentId = dropAt.current === "root" ? null : dropAt.current;
-        onDrop(dragIds.current, parentId);
+      const at = dropAt.current;
+      if (live.current && at !== null) {
+        if (at === "root") onDrop(dragIds.current, null);
+        else if (at.merge) onMerge(dragIds.current, at.id);
+        else onDrop(dragIds.current, at.id);
       }
       if (live.current) {
         // The browser fires a click on release when the press and the release
@@ -204,7 +227,7 @@ export function useTagDrag({
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", finish);
     };
-  }, [idsFor, blockedFor, onDrop, aim, finish]);
+  }, [idsFor, blockedFor, onDrop, onMerge, aim, finish]);
 
   // Escape abandons the drag, which is the only way out once the pointer is
   // down and the drop would land somewhere unwanted.
@@ -244,7 +267,7 @@ export function useTagDrag({
         // The rows under the pointer change as the page moves, even though the
         // pointer itself has not.
         const next = resolveTarget(at.x, at.y);
-        if (next !== dropAt.current) {
+        if (!sameTarget(next, dropAt.current)) {
           dropAt.current = next;
           setTarget(next);
         }

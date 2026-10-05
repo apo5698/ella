@@ -432,8 +432,12 @@
     "deleteFailed": "Cannot delete the tag. Try again.",
     "pageSize": "Root Tags per Page",
     "search": "Search tags, aliases, or pinyin",
-    "selectVisible": "Select Visible Tags",
     "newTag": "New Tag",
+    "newChild": "New Child Tag",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "nameColumn": "Tag",
+    "videosColumn": "Videos",
     "show": "Show",
     "setParent": "Set Parent",
     "mergeInto": "Merge Into",
@@ -444,6 +448,8 @@
     "selectType": "Select at least one tag type.",
     "adjustFilters": "Change the search terms or the tag types.",
     "dropRoot": "Drop here to move to root",
+    "dropMerge": "Merge as Alias",
+    "mergeDropTitle": "Merge {count, plural, one {# Tag} other {# Tags}} into <tag>{name}</tag>",
     "chooseParent": "Select or create a parent tag",
     "parentHelp": "A filter on a parent tag also shows the videos of its child tags at all levels.",
     "target": "Target Tag",
@@ -484,7 +490,9 @@
     "noAssignments": "No video has this tag directly.",
     "title": "Videos ({count})",
     "removed": "Removed <tag>{name}</tag> from {count, plural, one {# video} other {# videos}}.",
-    "editInTurn": "Edit One by One"
+    "editInTurn": "Edit One by One",
+    "familyDescription": "Videos with any tag in this category",
+    "noFamilyVideos": "No tag in this category has videos."
   },
   "TagNode": {
     "expand": "Expand",
@@ -493,7 +501,8 @@
     "drag": "Drag Tag",
     "selectNamed": "Select \"{name}\"",
     "editNamed": "Edit tag: {name}",
-    "dragNamed": "Drag \"{name}\""
+    "dragNamed": "Drag \"{name}\"",
+    "actions": "Actions for {name}"
   },
   "TagDetail": {
     "saved": "The tag is saved",
@@ -508,7 +517,6 @@
     "excludeHelp": "Remove this tag from all videos and exclude it from Smartag.",
     "category": "Convert to Category",
     "categoryHelp": "You cannot assign a category directly to a video.",
-    "childrenHelp": "Direct children of this tag",
     "noChildren": "No child tags",
     "noChildrenHelp": "To add a child tag, open the page of a different tag and set this tag as its parent.",
     "coverage": "{direct, plural, one {# direct video} other {# direct videos}} · {total, plural, one {# video including descendants} other {# videos including descendants}}",

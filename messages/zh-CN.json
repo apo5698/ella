@@ -432,8 +432,12 @@
     "deleteFailed": "无法删除标签。重试。",
     "pageSize": "每页顶级标签",
     "search": "搜索标签、别名或拼音",
-    "selectVisible": "选择当前可见标签",
     "newTag": "新建标签",
+    "newChild": "新建子标签",
+    "expandAll": "全部展开",
+    "collapseAll": "全部折叠",
+    "nameColumn": "标签",
+    "videosColumn": "视频",
     "show": "显示",
     "setParent": "设置父标签",
     "mergeInto": "合并到",
@@ -444,6 +448,8 @@
     "selectType": "至少选择一种标签类型。",
     "adjustFilters": "更改搜索词或标签类型。",
     "dropRoot": "拖放至此移至顶级",
+    "dropMerge": "并入为别名",
+    "mergeDropTitle": "将 {count} 个标签并入 <tag>{name}</tag>",
     "chooseParent": "选择或新建父标签",
     "parentHelp": "筛选父标签时，同时显示其所有层级子标签的视频。",
     "target": "目标标签",
@@ -484,7 +490,9 @@
     "noAssignments": "没有视频直接使用该标签",
     "title": "视频（{count}）",
     "removed": "已从 {count} 个视频移除 <tag>{name}</tag>",
-    "editInTurn": "逐个编辑"
+    "editInTurn": "逐个编辑",
+    "familyDescription": "该分类下所有标签的视频",
+    "noFamilyVideos": "该分类下的标签没有视频"
   },
   "TagNode": {
     "expand": "展开",
@@ -493,7 +501,8 @@
     "drag": "拖动标签",
     "selectNamed": "选择\"{name}\"",
     "editNamed": "编辑标签：{name}",
-    "dragNamed": "拖动\"{name}\""
+    "dragNamed": "拖动\"{name}\"",
+    "actions": "{name}的操作"
   },
   "TagDetail": {
     "saved": "标签已保存",
@@ -508,7 +517,6 @@
     "excludeHelp": "从所有视频移除该标签，并禁止 Smartag 生成该标签。",
     "category": "转为分类",
     "categoryHelp": "分类不能直接添加到视频。",
-    "childrenHelp": "直接位于该标签下的标签",
     "noChildren": "没有子标签",
     "noChildrenHelp": "如需添加子标签，打开其他标签的页面，并将该标签设为父标签。",
     "coverage": "直接关联 {direct} 个视频，共覆盖 {total} 个视频",

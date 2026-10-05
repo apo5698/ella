@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import TagDetailManager from "../TagDetailManager";
 import db from "@/lib/db";
@@ -14,13 +15,17 @@ export default async function AdminTagPage({
   const all = flattenTree(loadTagTree(db));
   const node = all.find((tag) => tag.id === id);
   if (!node) notFound();
+  const t = await getTranslations("TagDetail");
   const descendantIds = flattenTree([node]).map((tag) => tag.id);
 
   return (
     <>
       <AdminPageHeader
         title={node.name}
-        description={`id=${String(node.id)}`}
+        description={t("coverage", {
+          direct: node.count,
+          total: node.totalCount,
+        })}
       />
       <TagDetailManager
         node={node}

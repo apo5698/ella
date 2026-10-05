@@ -3,9 +3,17 @@
 import { useTranslations } from "next-intl";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PlusIcon } from "lucide-react";
+import {
+  BanIcon,
+  ChevronsDownUpIcon,
+  ChevronsUpDownIcon,
+  CornerDownRightIcon,
+  MergeIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  Trash2Icon,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Empty,
   EmptyDescription,
@@ -42,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { normalizeSearchText, pinyinSearchForms } from "@/lib/pinyinSearch";
 import { isManagerPageSize, MANAGER_PAGE_SIZES } from "@/lib/pagination";
 import {
+  isTagCategory,
   parseTagCategories,
   TAG_CATEGORIES,
   tagCategory,
@@ -134,7 +144,6 @@ export default function TagManager({
   const tagActions = useTranslations("TagActions");
   const sortText = useTranslations("TagSort");
   const labels = useTranslations("TagLabels");
-  const router = useRouter();
   const [tree, setTree] = useState<TagTreeNode[]>(initialTree);
   const [query, setQuery] = useState(initialQuery);
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
@@ -165,6 +174,11 @@ export default function TagManager({
   // only the parent dialog offers.
   const [picked, setPicked] = useState<{ name: string | null } | null>(null);
   const [deleting, setDeleting] = useState<TagTreeNode | null>(null);
+  // A merge asked for by a drop, waiting for its confirmation.
+  const [mergeDrop, setMergeDrop] = useState<{
+    ids: number[];
+    target: TagTreeNode;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   // Shown inside the batch dialog when one is open, and above the tree when
   // the failure came from a drop, which has no dialog to report into.
@@ -323,7 +337,8 @@ export default function TagManager({
     });
   }
 
-  function selectShown() {
+  /** The rows on this page that match the filters and are not folded away. */
+  const shownIds = useMemo(() => {
     const ids: number[] = [];
     function visit(nodes: TagTreeNode[]) {
       for (const node of nodes) {
@@ -335,13 +350,32 @@ export default function TagManager({
       }
     }
     visit(pageRoots);
-    setSelected(new Set(ids));
+    return ids;
+  }, [pageRoots, trimmed, searchIndex, categories, collapsed]);
+  const allShownSelected =
+    shownIds.length > 0 && shownIds.every((id) => selected.has(id));
+  const someShownSelected =
+    !allShownSelected && shownIds.some((id) => selected.has(id));
+
+  function toggleShown() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of shownIds) {
+        if (allShownSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
   }
 
-  function toggleCategory(category: TagCategory, shown: boolean) {
-    const next = new Set(categories);
-    if (shown) next.add(category);
-    else next.delete(category);
+  const parentIds = useMemo(
+    () => all.filter((node) => node.children.length > 0).map((node) => node.id),
+    [all],
+  );
+  const anyCollapsed = collapsed.size > 0;
+
+  function changeCategories(values: string[]) {
+    const next = new Set(values.filter(isTagCategory));
     setCategories(next);
     setPage(1);
     updatePaginationUrl(1, pageSize, "replace", { categories: next });
@@ -513,6 +547,31 @@ export default function TagManager({
     await refresh();
   }
 
+  async function confirmMergeDrop() {
+    if (!mergeDrop) return;
+    const { ids, target } = mergeDrop;
+    setMergeDrop(null);
+    const ok = await post(
+      "/api/tags/merge",
+      { sourceIds: ids, targetId: target.id },
+      t.rich("mergedInto", {
+        count: ids.length,
+        name: target.name,
+        tag: (children) => (
+          <InlineTagBadge state={target.reviewState}>{children}</InlineTagBadge>
+        ),
+      }),
+    );
+    // The merged tags no longer exist, so they leave the selection.
+    if (ok) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+    }
+  }
+
   async function runBatch(url: string, body: unknown, done: React.ReactNode) {
     if (!(await post(url, body, done))) return;
     setBatch(null);
@@ -569,22 +628,42 @@ export default function TagManager({
     [byId],
   );
 
-  const dragState = useTagDrag({ idsFor, blockedFor, onDrop: applyDrop });
+  const askMerge = useCallback(
+    (ids: number[], targetId: number) => {
+      const target = byId.get(targetId);
+      if (target) setMergeDrop({ ids, target });
+    },
+    [byId],
+  );
+
+  const dragState = useTagDrag({
+    idsFor,
+    blockedFor,
+    onDrop: applyDrop,
+    onMerge: askMerge,
+  });
+  const overRow =
+    dragState.target !== null && dragState.target !== "root"
+      ? dragState.target
+      : null;
 
   const drag: DragHandlers = {
     active: dragState.active,
     blocked: dragState.blocked,
-    target: typeof dragState.target === "number" ? dragState.target : null,
+    target: overRow?.id ?? null,
+    merge: overRow?.merge ?? false,
     begin: dragState.begin,
   };
 
   // A tag shut over during a drag opens on its own, so a family can be dropped
   // into without breaking off to expand it first.
+  // Only a drop that nests needs the family open.
+  const nestingInto = overRow && !overRow.merge ? overRow.id : null;
   const springTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (springTimer.current) clearTimeout(springTimer.current);
-    const over = dragState.target;
-    if (typeof over !== "number" || !collapsed.has(over)) return;
+    const over = nestingInto;
+    if (over === null || !collapsed.has(over)) return;
     springTimer.current = setTimeout(() => {
       setCollapsed((prev) => {
         const next = new Set(prev);
@@ -595,7 +674,7 @@ export default function TagManager({
     return () => {
       if (springTimer.current) clearTimeout(springTimer.current);
     };
-  }, [dragState.target, collapsed]);
+  }, [nestingInto, collapsed]);
 
   /**
    * Turns the name picked in a batch dialog into an id, creating the tag when
@@ -659,7 +738,7 @@ export default function TagManager({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           value={query}
           onValueChange={(nextQuery) => {
@@ -668,7 +747,7 @@ export default function TagManager({
             updatePaginationUrl(1, pageSize, "replace", { query: nextQuery });
           }}
           placeholder={t("search")}
-          className="basis-full sm:flex-1"
+          className="basis-full sm:min-w-56 sm:flex-1"
         />
         <Select
           value={sort}
@@ -694,105 +773,83 @@ export default function TagManager({
             </SelectGroup>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={selectShown}>
-          {t("selectVisible")}
-        </Button>
-        <Button onClick={() => startCreate(null)}>
+        <Button className="ml-auto sm:ml-0" onClick={() => startCreate(null)}>
           <PlusIcon data-icon="inline-start" />
           {t("newTag")}
         </Button>
       </div>
 
       {/* The legend and the display filter are one control: each dot names a
-          group, and its switch decides whether that group is listed. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <span>{t("show")}</span>
+          group, and pressing it decides whether that group is listed. */}
+      <ToggleGroup
+        multiple
+        variant="outline"
+        aria-label={t("show")}
+        value={[...categories]}
+        onValueChange={changeCategories}
+        className="flex-wrap"
+      >
         {TAG_DOT_LEGEND.map((item) => (
-          <label
+          <ToggleGroupItem
             key={item.id}
-            className="flex cursor-pointer items-center gap-1.5"
+            value={item.id}
+            aria-label={labels("showTags", { state: labels(item.label) })}
+            className="not-aria-pressed:text-muted-foreground not-aria-pressed:*:data-[slot=dot]:opacity-30"
           >
-            <Switch
-              size="sm"
-              aria-label={labels("showTags", { state: labels(item.label) })}
-              checked={categories.has(item.id)}
-              onCheckedChange={(checked) => toggleCategory(item.id, checked)}
-            />
             <Dot aria-hidden="true" className={item.className} />
             {labels(item.label)}
             <span className="tabular-nums text-muted-foreground">
               {categoryCounts[item.id]}
             </span>
-          </label>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
-      {selected.size > 0 ? (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-card/80 px-3 py-2 backdrop-blur-md">
+      <p className="text-xs text-muted-foreground">
+        {t("total", { count: all.length })}
+      </p>
+
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-card/90 px-3 py-2 shadow-sm backdrop-blur-xl">
           <span className="text-sm">
             {t("selected", { count: selected.size })}
           </span>
           <div className="ml-auto flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openBatch("parent")}
-            >
+            <Button variant="outline" onClick={() => openBatch("parent")}>
+              <CornerDownRightIcon data-icon="inline-start" />
               {t("setParent")}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openBatch("merge")}
-            >
+            <Button variant="outline" onClick={() => openBatch("merge")}>
+              <MergeIcon data-icon="inline-start" />
               {t("mergeInto")}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openBatch("exclude")}
-            >
+            <Button variant="outline" onClick={() => openBatch("exclude")}>
+              <BanIcon data-icon="inline-start" />
               {t("exclude")}
             </Button>
             {/* Offered only when the selection holds something to restore, so
                 the bar stays as short as the situation allows. */}
             {selectedRejected && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => openBatch("restore")}
-              >
+              <Button variant="outline" onClick={() => openBatch("restore")}>
+                <RotateCcwIcon data-icon="inline-start" />
                 {t("restore")}
               </Button>
             )}
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => openBatch("delete")}
-            >
+            <Button variant="destructive" onClick={() => openBatch("delete")}>
+              <Trash2Icon data-icon="inline-start" />
               {common("delete")}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelected(new Set())}
-            >
+            <Button variant="ghost" onClick={() => setSelected(new Set())}>
               {common("deselectAll")}
             </Button>
           </div>
         </div>
-      ) : (
-        <span className="text-muted-foreground text-sm">
-          {t("total", { count: all.length })}
-        </span>
       )}
 
-      {error && !batch && <p className="text-sm text-destructive">{error}</p>}
-
-      {paginationControls}
+      {error && !batch && <p className="text-destructive">{error}</p>}
 
       {pageRoots.length === 0 ? (
-        <Empty className="rounded-xl border">
+        <Empty className="rounded-lg border">
           <EmptyHeader>
             <EmptyTitle>
               {categories.size === 0 ? t("noTypes") : t("empty")}
@@ -803,22 +860,58 @@ export default function TagManager({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="rounded-xl border p-2">
-          {pageRoots.map((node) => (
-            <TagNode
-              key={node.id}
-              node={node}
-              depth={0}
-              collapsed={collapsed}
-              selected={selected}
-              drag={drag}
-              onToggle={toggle}
-              onSelect={select}
-              onEdit={(tag) => router.push(`/admin/tags/${tag.id}`)}
-              onDelete={setDeleting}
-              onStateChanged={refresh}
+        <div className="@container/tags overflow-hidden rounded-lg border">
+          {/* Lined up with the rows below: the grip and checkbox columns, the
+              name, the video count, and room for the row menu. */}
+          <div className="flex min-h-9 items-center gap-2 border-b bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] py-1 pr-2 pl-2 text-xs text-muted-foreground">
+            <span className="w-6 shrink-0" />
+            <Checkbox
+              checked={allShownSelected}
+              indeterminate={someShownSelected}
+              onCheckedChange={toggleShown}
+              aria-label={common("selectPage")}
+              className="shrink-0"
             />
-          ))}
+            <span className="min-w-0 flex-1">{t("nameColumn")}</span>
+            {parentIds.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() =>
+                  setCollapsed(anyCollapsed ? new Set() : new Set(parentIds))
+                }
+              >
+                {anyCollapsed ? (
+                  <ChevronsUpDownIcon data-icon="inline-start" />
+                ) : (
+                  <ChevronsDownUpIcon data-icon="inline-start" />
+                )}
+                {anyCollapsed ? t("expandAll") : t("collapseAll")}
+              </Button>
+            )}
+            <span className="w-16 shrink-0 text-right">
+              {t("videosColumn")}
+            </span>
+            <span className="w-6 shrink-0" />
+          </div>
+          <div className="p-1">
+            {pageRoots.map((node) => (
+              <TagNode
+                key={node.id}
+                node={node}
+                depth={0}
+                collapsed={collapsed}
+                selected={selected}
+                drag={drag}
+                onToggle={toggle}
+                onSelect={select}
+                onCreateChild={startCreate}
+                onDelete={setDeleting}
+                onStateChanged={refresh}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -949,7 +1042,7 @@ export default function TagManager({
                 // Choosing only fills in the target. Applying it is a separate
                 // press, so the impact below can be read first.
                 onSelect={(name) => setPicked({ name })}
-                className="w-64"
+                className="w-full"
               />
               <FieldDescription>{t("parentHelp")}</FieldDescription>
               <Button
@@ -973,7 +1066,7 @@ export default function TagManager({
                 allowCreate={false}
                 disabledNames={selectedNames}
                 onSelect={(name) => setPicked({ name })}
-                className="w-64"
+                className="w-full"
               />
               <FieldDescription>{t("mergeHelp")}</FieldDescription>
             </Field>
@@ -1012,6 +1105,46 @@ export default function TagManager({
           request={{ action: "delete", ids: [deleting.id] }}
           onOpenChange={(open) => !open && setDeleting(null)}
           onConfirm={() => removeTag(deleting)}
+        />
+      )}
+
+      {mergeDrop && (
+        <TagConfirmDialog
+          key={`${mergeDrop.target.id}-${mergeDrop.ids.join(",")}`}
+          title={t.rich("mergeDropTitle", {
+            count: mergeDrop.ids.length,
+            name: mergeDrop.target.name,
+            tag: (children) => (
+              <InlineTagBadge state={mergeDrop.target.reviewState}>
+                {children}
+              </InlineTagBadge>
+            ),
+          })}
+          subject={
+            <div className="flex flex-wrap gap-1">
+              {mergeDrop.ids.slice(0, NAMES_SHOWN).map((id) => {
+                const tag = byId.get(id);
+                return tag ? (
+                  <TagBadge key={id} state={tag.reviewState}>
+                    {tag.name}
+                  </TagBadge>
+                ) : null;
+              })}
+              {mergeDrop.ids.length > NAMES_SHOWN && (
+                <Badge variant="outline" className="text-muted-foreground">
+                  {t("more", { count: mergeDrop.ids.length - NAMES_SHOWN })}
+                </Badge>
+              )}
+            </div>
+          }
+          request={{
+            action: "merge",
+            sourceIds: mergeDrop.ids,
+            targetId: mergeDrop.target.id,
+          }}
+          confirmLabel={tagActions("merge")}
+          onOpenChange={(open) => !open && setMergeDrop(null)}
+          onConfirm={() => void confirmMergeDrop()}
         />
       )}
 

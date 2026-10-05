@@ -38,11 +38,18 @@ export default function TagVideoList({
   tagName,
   tagState,
   initialTotal,
+  family = false,
 }: {
   tagId: number;
   tagName: string;
   tagState: TagReviewState;
   initialTotal: number;
+  /**
+   * Lists the videos of every tag beneath this one. A category is never on a
+   * video itself, so its own list would always be empty. These videos carry
+   * other tags, so removing this one from them is not offered.
+   */
+  family?: boolean;
 }) {
   const t = useTranslations("TagVideos");
   const common = useTranslations("Common");
@@ -84,11 +91,11 @@ export default function TagVideoList({
     const controller = new AbortController();
     const params = new URLSearchParams({
       tags: String(tagId),
-      tagMode: "direct",
       sort: "views",
       page: String(page),
       pageSize: String(pageSize),
     });
+    if (!family) params.set("tagMode", "direct");
     if (debouncedQuery) params.set("q", debouncedQuery);
 
     fetch(`/api/videos?${params}`, { signal: controller.signal })
@@ -108,7 +115,16 @@ export default function TagVideoList({
       });
 
     return () => controller.abort();
-  }, [debouncedQuery, page, pageSize, refreshEpoch, requestKey, tagId, common]);
+  }, [
+    debouncedQuery,
+    page,
+    pageSize,
+    refreshEpoch,
+    requestKey,
+    tagId,
+    family,
+    common,
+  ]);
 
   function updateUrl(
     nextQuery: string,
@@ -158,7 +174,7 @@ export default function TagVideoList({
   // Matches the request above, so the editor steps through these videos.
   const listContext = {
     tags: String(tagId),
-    tagMode: "direct",
+    tagMode: family ? "" : "direct",
     sort: "views",
     q: debouncedQuery,
   };
@@ -215,7 +231,9 @@ export default function TagVideoList({
     <Card>
       <CardHeader>
         <CardTitle>{t("title", { count: total })}</CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
+        <CardDescription>
+          {family ? t("familyDescription") : t("description")}
+        </CardDescription>
         <CardAction className="flex gap-2">
           {videos.length > 0 && (
             <Button
@@ -229,14 +247,16 @@ export default function TagVideoList({
               {t("editInTurn")}
             </Button>
           )}
-          <Button
-            variant="outline"
-            disabled={selected.size === 0}
-            onClick={removeSelected}
-          >
-            <UnlinkIcon data-icon="inline-start" />
-            {t("removeSelected")}
-          </Button>
+          {!family && (
+            <Button
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={removeSelected}
+            >
+              <UnlinkIcon data-icon="inline-start" />
+              {t("removeSelected")}
+            </Button>
+          )}
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -246,18 +266,28 @@ export default function TagVideoList({
           placeholder={t("search")}
         />
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Checkbox
-            checked={allSelected}
-            indeterminate={someSelected}
-            onCheckedChange={togglePage}
-            aria-label={common("selectPage")}
-          />
-          <button type="button" className="cursor-pointer" onClick={togglePage}>
-            {common("selectPage")}
-          </button>
-          <div className="ml-auto">{pagination}</div>
-        </div>
+        {totalPages > 1 || (!family && videos.length > 0) ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {!family && videos.length > 0 && (
+              <>
+                <Checkbox
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onCheckedChange={togglePage}
+                  aria-label={common("selectPage")}
+                />
+                <button
+                  type="button"
+                  className="cursor-pointer"
+                  onClick={togglePage}
+                >
+                  {common("selectPage")}
+                </button>
+              </>
+            )}
+            {totalPages > 1 && <div className="ml-auto">{pagination}</div>}
+          </div>
+        ) : null}
 
         {loading ? (
           <LoadingSpinner />
@@ -266,7 +296,11 @@ export default function TagVideoList({
             <EmptyHeader>
               <EmptyTitle>{t("empty")}</EmptyTitle>
               <EmptyDescription>
-                {query ? common("noMatchingVideos") : t("noAssignments")}
+                {query
+                  ? common("noMatchingVideos")
+                  : family
+                    ? t("noFamilyVideos")
+                    : t("noAssignments")}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -278,20 +312,24 @@ export default function TagVideoList({
                 video={video}
                 href={videoEditorHref(video.id, listContext)}
                 checked={selected.has(video.id)}
-                onCheckedChange={(checked) => {
-                  setSelected((current) => {
-                    const next = new Set(current);
-                    if (checked) next.add(video.id);
-                    else next.delete(video.id);
-                    return next;
-                  });
-                }}
+                onCheckedChange={
+                  family
+                    ? undefined
+                    : (checked) => {
+                        setSelected((current) => {
+                          const next = new Set(current);
+                          if (checked) next.add(video.id);
+                          else next.delete(video.id);
+                          return next;
+                        });
+                      }
+                }
               />
             ))}
           </ItemGroup>
         )}
 
-        {pagination}
+        {videos.length > 0 && pagination}
       </CardContent>
     </Card>
   );
