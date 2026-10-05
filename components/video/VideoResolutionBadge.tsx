@@ -3,14 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { formatResolution } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const resolutionBadgeVariants = cva("h-auto rounded px-1 text-xs/none", {
+const resolutionBadgeVariants = cva("h-auto px-1.5 py-0.75 text-xs/none", {
   variants: {
     variant: {
       /** Carries its own backing, so it reads over any picture. */
       overlay:
-        "border-0 bg-black/60 py-0.5 text-white ring-1 ring-white/15 ring-inset backdrop-blur-sm",
+        "border-0 bg-black/60 text-white ring-1 ring-white/15 ring-inset backdrop-blur-sm",
       /** Drawn in theme colors, for use on the page itself. */
-      outline: "py-0.5",
+      outline: "",
     },
   },
   defaultVariants: { variant: "overlay" },

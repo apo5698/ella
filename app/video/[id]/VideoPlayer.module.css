@@ -40,6 +40,7 @@
   --media-slider-thumb-size: 0.75rem;
   --media-slider-track-border-radius: calc(var(--radius) * 0.8);
   --media-slider-track-height: 0.25rem;
+  --media-time-border-radius: 9999px;
   --media-time-font-size: 0.875rem;
   --media-time-font-weight: 400;
   --media-time-letter-spacing: 0;
