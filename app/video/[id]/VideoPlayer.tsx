@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatDuration } from "@/lib/format";
+import type { Heat } from "@/lib/heat";
 import type { WatchReport } from "@/lib/watchEvents";
 import { morphName } from "@/lib/morph";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ import {
   readProgress,
   saveProgress,
 } from "@/lib/watchProgress";
+import HeatCurve from "./HeatCurve";
 import { takePlaybackHandOff } from "./useAutoplay";
 import { useWatchReport } from "./useWatchReport";
 import { videoIcons } from "./videoIcons";
@@ -71,11 +73,9 @@ function MorphFrame({
 }
 
 /**
- * Counts a view when playback actually starts, not when the page loads.
- * Fires at most once per mount, so pausing and resuming is still one view.
- *
- * Owns the metadata row too, so the displayed count can update in place the
- * moment playback begins.
+ * Plays a video and reports what was watched, see useWatchReport. The server
+ * counts a view once the sitting has played long enough, and the answer to
+ * that report updates the count in the metadata row in place.
  */
 export default function VideoPlayer({
   videoId,
@@ -83,6 +83,7 @@ export default function VideoPlayer({
   poster,
   initialViews,
   meta,
+  heat,
   countViews = true,
   trackProgress = countViews,
   showMeta = true,
@@ -97,6 +98,8 @@ export default function VideoPlayer({
   poster?: string;
   initialViews: number;
   meta: { duration: string; resolution: string | null; size: string };
+  /** Drawn above the time slider, see lib/heat.ts. */
+  heat?: Heat;
   /** Off where playback is part of editing rather than watching. */
   countViews?: boolean;
   /** Resume where this browser stopped, and remember where it stops. */
@@ -112,7 +115,6 @@ export default function VideoPlayer({
   children?: React.ReactNode;
 }) {
   const t = useTranslations("Player");
-  const counted = useRef(false);
   const [views, setViews] = useState(initialViews);
   const [seekFeedback, setSeekFeedback] = useState<SeekFeedback | null>(null);
   const [seekFeedbackExiting, setSeekFeedbackExiting] = useState(false);
@@ -138,7 +140,10 @@ export default function VideoPlayer({
   const [resumedFrom, setResumedFrom] = useState<number | null>(null);
   const handedOff = useRef(false);
   const startedBy = useRef<WatchReport["source"]>("click");
-  const report = useWatchReport(videoId, countViews);
+  const report = useWatchReport(videoId, countViews, (count) => {
+    setViews(count);
+    onViewsChange?.(count);
+  });
 
   // Without dependencies, so it follows the player when it remounts.
   useImperativeHandle(playerRef, () => player.current as MediaPlayerInstance);
@@ -231,22 +236,8 @@ export default function VideoPlayer({
     }, SEEK_FEEDBACK_MS);
   }
 
-  async function handlePlay() {
+  function handlePlay() {
     report.start(startedBy.current);
-    if (!countViews || counted.current) return;
-    counted.current = true;
-    try {
-      const res = await fetch(`/api/videos/${videoId}/view`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (typeof data.views === "number") {
-        setViews(data.views);
-        onViewsChange?.(data.views);
-      }
-    } catch {
-      // A failed count must not interrupt playback.
-    }
   }
 
   return (
@@ -285,6 +276,11 @@ export default function VideoPlayer({
             <DefaultVideoLayout
               icons={videoIcons}
               translations={t.raw("controls")}
+              slots={
+                heat && (heat.watch || heat.scene)
+                  ? { beforeTimeSlider: <HeatCurve heat={heat} /> }
+                  : undefined
+              }
             />
             {seekFeedback && (
               <div

@@ -9,6 +9,7 @@ import { PencilIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { relativeTime } from "@/lib/format";
+import type { Heat } from "@/lib/heat";
 import type { VideoCardData, VideoDetailTag, VideoTagState } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 import AutoplayOverlay from "./AutoplayOverlay";
@@ -24,6 +25,7 @@ export default function VideoDetail({
   seriesName,
   initialViews,
   playerMeta,
+  heat,
   series,
   related,
 }: {
@@ -33,6 +35,7 @@ export default function VideoDetail({
   seriesName: string | null;
   initialViews: number;
   playerMeta: { duration: string; resolution: string | null; size: string };
+  heat: Heat;
   series: VideoCardData[];
   related: VideoCardData[];
 }) {
@@ -133,6 +136,7 @@ export default function VideoDetail({
             poster={thumbnail ?? undefined}
             initialViews={initialViews}
             meta={playerMeta}
+            heat={heat}
             showMeta={false}
             morph
             onViewsChange={setViews}

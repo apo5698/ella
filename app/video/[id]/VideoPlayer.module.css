@@ -57,6 +57,11 @@
   --video-sm-button-size: 1.75rem;
 }
 
+/* HeatCurve positions itself against the row that holds the time slider. */
+.player :global(.vds-controls-group:has(> .vds-time-slider)) {
+  position: relative;
+}
+
 .player :global(.vds-button) {
   border: 1px solid transparent;
   outline: none;

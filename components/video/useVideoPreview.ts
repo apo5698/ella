@@ -7,8 +7,20 @@ const PLAYABLE = new Set([".mp4", ".m4v", ".webm", ".mov"]);
 const HOVER_DELAY_MS = 450;
 /** How long a card must hold the middle of a feed before it plays. */
 const FEED_DELAY_MS = 600;
-/** Points across the video the preview visits, as fractions of its length. */
+/**
+ * Points across the video the preview visits, as fractions of its length,
+ * when its heat curves have not chosen any (lib/heat.ts).
+ */
 const SEGMENTS = [0.12, 0.3, 0.48, 0.66, 0.84];
+
+/** Reads videos.preview_points, falling back to the fixed points. */
+function segmentsOf(points: string | null) {
+  const parsed = points
+    ?.split(",")
+    .map(Number)
+    .filter((point) => point >= 0 && point < 1);
+  return parsed?.length ? parsed : SEGMENTS;
+}
 const SEGMENT_SECONDS = 2.5;
 /** Shorter videos play straight through instead of in segments. */
 const MONTAGE_MIN_SECONDS = 45;
@@ -33,18 +45,21 @@ function previewAllowed() {
 /**
  * A muted preview that starts when the mouse rests on a thumbnail, or, in a
  * one-column feed, when the card holds the middle of the screen. It plays
- * short segments from across the video; moving the mouse sideways scrubs to
- * that point instead. Touch alone never starts it.
+ * short segments from the hottest parts of the video; moving the mouse
+ * sideways scrubs to that point instead. Touch alone never starts it.
  */
 export function useVideoPreview({
   id,
   ext,
   duration,
+  points = null,
   autoplay = false,
 }: {
   id: number;
   ext: string;
   duration: number | null;
+  /** videos.preview_points. */
+  points?: string | null;
   /** Play without a mouse, as the card in focus in a feed. */
   autoplay?: boolean;
 }) {
@@ -61,6 +76,7 @@ export function useVideoPreview({
   const scrubbed = useRef(false);
   const enabled = canPreview(ext) && !failed;
   const montage = (duration ?? 0) >= MONTAGE_MIN_SECONDS;
+  const segments = segmentsOf(points);
   const owner = useRef({});
 
   const stop = useCallback(() => {
@@ -143,7 +159,7 @@ export function useVideoPreview({
     onLoadedMetadata: (event: React.SyntheticEvent<HTMLVideoElement>) => {
       const video = event.currentTarget;
       if (montage && Number.isFinite(video.duration))
-        video.currentTime = SEGMENTS[0] * video.duration;
+        video.currentTime = segments[0] * video.duration;
       void video.play().catch(() => {});
     },
     onPlaying: () => setReady(true),
@@ -155,10 +171,10 @@ export function useVideoPreview({
       if (!Number.isFinite(video.duration)) return;
       if (!scrubbing) setPosition(video.currentTime / video.duration);
       if (!montage || scrubbed.current) return;
-      const start = SEGMENTS[segment.current] * video.duration;
+      const start = segments[segment.current] * video.duration;
       if (video.currentTime - start < SEGMENT_SECONDS) return;
-      segment.current = (segment.current + 1) % SEGMENTS.length;
-      video.currentTime = SEGMENTS[segment.current] * video.duration;
+      segment.current = (segment.current + 1) % segments.length;
+      video.currentTime = segments[segment.current] * video.duration;
     },
     onEnded: (event: React.SyntheticEvent<HTMLVideoElement>) => {
       event.currentTarget.currentTime = 0;

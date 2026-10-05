@@ -168,7 +168,24 @@ CREATE TABLE IF NOT EXISTS watch_events (
   watched_sec REAL NOT NULL DEFAULT 0,
   max_position REAL NOT NULL DEFAULT 0,
   duration REAL,
-  source TEXT NOT NULL
+  source TEXT NOT NULL,
+  -- Who watched. NULL until accounts exist, and for every sitting before.
+  user_id INTEGER,
+  -- 1 once the sitting played long enough to add to videos.views.
+  counted INTEGER NOT NULL DEFAULT 0,
+  -- Seconds played in each of lib/watchRules.ts HEAT_BUCKETS parts, as
+  -- little-endian float32, replays included.
+  heat BLOB
+);
+
+-- The scene curve of lib/heat.ts. A row with a NULL scene is a video that
+-- could not be analyzed, kept so it is not tried again.
+CREATE TABLE IF NOT EXISTS video_heat (
+  video_id INTEGER PRIMARY KEY REFERENCES videos(id) ON DELETE CASCADE,
+  scene BLOB,
+  -- keyframes | frames
+  scene_method TEXT NOT NULL,
+  scene_at INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_video_tags_tag ON video_tags(tag_id);
@@ -235,6 +252,27 @@ if (!videoColumns.some((c) => c.name === "series_id")) {
   db.exec(
     "ALTER TABLE videos ADD COLUMN series_id INTEGER REFERENCES series(id) ON DELETE SET NULL",
   );
+}
+
+// Where a card's preview plays, as fractions of the length joined by commas.
+// Derived from the heat curves by lib/heat.ts; NULL plays fixed points.
+if (!videoColumns.some((c) => c.name === "preview_points")) {
+  db.exec("ALTER TABLE videos ADD COLUMN preview_points TEXT");
+}
+
+const watchColumns = db.prepare("PRAGMA table_info(watch_events)").all() as {
+  name: string;
+}[];
+if (!watchColumns.some((c) => c.name === "user_id")) {
+  db.exec("ALTER TABLE watch_events ADD COLUMN user_id INTEGER");
+}
+if (!watchColumns.some((c) => c.name === "counted")) {
+  db.exec(
+    "ALTER TABLE watch_events ADD COLUMN counted INTEGER NOT NULL DEFAULT 0",
+  );
+}
+if (!watchColumns.some((c) => c.name === "heat")) {
+  db.exec("ALTER TABLE watch_events ADD COLUMN heat BLOB");
 }
 
 // Which second the current thumbnail was taken from, so reopening the edit

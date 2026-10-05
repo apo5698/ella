@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import PageContainer from "@/components/PageContainer";
 import db from "@/lib/db";
 import { formatDuration, formatSize } from "@/lib/format";
+import { loadHeat } from "@/lib/heat";
 import { sortTags } from "@/lib/tagOrder";
 import { loadTagPaths } from "@/lib/tagHierarchy";
 import { loadRelated } from "@/lib/videoCards";
@@ -64,6 +65,7 @@ export default async function VideoPage({ params }: PageProps<"/video/[id]">) {
                 : null,
             size: formatSize(video.size_bytes),
           }}
+          heat={loadHeat(db, video.id)}
         />
       </PageContainer>
     </div>

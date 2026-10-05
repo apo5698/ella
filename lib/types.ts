@@ -30,6 +30,8 @@ export type Video = {
   mtime: number;
   thumbnail: string | null;
   thumbnail_sec: number | null;
+  /** See lib/heat.ts: where a card's preview plays, or NULL. */
+  preview_points: string | null;
   created_at: number;
   views: number;
   clicks: number;
@@ -101,4 +103,5 @@ export type VideoCardData = Pick<
   | "ext"
   | "series_id"
   | "series_name"
+  | "preview_points"
 >;

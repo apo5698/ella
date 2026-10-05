@@ -12,6 +12,7 @@ import { parseRecognitionTags } from "./recognitionTags";
 import { buildPrompt } from "./recognitionPrompt";
 export { buildPrompt } from "./recognitionPrompt";
 import { FFMPEG_PATH } from "./config";
+import { saveSceneScores } from "./heat";
 import type Database from "better-sqlite3";
 import {
   upsertVideoTags,
@@ -172,17 +173,30 @@ export function frameBudget(durationSec: number | null): number {
   return 8;
 }
 
+export type ScoreOptions = {
+  /**
+   * Decode keyframes only and score each against the previous one. Coarser,
+   * and some eighty times less CPU than decoding every frame.
+   */
+  keyframesOnly?: boolean;
+  /** One thread at the lowest priority, for work nobody is waiting on. */
+  background?: boolean;
+};
+
 /** Scores scene changes across the video without encoding output. */
-function scoreScenes(
+export function scoreScenes(
   file: string,
   onProgress?: ProgressFn,
   durationSec?: number | null,
   signal?: AbortSignal,
+  { keyframesOnly = false, background = false }: ScoreOptions = {},
 ) {
   return new Promise<Array<[number, number]>>((resolve, reject) => {
     signal?.throwIfAborted();
     const proc = spawn(FFMPEG_PATH, [
       "-y",
+      ...(keyframesOnly ? ["-skip_frame", "nokey"] : []),
+      ...(background ? ["-threads", "1", "-filter_threads", "1"] : []),
       "-i",
       file,
       "-vf",
@@ -199,6 +213,14 @@ function scoreScenes(
       "error",
       "-nostats",
     ]);
+
+    if (background && proc.pid !== undefined) {
+      try {
+        os.setPriority(proc.pid, os.constants.priority.PRIORITY_LOW);
+      } catch {
+        // Already exited, or not permitted: it runs at normal priority.
+      }
+    }
 
     const scored: Array<[number, number]> = [];
     const timer = setTimeout(() => proc.kill(), SCORE_TIMEOUT_MS);
@@ -320,6 +342,8 @@ export async function extractFrames(
   onProgress?: ProgressFn,
   settings: TagSettings = getTagSettings(),
   signal?: AbortSignal,
+  /** Receives every frame's score, when the "scene" strategy measured them. */
+  onScores?: (scored: Array<[number, number]>, span: number) => void,
 ): Promise<string[]> {
   const maxFrames = settings.frameCount ?? frameBudget(durationSec);
   const width = settings.frameWidth;
@@ -341,6 +365,7 @@ export async function extractFrames(
       // some files claim a length that outlives their usable video stream.
       const observed = scored.reduce((max, [t]) => (t > max ? t : max), 0);
       const span = observed > 1 ? observed : (durationSec ?? 0);
+      onScores?.(scored, span);
       const frames = await grabAt(
         file,
         pickStratified(scored, maxFrames, span),
@@ -484,6 +509,7 @@ export async function suggestVideoTagsById(
     onProgress,
     settings,
     signal,
+    (scored, span) => saveSceneScores(db, row.id, scored, span),
   );
   if (frames.length === 0)
     return { ok: false, error: new AppError("framesUnavailable") };

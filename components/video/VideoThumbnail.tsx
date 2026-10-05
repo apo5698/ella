@@ -42,6 +42,7 @@ export default function VideoThumbnail({
       id: video.id,
       ext: video.ext,
       duration: video.duration_sec,
+      points: video.preview_points,
       autoplay: preview && autoplay,
     });
   const resolution = resolutionLabel(video.width, video.height)?.replace(

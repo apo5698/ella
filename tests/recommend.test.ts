@@ -26,6 +26,7 @@ function video(id: number, extra: Partial<VideoCardData> = {}): VideoCardData {
     ext: ".mp4",
     series_id: null,
     series_name: null,
+    preview_points: null,
     ...extra,
   };
 }
@@ -175,15 +176,23 @@ test("watch reports update one row per session and feed recommendations", async 
     position: 100,
     duration: 1200,
   };
-  assert.equal(recordWatch(db, 1, report, NOW), true);
-  assert.equal(recordWatch(db, 1, { ...report, watched: 50 }, NOW), true);
-  assert.equal(recordWatch(db, 1, { ...report, watched: 900 }, NOW), true);
+  assert.deepEqual(recordWatch(db, 1, report, NOW), { found: true, views: 1 });
+  assert.deepEqual(recordWatch(db, 1, { ...report, watched: 50 }, NOW), {
+    found: true,
+    views: null,
+  });
+  assert.deepEqual(recordWatch(db, 1, { ...report, watched: 900 }, NOW), {
+    found: true,
+    views: null,
+  });
   const rows = db.prepare("SELECT watched_sec FROM watch_events").all() as {
     watched_sec: number;
   }[];
   assert.deepEqual(rows, [{ watched_sec: 900 }]);
-  assert.equal(recordWatch(db, 2, report, NOW), false);
-  assert.equal(recordWatch(db, 404, { ...report, session: "gone-1" }), false);
+  assert.deepEqual(recordWatch(db, 2, report, NOW), { found: false });
+  assert.deepEqual(recordWatch(db, 404, { ...report, session: "gone-1" }), {
+    found: false,
+  });
 
   const before = loadRecommendations(db, NOW);
   assert.equal(before.featured.length, 5);

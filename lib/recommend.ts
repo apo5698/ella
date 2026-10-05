@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import type { VideoCardData } from "@/lib/types";
 import { CARD_COLUMNS, CARD_FROM } from "@/lib/videoCardRows";
+import { viewThreshold } from "@/lib/watchRules";
 
 // The design, with the reasoning behind each weight, is docs/recommendations.md.
 
@@ -34,8 +35,8 @@ export function engagement(event: WatchEvent, videoDuration: number | null) {
   if (event.source === "dismiss") return -1;
   const duration = event.duration ?? videoDuration ?? 0;
   const full = duration > 0 ? Math.min(duration * 0.6, 600) : 600;
-  const bounce = duration > 0 ? Math.min(20, duration * 0.3) : 20;
-  if (event.watched_sec < bounce) return event.source === "autoplay" ? 0 : -0.3;
+  if (event.watched_sec < viewThreshold(duration))
+    return event.source === "autoplay" ? 0 : -0.3;
   return Math.min(1, event.watched_sec / full);
 }
 
@@ -386,6 +387,7 @@ export function pick(ranking: Ranking, options: PickOptions): VideoCardData[] {
       ext: video.ext,
       series_id: video.series_id,
       series_name: video.series_name,
+      preview_points: video.preview_points,
     };
     return card;
   });

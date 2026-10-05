@@ -125,7 +125,15 @@ on read:    decay the same way to now
 
 - The "For you" shelf and the related list on the video page reuse the score.
 - A "Not interested" action on the video page records e = -1.
-- `videos.views` stays as the displayed play count. It no longer ranks.
+- `videos.views` stays as the displayed play count. It no longer ranks. A
+  sitting adds one view once it has played past the bounce line,
+  min(20 s, 30% of the length), skipped parts excluded. The server decides
+  this from the watch report (`lib/watchEvents.ts`), and the same line
+  separates a bounce from a watch above (`lib/watchRules.ts`).
+- Watch reports also carry the seconds played in each of 100 buckets, the
+  input to the watch heat curve. See `lib/heat.ts`, which also holds the scene
+  curve measured from ffmpeg scene scores (`lib/sceneHeat.ts`) and picks where
+  card previews play.
 
 ## Implementation order
 

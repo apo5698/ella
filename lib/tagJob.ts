@@ -10,6 +10,7 @@ import {
   upsertVideoTags,
 } from "./tags";
 import { buildVideoPrompt, describeFrames, extractFrames } from "./vision";
+import { saveSceneScores } from "./heat";
 
 export type JobLogEntry = {
   key:
@@ -225,6 +226,7 @@ async function runBatchTagJob(
         (update) => tracker.update(update),
         settings,
         signal,
+        (scored, span) => saveSceneScores(db, row.id, scored, span),
       );
       signal.throwIfAborted();
       if (frames.length === 0) {
