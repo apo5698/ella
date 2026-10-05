@@ -7,6 +7,25 @@ export function formatDuration(sec?: number | null): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+/**
+ * The resolution class of a video, judged by its short side so a portrait
+ * video ranks with the landscape one of the same quality. Null when the
+ * dimensions are unknown.
+ */
+export function formatResolution(
+  width?: number | null,
+  height?: number | null,
+): string | null {
+  if (!width || !height) return null;
+  const shortSide = Math.min(width, height);
+  if (shortSide >= 2160) return "4K";
+  if (shortSide >= 1440) return "1440p";
+  if (shortSide >= 1080) return "1080p";
+  if (shortSide >= 720) return "720p";
+  if (shortSide >= 480) return "480p";
+  return "SD";
+}
+
 /** Human-readable duration using the selected display locale. */
 export function formatDurationText(sec: number, locale = "en"): string {
   const total = Math.max(0, Math.round(sec));

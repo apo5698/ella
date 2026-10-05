@@ -6,11 +6,11 @@ import Link from "next/link";
 import { LayersIcon, PlayIcon } from "lucide-react";
 import { formatDuration, relativeTime } from "@/lib/format";
 import { morphName, setMorphSource, useIsMorphSource } from "@/lib/morph";
-import { resolutionLabel } from "@/lib/tagger";
 import type { VideoCardData } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 import { cn } from "@/lib/utils";
 import { canPreview } from "./useVideoPreview";
+import VideoResolutionBadge from "./VideoResolutionBadge";
 
 const SLIDE_MS = 8000;
 const PREVIEW_DELAY_MS = 1600;
@@ -128,10 +128,6 @@ export default function HeroSpotlight({ videos }: { videos: VideoCardData[] }) {
   if (count === 0) return null;
   const video = videos[index];
   const morphKey = `hero-${video.id}`;
-  const resolution = resolutionLabel(video.width, video.height)?.replace(
-    "4k",
-    "4K",
-  );
   const go = (next: number) => setIndex((next + count) % count);
 
   return (
@@ -187,11 +183,7 @@ export default function HeroSpotlight({ videos }: { videos: VideoCardData[] }) {
             <span className="tabular-nums">
               {formatDuration(video.duration_sec)}
             </span>
-            {resolution && resolution !== "sd" && (
-              <span className="rounded border border-white/40 px-1 text-xs font-semibold">
-                {resolution}
-              </span>
-            )}
+            <VideoResolutionBadge width={video.width} height={video.height} />
             <span aria-hidden>·</span>
             <span>{card("views", { count: video.views })}</span>
             <span aria-hidden>·</span>

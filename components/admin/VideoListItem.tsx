@@ -6,8 +6,7 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { TagBadge } from "@/components/tags/TagBadge";
-import { formatDuration, formatSize } from "@/lib/format";
-import { resolutionLabel } from "@/lib/tagger";
+import { formatDuration, formatResolution, formatSize } from "@/lib/format";
 import type { Video } from "@/lib/types";
 
 export default function VideoListItem({
@@ -21,7 +20,7 @@ export default function VideoListItem({
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }) {
-  const resolution = resolutionLabel(video.width, video.height);
+  const resolution = formatResolution(video.width, video.height);
 
   const t = useTranslations("Common");
   return (

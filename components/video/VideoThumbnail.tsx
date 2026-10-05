@@ -5,11 +5,11 @@ import { ViewTransition } from "react";
 import { FilmIcon, PlayIcon } from "lucide-react";
 import { formatCount, formatDuration } from "@/lib/format";
 import { morphName, useIsMorphSource } from "@/lib/morph";
-import { resolutionLabel } from "@/lib/tagger";
 import type { VideoCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { isResumable, useWatchProgress } from "@/lib/watchProgress";
 import { useVideoPreview } from "./useVideoPreview";
+import VideoResolutionBadge from "./VideoResolutionBadge";
 
 /**
  * A thumbnail that plays a muted preview on hover and shows how much of the
@@ -45,10 +45,6 @@ export default function VideoThumbnail({
       points: video.preview_points,
       autoplay: preview && autoplay,
     });
-  const resolution = resolutionLabel(video.width, video.height)?.replace(
-    "4k",
-    "4K",
-  );
   const watched = isResumable(progress)
     ? progress.time / progress.duration
     : null;
@@ -107,11 +103,11 @@ export default function VideoThumbnail({
         )}
       >
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/70 to-transparent" />
-        {resolution && resolution !== "sd" && (
-          <span className="absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-xs/none font-medium backdrop-blur-sm">
-            {resolution}
-          </span>
-        )}
+        <VideoResolutionBadge
+          width={video.width}
+          height={video.height}
+          className="absolute top-1.5 right-1.5"
+        />
         <div
           className={cn(
             "absolute inset-x-2 flex items-center justify-between gap-2 text-xs/none [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]",
