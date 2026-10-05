@@ -188,7 +188,7 @@ export default function HeroSpotlight({ videos }: { videos: VideoCardData[] }) {
               {formatDuration(video.duration_sec)}
             </span>
             {resolution && resolution !== "sd" && (
-              <span className="rounded border border-white/40 px-1 text-[11px] font-semibold">
+              <span className="rounded border border-white/40 px-1 text-xs font-semibold">
                 {resolution}
               </span>
             )}

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { TaskQueueProvider } from "@/hooks/useTaskQueue";
 import { APP_NAME } from "@/lib/brand";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",

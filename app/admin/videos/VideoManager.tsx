@@ -621,7 +621,7 @@ function VideoTable({
                                 <Badge
                                   variant="secondary"
                                   title={t("moreTags", { count: tagCount - 3 })}
-                                  className="hidden shrink-0 xl:inline-flex"
+                                  className="hidden shrink-0 xl:inline-flex text-xs/none"
                                 >
                                   +{tagCount - 3}
                                 </Badge>
@@ -630,7 +630,7 @@ function VideoTable({
                                 <Badge
                                   variant="secondary"
                                   title={t("moreTags", { count: tagCount - 2 })}
-                                  className="hidden shrink-0 lg:inline-flex xl:hidden"
+                                  className="hidden shrink-0 lg:inline-flex xl:hidden text-xs/none"
                                 >
                                   +{tagCount - 2}
                                 </Badge>
@@ -639,7 +639,7 @@ function VideoTable({
                                 <Badge
                                   variant="secondary"
                                   title={t("moreTags", { count: tagCount - 1 })}
-                                  className="shrink-0 lg:hidden"
+                                  className="shrink-0 lg:hidden text-xs/none"
                                 >
                                   +{tagCount - 1}
                                 </Badge>

@@ -100,11 +100,11 @@ export default function VideoThumbnail({
         )}
       >
         {resolution && resolution !== "sd" && (
-          <span className="rounded bg-black/70 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-white backdrop-blur-sm">
+          <span className="rounded bg-black/70 px-1 py-0.5 text-xs/none font-semibold text-white backdrop-blur-sm">
             {resolution}
           </span>
         )}
-        <span className="rounded bg-black/70 px-1 py-0.5 text-[10px] font-medium text-white tabular-nums backdrop-blur-sm">
+        <span className="rounded bg-black/70 px-1 py-0.5 text-xs/none font-medium text-white tabular-nums backdrop-blur-sm">
           {scrubbing && video.duration_sec
             ? formatDuration(position * video.duration_sec)
             : formatDuration(video.duration_sec)}
