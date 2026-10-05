@@ -7,7 +7,8 @@ const resolutionBadgeVariants = cva("h-auto rounded px-1 text-xs/none", {
   variants: {
     variant: {
       /** Carries its own backing, so it reads over any picture. */
-      overlay: "border-0 bg-black/60 py-0.5 text-white backdrop-blur-sm",
+      overlay:
+        "border-0 bg-black/60 py-0.5 text-white ring-1 ring-white/15 ring-inset backdrop-blur-sm",
       /** Drawn in theme colors, for use on the page itself. */
       outline: "py-0.5",
     },
