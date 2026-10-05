@@ -268,7 +268,7 @@ export default function LlmStatusCard() {
                     }}
                     placeholder="http://localhost:1234/v1"
                     spellCheck={false}
-                    className="flex-1 font-mono text-[0.6875rem]"
+                    className="flex-1 font-mono"
                   />
                   <Button onClick={connect} disabled={busy || !url.trim()}>
                     <PlugIcon data-icon="inline-start" />
@@ -289,7 +289,7 @@ export default function LlmStatusCard() {
                       onValueChange={(v) => selectModel(v as string)}
                     >
                       <SelectTrigger
-                        className="w-full font-mono text-[0.6875rem]"
+                        className="w-full font-mono"
                         aria-label={t("model")}
                         aria-invalid={modelMissing || undefined}
                       >
@@ -301,7 +301,7 @@ export default function LlmStatusCard() {
                             <SelectItem
                               key={id}
                               value={id}
-                              className="font-mono text-[0.6875rem]"
+                              className="font-mono"
                             >
                               {id}
                             </SelectItem>
@@ -327,7 +327,7 @@ export default function LlmStatusCard() {
                       onBlur={(e) => selectModel(e.target.value)}
                       placeholder={t("modelName")}
                       spellCheck={false}
-                      className="font-mono text-[0.6875rem]"
+                      className="font-mono"
                     />
                     {probe && (
                       <FieldDescription>{t("manualModel")}</FieldDescription>
