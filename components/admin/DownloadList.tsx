@@ -279,7 +279,7 @@ function RowActions({
   const buttons = actions.map((action) => (
     <Button
       key={action.key}
-      variant="ghost"
+      variant={action.destructive ? "destructive" : "ghost"}
       size="icon"
       aria-label={action.label}
       title={action.label}

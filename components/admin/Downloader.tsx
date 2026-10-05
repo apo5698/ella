@@ -93,7 +93,7 @@ export default function Downloader() {
         <div className="ml-auto flex items-center gap-2">
           {!searching && hasFinished && (
             <Button
-              variant="outline"
+              variant="destructive"
               disabled={clearing}
               onClick={() => void clearFinished()}
             >

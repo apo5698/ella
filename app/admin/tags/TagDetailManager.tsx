@@ -388,8 +388,7 @@ export default function TagDetailManager({
           </CardContent>
           <CardFooter className="justify-between border-t">
             <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
+              variant="destructive"
               onClick={() => setConfirmingDelete(true)}
             >
               <Trash2Icon data-icon="inline-start" />
