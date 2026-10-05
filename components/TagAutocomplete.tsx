@@ -12,7 +12,11 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import { normalizeName, normalizeNameInput } from "@/lib/names";
+import {
+  normalizeName,
+  normalizeNameInput,
+  normalizeSeriesLabel,
+} from "@/lib/names";
 import type { Suggestion } from "@/lib/types";
 import type { TagReviewState } from "@/lib/types";
 import { AliasBadge, SeriesBadge, TagBadge } from "@/components/tags/TagBadge";
@@ -102,16 +106,21 @@ export default function TagAutocomplete({
 
   const disabled = new Set(disabledNames);
   // What entering this text would create.
-  const typed = normalizeName(query);
+  // A series keeps its case, so it is matched here without regard to case.
+  const typed =
+    kind === "series" ? normalizeSeriesLabel(query) : normalizeName(query);
+  const typedKey = typed.toLowerCase();
   // An existing alias is not offered as a new tag: it already stands for one,
   // and creating it would put the same idea under two names.
   const canCreate =
     allowCreate &&
     typed.length > 0 &&
     !suggestions.some(
-      (s) => s.name.toLowerCase() === typed || s.alias?.toLowerCase() === typed,
+      (s) =>
+        s.name.toLowerCase() === typedKey ||
+        s.alias?.toLowerCase() === typedKey,
     ) &&
-    !disabled.has(typed);
+    !disabledNames.some((name) => name.toLowerCase() === typedKey);
 
   const options: Option[] = [
     ...suggestions.map((s) => ({
@@ -155,7 +164,7 @@ export default function TagAutocomplete({
     }
     // Held to the same rule the server applies, so common("create")x"" shows the
     // name that will actually be stored.
-    setQuery(normalizeNameInput(next));
+    setQuery(normalizeNameInput(next, kind === "series"));
   }
 
   function optionBadge(item: Option) {

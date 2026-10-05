@@ -26,8 +26,9 @@ export async function PATCH(
     );
   }
 
-  const clash = db.prepare("SELECT id FROM series WHERE name = ?").get(name) as
-    { id: number } | undefined;
+  const clash = db
+    .prepare("SELECT id FROM series WHERE name = ? COLLATE NOCASE")
+    .get(name) as { id: number } | undefined;
   if (clash && clash.id !== seriesId) {
     return NextResponse.json(
       { error: t("seriesExists", { name }) },

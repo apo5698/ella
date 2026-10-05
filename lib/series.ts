@@ -1,17 +1,17 @@
 import { AppError } from "@/lib/appError";
 import type Database from "better-sqlite3";
 import { compareNames } from "./tagOrder";
-import { normalizeName } from "./names";
+import { normalizeSeriesLabel } from "./names";
 
 export type SeriesRecord = { id: number; name: string };
 
 /**
- * Series names follow the same spelling rule as tags: lowercase, with spaces
- * closed up into hyphens. Every write path runs a name through this, so
- * `Cocoa Soft` and `cocoa-soft` cannot end up as two series.
+ * A series name keeps the case and spaces it was written in. Names are matched
+ * without regard to case (`COLLATE NOCASE` below and on the unique index), so
+ * `FXX` and `fxx` cannot end up as two series.
  */
 export function normalizeSeriesName(raw: string): string {
-  return normalizeName(raw);
+  return normalizeSeriesLabel(raw);
 }
 
 /** Resolves a series name, creating the record once when it is new. */
@@ -23,7 +23,7 @@ export function ensureSeries(
   if (!name) throw new AppError("seriesNameEmpty");
 
   const existing = db
-    .prepare("SELECT id, name FROM series WHERE name = ?")
+    .prepare("SELECT id, name FROM series WHERE name = ? COLLATE NOCASE")
     .get(name) as SeriesRecord | undefined;
   if (existing) return existing;
 

@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const existing = db.prepare("SELECT id FROM series WHERE name = ?").get(name);
+  const existing = db
+    .prepare("SELECT id FROM series WHERE name = ? COLLATE NOCASE")
+    .get(name);
   if (existing) {
     return NextResponse.json(
       { error: t("seriesExists", { name }) },

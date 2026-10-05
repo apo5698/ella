@@ -165,11 +165,13 @@ export function createAutoTagSuggester(
   const findTagIgnoringCase = db.prepare(
     "SELECT id, name FROM tags WHERE lower(name) = ? ORDER BY id LIMIT 1",
   );
-  const findSeries = db.prepare("SELECT id, name FROM series WHERE name = ?");
+  const findSeries = db.prepare(
+    "SELECT id, name FROM series WHERE name = ? COLLATE NOCASE",
+  );
   const findTagWithName = db.prepare(
-    `SELECT 1 FROM tags WHERE name = ?
+    `SELECT 1 FROM tags WHERE name = ? COLLATE NOCASE
      UNION ALL
-     SELECT 1 FROM tag_aliases WHERE alias = ?`,
+     SELECT 1 FROM tag_aliases WHERE alias = ? COLLATE NOCASE`,
   );
   const manualTags = strategies.includes("filename-manual-tag")
     ? (db

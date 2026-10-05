@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DB_PATH } from "./config";
 import { backupBeforeUpgrade, recordAppVersion } from "./dbBackup";
-import { normalizeName } from "./names";
+import { normalizeSeriesName } from "./series";
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
@@ -533,19 +533,21 @@ db.exec(
   "CREATE INDEX IF NOT EXISTS idx_background_jobs_status ON background_jobs(status, id)",
 );
 
-// Series names follow the same spelling rule as tag names. Rows written before
-// that rule existed are brought in line here. Two spellings that normalize
-// onto one name were always the same series, so the videos are moved onto the
-// surviving row rather than the rename failing on the UNIQUE index.
+// Series names keep the case and spaces they were written in. Rows written
+// before that rule existed are brought in line here. Two spellings that
+// normalize onto one name were always the same series, so the videos are moved
+// onto the surviving row rather than the rename failing on the unique index.
 const seriesRows = db.prepare("SELECT id, name FROM series").all() as {
   id: number;
   name: string;
 }[];
 const strayNames = seriesRows.filter(
-  (row) => row.name !== normalizeName(row.name),
+  (row) => row.name !== normalizeSeriesName(row.name),
 );
 if (strayNames.length > 0) {
-  const idByName = new Map(seriesRows.map((row) => [row.name, row.id]));
+  const idByName = new Map(
+    seriesRows.map((row) => [row.name.toLowerCase(), row.id]),
+  );
   const renameSeries = db.prepare("UPDATE series SET name = ? WHERE id = ?");
   const moveVideos = db.prepare(
     "UPDATE videos SET series_id = ? WHERE series_id = ?",
@@ -554,15 +556,15 @@ if (strayNames.length > 0) {
 
   db.transaction(() => {
     for (const row of strayNames) {
-      const name = normalizeName(row.name);
-      const existing = idByName.get(name);
+      const name = normalizeSeriesName(row.name);
+      const existing = idByName.get(name.toLowerCase());
       if (existing !== undefined && existing !== row.id) {
         moveVideos.run(existing, row.id);
         dropSeries.run(row.id);
         continue;
       }
       renameSeries.run(name, row.id);
-      idByName.set(name, row.id);
+      idByName.set(name.toLowerCase(), row.id);
     }
   })();
 }
@@ -596,67 +598,57 @@ END;
 
 // Series share that namespace. A name in both is the same fact recorded twice,
 // which leaves a video carrying it as a series and as a tag, and two places to
-// edit when it changes.
+// edit when it changes. Compared without regard to case, since a series keeps
+// the case it was written in. The triggers are recreated so that a database
+// made before that picks up the comparison.
 db.exec(`
-CREATE TRIGGER IF NOT EXISTS series_name_conflicts_with_tag
+DROP TRIGGER IF EXISTS series_name_conflicts_with_tag;
+DROP TRIGGER IF EXISTS series_rename_conflicts_with_tag;
+DROP TRIGGER IF EXISTS tag_name_conflicts_with_series;
+DROP TRIGGER IF EXISTS tag_rename_conflicts_with_series;
+DROP TRIGGER IF EXISTS alias_conflicts_with_series;
+-- Series names used to be forced to lowercase here.
+DROP TRIGGER IF EXISTS series_name_is_normalized_on_insert;
+DROP TRIGGER IF EXISTS series_name_is_normalized_on_rename;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_series_name_nocase
+  ON series(name COLLATE NOCASE);
+
+CREATE TRIGGER series_name_conflicts_with_tag
 BEFORE INSERT ON series
 BEGIN
   SELECT RAISE(ABORT, 'series name is already a tag or alias')
-  WHERE EXISTS (SELECT 1 FROM tags WHERE name = NEW.name)
-     OR EXISTS (SELECT 1 FROM tag_aliases WHERE alias = NEW.name);
+  WHERE EXISTS (SELECT 1 FROM tags WHERE name = NEW.name COLLATE NOCASE)
+     OR EXISTS (SELECT 1 FROM tag_aliases WHERE alias = NEW.name COLLATE NOCASE);
 END;
 
-CREATE TRIGGER IF NOT EXISTS series_rename_conflicts_with_tag
+CREATE TRIGGER series_rename_conflicts_with_tag
 BEFORE UPDATE OF name ON series
 BEGIN
   SELECT RAISE(ABORT, 'series name is already a tag or alias')
-  WHERE EXISTS (SELECT 1 FROM tags WHERE name = NEW.name)
-     OR EXISTS (SELECT 1 FROM tag_aliases WHERE alias = NEW.name);
+  WHERE EXISTS (SELECT 1 FROM tags WHERE name = NEW.name COLLATE NOCASE)
+     OR EXISTS (SELECT 1 FROM tag_aliases WHERE alias = NEW.name COLLATE NOCASE);
 END;
 
-CREATE TRIGGER IF NOT EXISTS tag_name_conflicts_with_series
+CREATE TRIGGER tag_name_conflicts_with_series
 BEFORE INSERT ON tags
 BEGIN
   SELECT RAISE(ABORT, 'tag name is already a series')
-  WHERE EXISTS (SELECT 1 FROM series WHERE name = NEW.name);
+  WHERE EXISTS (SELECT 1 FROM series WHERE name = NEW.name COLLATE NOCASE);
 END;
 
-CREATE TRIGGER IF NOT EXISTS tag_rename_conflicts_with_series
+CREATE TRIGGER tag_rename_conflicts_with_series
 BEFORE UPDATE OF name ON tags
 BEGIN
   SELECT RAISE(ABORT, 'tag name is already a series')
-  WHERE EXISTS (SELECT 1 FROM series WHERE name = NEW.name);
+  WHERE EXISTS (SELECT 1 FROM series WHERE name = NEW.name COLLATE NOCASE);
 END;
 
-CREATE TRIGGER IF NOT EXISTS alias_conflicts_with_series
+CREATE TRIGGER alias_conflicts_with_series
 BEFORE INSERT ON tag_aliases
 BEGIN
   SELECT RAISE(ABORT, 'alias is already a series')
-  WHERE EXISTS (SELECT 1 FROM series WHERE name = NEW.alias);
-END;
-`);
-
-// A backstop under lib/names.ts, which is what actually normalizes a name on
-// the way in. SQLite's lower() only folds ASCII, so this catches the cases a
-// hand-written statement realistically introduces rather than every one the
-// rule covers.
-db.exec(`
-CREATE TRIGGER IF NOT EXISTS series_name_is_normalized_on_insert
-BEFORE INSERT ON series
-BEGIN
-  SELECT RAISE(ABORT, 'series name must be lowercase with no spaces')
-  WHERE NEW.name <> lower(NEW.name)
-     OR NEW.name <> trim(NEW.name)
-     OR NEW.name LIKE '% %';
-END;
-
-CREATE TRIGGER IF NOT EXISTS series_name_is_normalized_on_rename
-BEFORE UPDATE OF name ON series
-BEGIN
-  SELECT RAISE(ABORT, 'series name must be lowercase with no spaces')
-  WHERE NEW.name <> lower(NEW.name)
-     OR NEW.name <> trim(NEW.name)
-     OR NEW.name LIKE '% %';
+  WHERE EXISTS (SELECT 1 FROM series WHERE name = NEW.alias COLLATE NOCASE);
 END;
 `);
 
