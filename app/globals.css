@@ -250,14 +250,3 @@
     animation-delay: 0s !important;
   }
 }
-
-/* Safari on iPhone and iPad zooms the page into any field under 16px when it
-   takes focus, and leaves it zoomed. Unlayered, so it outranks the text size
-   utilities on the fields. */
-@media (pointer: coarse) {
-  input:not([type="checkbox"], [type="radio"], [type="range"]),
-  textarea,
-  select {
-    font-size: max(16px, 1em);
-  }
-}
