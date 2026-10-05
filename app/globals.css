@@ -68,13 +68,13 @@
 }
 
 :root {
-  /* Geist has no Chinese. Without these the browser picks its own default
-     for Chinese, which differs by platform and in some browsers is a serif:
-     PingFang on Apple systems, Microsoft YaHei on Windows, Noto or Source
-     Han on Linux and Android. */
+  /* Geist has no Chinese. Noto Sans SC ships with the app so Chinese looks
+     the same everywhere; the system fonts after it show while it loads.
+     Without any of them the browser picks its own default, which differs by
+     platform and in some browsers is a serif. */
   --font-cjk:
-    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
-    "Source Han Sans SC", system-ui;
+    var(--font-noto-sans-sc), "PingFang SC", "Hiragino Sans GB",
+    "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", system-ui;
   --card: oklch(1 0 0);
   --card-foreground: #1d1d1f;
   --popover: oklch(1 0 0);

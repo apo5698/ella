@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import "./globals.css";
@@ -21,6 +21,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Chinese, after Geist has drawn the Latin. Served with the app in slices by
+// character range, so a page downloads only the slices its text uses, and
+// nothing is fetched from Google at run time. Not preloaded: no one slice is
+// needed by every page.
+const notoSansSC = Noto_Sans_SC({
+  weight: "variable",
+  variable: "--font-noto-sans-sc",
+  preload: false,
+  adjustFontFallback: false,
+});
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("App");
   return { title: APP_NAME, description: t("description") };
@@ -39,6 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         geistMono.variable,
         "font-sans",
         geist.variable,
+        notoSansSC.variable,
       )}
     >
       <body className="min-h-full bg-background text-foreground">
