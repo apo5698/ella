@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import {
   useEffect,
+  useEffectEvent,
   useImperativeHandle,
   useRef,
   useState,
@@ -203,12 +204,11 @@ export default function VideoPlayer({
     [],
   );
 
-  function handleDoubleClick(event: React.MouseEvent<HTMLElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const position = (event.clientX - bounds.left) / bounds.width;
-    const direction: -1 | 1 | null =
-      position <= 0.2 ? -1 : position >= 0.8 ? 1 : null;
-    if (direction === null) return;
+  // Answers the layout's own double tap gestures rather than dblclick, which
+  // a touch screen never fires: the gesture cancels the touch to claim it.
+  const showSeekFeedback = useEffectEvent((action: unknown) => {
+    if (action !== "seek:-10" && action !== "seek:10") return;
+    const direction = action === "seek:-10" ? -1 : 1;
 
     const now = performance.now();
     const previous = lastSeek.current;
@@ -234,7 +234,21 @@ export default function VideoPlayer({
         setSeekFeedbackExiting(false);
       }, SEEK_FEEDBACK_EXIT_MS);
     }, SEEK_FEEDBACK_MS);
-  }
+  });
+
+  useEffect(() => {
+    // Gestures dispatch "trigger" without bubbling, so listen while it
+    // descends. On the document, because the player attaches its element
+    // only after this effect runs.
+    const onTrigger = (event: Event) => {
+      const element = player.current?.el;
+      if (element && event.composedPath().includes(element))
+        showSeekFeedback((event as Event & { detail?: unknown }).detail);
+    };
+    document.addEventListener("trigger", onTrigger, { capture: true });
+    return () =>
+      document.removeEventListener("trigger", onTrigger, { capture: true });
+  }, []);
 
   function handlePlay() {
     report.start(startedBy.current);
@@ -270,7 +284,6 @@ export default function VideoPlayer({
               onEnded?.();
             }}
             onError={() => setFailedSrc(src)}
-            onDoubleClick={handleDoubleClick}
           >
             <MediaProvider />
             <DefaultVideoLayout
