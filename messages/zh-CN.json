@@ -31,7 +31,8 @@
     "name": "名称",
     "series": "系列",
     "setSeries": "设置系列",
-    "seriesNameHelp": "系列名称可包含空格。标签名称不可包含空格。",
+    "seriesNameHelp": "系列名称可包含空格。",
+    "tagNameHelp": "标签名称不可包含空格。",
     "tags": "标签",
     "sort": "排序",
     "filterTags": "按标签筛选",
@@ -252,7 +253,7 @@
   },
   "TagEditor": {
     "removeSeries": "移除系列",
-    "tags": "内容标签",
+    "tags": "标签",
     "addTag": "添加标签",
     "excluded": "已排除标签",
     "excludedHelp": "Smartag 不生成已排除的标签。点击标签可恢复。",

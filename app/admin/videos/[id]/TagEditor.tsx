@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { CheckCheckIcon, CheckIcon, Undo2Icon, XIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FieldLabel } from "@/components/ui/field";
+import { FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
   RemovableSeriesBadge,
   RemovableTagBadge,
@@ -140,19 +140,11 @@ export default function TagEditor({
             inputId="video-series"
           />
         )}
+        <FieldDescription>{common("seriesNameHelp")}</FieldDescription>
       </section>
 
       <section className="flex flex-col gap-2">
         <FieldLabel htmlFor={TAG_INPUT_ID}>{t("tags")}</FieldLabel>
-        <TagAutocomplete
-          endpoint="/api/tags/suggest?assignable=1"
-          mode="multi"
-          placeholder={t("addTag")}
-          disabledNames={tags.map((tag) => tag.name)}
-          onSelect={addTag}
-          className="w-full"
-          inputId={TAG_INPUT_ID}
-        />
         <div className="flex min-h-5 flex-wrap items-center gap-1">
           {approved.map((tag) => (
             <RemovableTagBadge
@@ -170,6 +162,16 @@ export default function TagEditor({
             </span>
           )}
         </div>
+        <TagAutocomplete
+          endpoint="/api/tags/suggest?assignable=1"
+          mode="multi"
+          placeholder={t("addTag")}
+          disabledNames={tags.map((tag) => tag.name)}
+          onSelect={addTag}
+          className="w-full"
+          inputId={TAG_INPUT_ID}
+        />
+        <FieldDescription>{common("tagNameHelp")}</FieldDescription>
       </section>
 
       {/* One row per tag, with its two answers beside it rather than inside

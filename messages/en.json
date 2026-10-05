@@ -31,7 +31,8 @@
     "name": "Name",
     "series": "Series",
     "setSeries": "Set Series",
-    "seriesNameHelp": "A series name can contain spaces. A tag name cannot.",
+    "seriesNameHelp": "A series name can contain spaces.",
+    "tagNameHelp": "A tag name cannot contain spaces.",
     "tags": "Tags",
     "sort": "Sort",
     "filterTags": "Filter by Tags",
@@ -252,7 +253,7 @@
   },
   "TagEditor": {
     "removeSeries": "Remove Series",
-    "tags": "Content Tags",
+    "tags": "Tags",
     "addTag": "Add Tag",
     "excluded": "Excluded Tags",
     "excludedHelp": "Smartag does not generate excluded tags. Select a tag to restore it.",

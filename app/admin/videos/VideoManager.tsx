@@ -147,6 +147,27 @@ function BatchTagDialog({
         <FieldGroup>
           <Field>
             <FieldLabel>{common("tags")}</FieldLabel>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.map((tag) => (
+                  <RemovableTagBadge
+                    key={tag.name}
+                    state={adding ? "approved" : tag.reviewState}
+                    removeLabel={t("removeNamed", { name: tag.name })}
+                    title={
+                      adding ? tagLabels("approved") : t("removeSelection")
+                    }
+                    onClick={() =>
+                      setTags((current) =>
+                        current.filter((item) => item.name !== tag.name),
+                      )
+                    }
+                  >
+                    {tag.name}
+                  </RemovableTagBadge>
+                ))}
+              </div>
+            )}
             <TagAutocomplete
               endpoint="/api/tags/suggest?assignable=1"
               mode="multi"
@@ -164,26 +185,6 @@ function BatchTagDialog({
             </FieldDescription>
           </Field>
         </FieldGroup>
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {tags.map((tag) => (
-              <RemovableTagBadge
-                key={tag.name}
-                state={adding ? "approved" : tag.reviewState}
-                removeLabel={t("removeNamed", { name: tag.name })}
-                title={adding ? tagLabels("approved") : t("removeSelection")}
-                onClick={() =>
-                  setTags((current) =>
-                    current.filter((item) => item.name !== tag.name),
-                  )
-                }
-              >
-                {tag.name}
-              </RemovableTagBadge>
-            ))}
-          </div>
-        )}
 
         {error && <p className="text-destructive">{error}</p>}
 
@@ -294,7 +295,8 @@ function BatchSeriesDialog({
               />
             )}
             <FieldDescription>
-              {t("seriesHelp")} {common("seriesNameHelp")}
+              {t("seriesHelp")} {common("seriesNameHelp")}{" "}
+              {common("tagNameHelp")}
             </FieldDescription>
           </Field>
         </FieldGroup>
