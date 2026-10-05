@@ -45,6 +45,14 @@ export function formatSize(bytes?: number | null): string {
   return `${v.toFixed(1)} ${units[i]}`;
 }
 
+/** A count shortened the way the locale does it: 1.2K, 1.2万. */
+export function formatCount(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 /** "3 days ago" and the like, in the display locale. */
 export function relativeTime(value: number, now: number, locale: string) {
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });

@@ -935,6 +935,9 @@
     "scrollForward": "向后滚动"
   },
   "Browse": {
+    "layout": "布局",
+    "layoutDouble": "双列",
+    "layoutSingle": "单列",
     "allVideos": "全部视频",
     "resultsFor": "\"{q}\" 的搜索结果"
   },

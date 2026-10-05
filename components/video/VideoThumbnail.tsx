@@ -1,9 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ViewTransition } from "react";
-import { FilmIcon } from "lucide-react";
-import { formatDuration } from "@/lib/format";
+import { FilmIcon, PlayIcon } from "lucide-react";
+import { formatCount, formatDuration } from "@/lib/format";
 import { morphName, useIsMorphSource } from "@/lib/morph";
 import { resolutionLabel } from "@/lib/tagger";
 import type { VideoCardData } from "@/lib/types";
@@ -13,23 +13,28 @@ import { useVideoPreview } from "./useVideoPreview";
 
 /**
  * A thumbnail that plays a muted preview on hover and shows how much of the
- * video the viewer has watched. `morphKey` names this instance, so it alone
+ * video the viewer has watched. The play count and the length sit on the
+ * picture, as on Bilibili, so the card below it stays short. `morphKey` names this instance, so it alone
  * morphs into the player when it is the one opened.
  */
 export default function VideoThumbnail({
   video,
   morphKey,
   preview = true,
+  autoplay = false,
   eager = false,
   className,
 }: {
   video: VideoCardData;
   morphKey: string;
   preview?: boolean;
+  /** Play the preview without a mouse, see useVideoPreview. */
+  autoplay?: boolean;
   eager?: boolean;
   className?: string;
 }) {
   const common = useTranslations("Common");
+  const locale = useLocale();
   const morph = useIsMorphSource(morphKey);
   const progress = useWatchProgress()[video.id];
   const { active, ready, position, scrubbing, handlers, videoProps } =
@@ -37,6 +42,7 @@ export default function VideoThumbnail({
       id: video.id,
       ext: video.ext,
       duration: video.duration_sec,
+      autoplay: preview && autoplay,
     });
   const resolution = resolutionLabel(video.width, video.height)?.replace(
     "4k",
@@ -95,20 +101,32 @@ export default function VideoThumbnail({
 
       <div
         className={cn(
-          "pointer-events-none absolute right-1.5 bottom-1.5 flex gap-1 transition-opacity duration-200",
+          "pointer-events-none absolute inset-0 text-white transition-opacity duration-200",
           ready && !scrubbing && "opacity-0",
         )}
       >
+        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/70 to-transparent" />
         {resolution && resolution !== "sd" && (
-          <span className="rounded bg-black/70 px-1 py-0.5 text-xs/none font-semibold text-white backdrop-blur-sm">
+          <span className="absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-xs/none font-semibold backdrop-blur-sm">
             {resolution}
           </span>
         )}
-        <span className="rounded bg-black/70 px-1 py-0.5 text-xs/none font-medium text-white tabular-nums backdrop-blur-sm">
-          {scrubbing && video.duration_sec
-            ? formatDuration(position * video.duration_sec)
-            : formatDuration(video.duration_sec)}
-        </span>
+        <div
+          className={cn(
+            "absolute inset-x-2 flex items-center justify-between gap-2 text-xs/none font-medium [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]",
+            watched !== null && !ready ? "bottom-2.5" : "bottom-1.5",
+          )}
+        >
+          <span className="flex min-w-0 items-center gap-1 tabular-nums">
+            <PlayIcon className="size-3 shrink-0 fill-current" />
+            {formatCount(video.views, locale)}
+          </span>
+          <span className="tabular-nums">
+            {scrubbing && video.duration_sec
+              ? formatDuration(position * video.duration_sec)
+              : formatDuration(video.duration_sec)}
+          </span>
+        </div>
       </div>
 
       {ready ? (

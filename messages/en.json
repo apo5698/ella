@@ -935,6 +935,9 @@
     "scrollForward": "Scroll forward"
   },
   "Browse": {
+    "layout": "Layout",
+    "layoutDouble": "Two columns",
+    "layoutSingle": "One column",
     "allVideos": "All videos",
     "resultsFor": "Results for \"{q}\""
   },

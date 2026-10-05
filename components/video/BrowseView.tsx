@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { TagsIcon } from "lucide-react";
+import { LayoutGridIcon, Rows2Icon, TagsIcon } from "lucide-react";
 import ListSkeleton from "./ListSkeleton";
 import TagAutocomplete from "@/components/TagAutocomplete";
 import { RemovableTagBadge } from "@/components/tags/TagBadge";
@@ -20,6 +20,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ import { isMarkedHistoryEntry, markHistoryEntry } from "@/lib/historyRestore";
 import { parseHomeFilters } from "@/lib/homeFilters";
 import type { TagCount, VideoCardData } from "@/lib/types";
 import { VIDEO_SORT_LABELS, VIDEO_SORT_OPTIONS } from "@/lib/videoSort";
+import { setGridLayout, useGridLayout } from "./useGridLayout";
 import { useHomeNavigate } from "./useHomeNavigate";
 import VirtualVideoGrid from "./VirtualVideoGrid";
 
@@ -101,6 +103,7 @@ export default function BrowseView({ tags }: { tags: TagCount[] }) {
   const sortText = useTranslations("VideoSort");
   const params = useSearchParams();
   const navigate = useHomeNavigate();
+  const layout = useGridLayout();
   const filters = parseHomeFilters(params);
   const key = requestKey(params);
   const [state, setState] = useState<ListState>(() => initialState(key));
@@ -229,6 +232,25 @@ export default function BrowseView({ tags }: { tags: TagCount[] }) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Wide screens always fit several columns. */}
+            <ToggleGroup
+              variant="outline"
+              spacing={0}
+              aria-label={t("layout")}
+              value={[layout]}
+              onValueChange={(value) => {
+                const next = value[0];
+                if (next === "double" || next === "single") setGridLayout(next);
+              }}
+              className="md:hidden"
+            >
+              <ToggleGroupItem value="double" aria-label={t("layoutDouble")}>
+                <LayoutGridIcon />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="single" aria-label={t("layoutSingle")}>
+                <Rows2Icon />
+              </ToggleGroupItem>
+            </ToggleGroup>
             <Popover>
               <PopoverTrigger render={<Button variant="outline" />}>
                 <TagsIcon data-icon="inline-start" />

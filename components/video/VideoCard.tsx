@@ -10,13 +10,14 @@ import { cn } from "@/lib/utils";
 import VideoThumbnail from "./VideoThumbnail";
 
 /**
- * One video in a grid or a shelf: the thumbnail carries the eye, and the text
- * under it stays to a title and one line of facts.
+ * One video in a grid or a shelf: the thumbnail carries the eye and the
+ * numbers, and the text under it stays to a title and the series and date.
  */
 export default function VideoCard({
   video,
   morphKey,
   layout = "vertical",
+  autoplay,
   eager,
   onOpen,
   className,
@@ -26,6 +27,8 @@ export default function VideoCard({
   /** Unique on the page, see VideoThumbnail. */
   morphKey: string;
   layout?: "vertical" | "compact";
+  /** Play the preview without a mouse, see useVideoPreview. */
+  autoplay?: boolean;
   eager?: boolean;
   /** Called before the video opens, for example to record a scroll offset. */
   onOpen?: () => void;
@@ -61,6 +64,7 @@ export default function VideoCard({
         <VideoThumbnail
           video={video}
           morphKey={morphKey}
+          autoplay={autoplay}
           eager={eager}
           className={compact ? "rounded-lg" : undefined}
         />
@@ -79,23 +83,25 @@ export default function VideoCard({
         >
           {video.title}
         </Link>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-x-1 text-xs text-muted-foreground">
           {video.series_id !== null && video.series_name && (
             <>
               <Link
                 href={`/?series=${video.series_id}`}
-                className="max-w-full truncate hover:text-foreground focus-visible:underline focus-visible:outline-none"
+                className="min-w-0 truncate hover:text-foreground focus-visible:underline focus-visible:outline-none"
               >
                 {video.series_name}
               </Link>
-              <span aria-hidden>·</span>
+              <span aria-hidden className="shrink-0">
+                ·
+              </span>
             </>
           )}
-          <span>{t("views", { count: video.views })}</span>
-          <span aria-hidden>·</span>
+          <span className="sr-only">{t("views", { count: video.views })}</span>
           <time
             dateTime={new Date(video.mtime).toISOString()}
             suppressHydrationWarning
+            className="shrink-0"
           >
             {relativeTime(video.mtime, now, locale)}
           </time>

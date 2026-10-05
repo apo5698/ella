@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /** Formats the browser can decode. The rest show their thumbnail only. */
 const PLAYABLE = new Set([".mp4", ".m4v", ".webm", ".mov"]);
 const HOVER_DELAY_MS = 450;
+/** How long a card must hold the middle of a feed before it plays. */
+const FEED_DELAY_MS = 600;
 /** Points across the video the preview visits, as fractions of its length. */
 const SEGMENTS = [0.12, 0.3, 0.48, 0.66, 0.84];
 const SEGMENT_SECONDS = 2.5;
@@ -29,18 +31,22 @@ function previewAllowed() {
 }
 
 /**
- * A muted preview that starts when the mouse rests on a thumbnail. It plays
+ * A muted preview that starts when the mouse rests on a thumbnail, or, in a
+ * one-column feed, when the card holds the middle of the screen. It plays
  * short segments from across the video; moving the mouse sideways scrubs to
- * that point instead. Touch input never starts it.
+ * that point instead. Touch alone never starts it.
  */
 export function useVideoPreview({
   id,
   ext,
   duration,
+  autoplay = false,
 }: {
   id: number;
   ext: string;
   duration: number | null;
+  /** Play without a mouse, as the card in focus in a feed. */
+  autoplay?: boolean;
 }) {
   const [active, setActive] = useState(false);
   const [ready, setReady] = useState(false);
@@ -72,15 +78,28 @@ export function useVideoPreview({
 
   useEffect(() => stop, [stop]);
 
+  /** Takes over from any other preview on the page. */
+  const begin = useCallback(() => {
+    if (playing?.owner !== owner.current) playing?.stop();
+    playing = { owner: owner.current, stop };
+    setActive(true);
+  }, [stop]);
+
+  // A card scrolled through quickly never starts; the one that settles does.
+  useEffect(() => {
+    if (!autoplay || !enabled || !previewAllowed()) return;
+    const timer = setTimeout(begin, FEED_DELAY_MS);
+    return () => {
+      clearTimeout(timer);
+      stop();
+    };
+  }, [autoplay, begin, enabled, stop]);
+
   const onPointerEnter = (event: React.PointerEvent<HTMLElement>) => {
     if (!enabled || event.pointerType !== "mouse" || !previewAllowed()) return;
     startX.current = event.clientX;
     clearTimeout(hoverTimer.current);
-    hoverTimer.current = setTimeout(() => {
-      if (playing?.owner !== owner.current) playing?.stop();
-      playing = { owner: owner.current, stop };
-      setActive(true);
-    }, HOVER_DELAY_MS);
+    hoverTimer.current = setTimeout(begin, HOVER_DELAY_MS);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {

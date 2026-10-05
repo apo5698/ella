@@ -4,16 +4,20 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { VideoCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { type GridLayout, useGridLayout } from "./useGridLayout";
 import VideoCard from "./VideoCard";
 
-const GAP_X = 16;
-const GAP_Y = 32;
+/** Below this width the viewer chooses one column or two. */
+const NARROW = 780;
+/** Below this width two columns sit closer together. */
+const PHONE = 480;
+/** Where the card in focus sits in a one-column feed, from the top. */
+const FOCUS_LINE = 0.4;
 /** Title (two lines) and the facts line under the thumbnail. */
 const TEXT_HEIGHT = 74;
 
-function columnsFor(width: number) {
-  if (width < 480) return 1;
-  if (width < 780) return 2;
+function columnsFor(width: number, layout: GridLayout) {
+  if (width < NARROW) return layout === "single" ? 1 : 2;
   if (width < 1080) return 3;
   if (width < 1480) return 4;
   return 5;
@@ -43,6 +47,7 @@ export default function VirtualVideoGrid({
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [viewport, setViewport] = useState(0);
   const restored = useRef(false);
 
   useLayoutEffect(() => {
@@ -51,17 +56,27 @@ export default function VirtualVideoGrid({
     const update = () => {
       setWidth(element.clientWidth);
       setOffset(element.getBoundingClientRect().top + window.scrollY);
+      setViewport(window.innerHeight);
     };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(element);
     observer.observe(document.body);
-    return () => observer.disconnect();
+    // The window can change height alone, as a phone's address bar hides.
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
-  const columns = columnsFor(width);
-  const cardWidth = (width - GAP_X * (columns - 1)) / columns;
-  const rowHeight = (cardWidth * 9) / 16 + TEXT_HEIGHT + GAP_Y;
+  const layout = useGridLayout();
+  const columns = columnsFor(width, layout);
+  const tight = width < PHONE && columns > 1;
+  const gapX = tight ? 10 : 16;
+  const gapY = tight ? 20 : 32;
+  const cardWidth = (width - gapX * (columns - 1)) / columns;
+  const rowHeight = (cardWidth * 9) / 16 + TEXT_HEIGHT + gapY;
   const rows = Math.ceil(videos.length / columns);
 
   const virtualizer = useWindowVirtualizer({
@@ -76,6 +91,13 @@ export default function VirtualVideoGrid({
   }, [virtualizer, rowHeight]);
 
   const items = virtualizer.getVirtualItems();
+  // One column reads as a feed: the card across the focus line plays, as on
+  // YouTube and Bilibili. Two or more columns stay still.
+  const focusY = (virtualizer.scrollOffset ?? 0) + viewport * FOCUS_LINE;
+  const focusRow =
+    columns === 1 && viewport
+      ? items.find((row) => row.start <= focusY && focusY < row.end)?.index
+      : undefined;
   const lastIndex = items.at(-1)?.index ?? -1;
   useEffect(() => {
     if (hasMore && rows > 0 && lastIndex >= rows - 3) onEndReached();
@@ -102,8 +124,8 @@ export default function VirtualVideoGrid({
           style={{
             transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)`,
             gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-            columnGap: GAP_X,
-            paddingBottom: GAP_Y,
+            columnGap: gapX,
+            paddingBottom: gapY,
           }}
         >
           {videos
@@ -114,6 +136,7 @@ export default function VirtualVideoGrid({
                 video={video}
                 morphKey={`grid-${video.id}`}
                 eager={row.index < 2}
+                autoplay={row.index === focusRow}
                 onOpen={onOpen}
                 className={cn(
                   fresh.has(video.id) &&
