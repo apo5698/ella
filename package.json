@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "ALLOWED_DEV_ORIGINS='*.local,winter-pc,*.tail1f4d45.ts.net,100.69.63.45' next dev -H 0.0.0.0",
     "build": "node scripts/sync-ui.mjs && prettier --check . && next build",
     "ui:sync": "node scripts/sync-ui.mjs",
     "start": "next start",
