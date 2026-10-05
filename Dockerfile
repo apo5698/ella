@@ -30,6 +30,8 @@ WORKDIR /app
 ARG APP_VERSION
 ENV APP_VERSION=${APP_VERSION}
 ENV NEXT_TELEMETRY_DISABLED=1
+# Build the committed components/ui, see scripts/sync-ui.mjs.
+ENV ELLA_SKIP_UI_SYNC=1
 
 COPY . .
 RUN bun run build

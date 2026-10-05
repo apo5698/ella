@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prettier --check . && next build",
+    "build": "node scripts/sync-ui.mjs && prettier --check . && next build",
+    "ui:sync": "node scripts/sync-ui.mjs",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",

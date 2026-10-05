@@ -12,4 +12,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Do not manually change the default styles of shadcn components in `components/ui`.
 - Add or refresh standard components with the shadcn CLI, using the project's configured style.
+- `bun run build` reinstalls every registry component in `components/ui` first (`scripts/sync-ui.mjs`), so a hand edit there is overwritten. A component the registry does not provide must be listed in `LOCAL` in that script.
 - Compose standard components in business components; use their variants and sizes before adding custom presentation. Keep standard UI source unchanged. In business components, use semantic hierarchy: primary content stays prominent, while secondary metadata and descriptions use `text-xs` and muted colors where appropriate.
